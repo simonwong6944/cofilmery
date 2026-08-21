@@ -1,0 +1,87 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --primary: #1f3a5f;
+    --accent: #c8912f;
+    --bg-soft: #f7f4ee;
+    --card: #ffffff;
+    --ink: #22262b;
+    --muted: #5b6470;
+    --line: #e3e7ec;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: 'Inter', 'Noto Sans TC', sans-serif;
+    background-color: var(--bg-soft);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Elderly-friendly base — 長者模式最小字體 */
+  .elder-mode {
+    font-size: 22px;
+    line-height: 1.8;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--bg-soft);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--line);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--muted);
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-primary text-white font-semibold px-6 py-3 rounded-lg hover:bg-primary/90 transition-colors;
+  }
+
+  .btn-accent {
+    @apply bg-accent text-white font-semibold px-6 py-3 rounded-lg hover:bg-accent/90 transition-colors;
+  }
+
+  .btn-outline {
+    @apply border-2 border-primary text-primary font-semibold px-6 py-3 rounded-lg hover:bg-primary hover:text-white transition-colors;
+  }
+
+  .card-base {
+    @apply bg-card rounded-xl shadow-sm border border-line;
+  }
+
+  .section-title {
+    @apply text-2xl font-bold text-ink;
+  }
+
+  .section-subtitle {
+    @apply text-muted text-sm mt-1;
+  }
+
+  .form-input {
+    @apply w-full border border-line rounded-lg px-4 py-2.5 text-ink placeholder-muted focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition;
+  }
+
+  .form-label {
+    @apply block text-sm font-medium text-ink mb-1;
+  }
+}
