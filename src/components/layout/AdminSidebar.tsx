@@ -17,7 +17,7 @@ const NAV_ITEMS = [
   { path: '/admin/credits',            icon: Coins,           label: '信用額引擎' },
   { path: '/admin/brands',             icon: Megaphone,       label: '品牌廣告' },
   { path: '/admin/esg',                icon: Leaf,            label: 'ESG 贊助' },
-  { path: '/admin/enterprise-legacy',  icon: Building2,       label: '企業傳承' },
+  { path: '/admin/enterprise',          icon: Building2,       label: '企業傳承' },
   { path: '/admin/sponsored-legacy',   icon: Heart,           label: '贊助式傳承' },
   { path: '/admin/redlines',           icon: AlertTriangle,   label: '紅線合規' },
   { path: '/admin/adapters',           icon: Cpu,             label: 'AI Adapter' },

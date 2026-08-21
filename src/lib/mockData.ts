@@ -144,10 +144,10 @@ export const MOCK_ADMIN_STATS = {
 };
 
 export const MOCK_REVIEW_QUEUE = [
-  { id: 'drama-002-ep5', title: '街市情緣 第五集', creator: '李美華', mode: 'drama', waitHours: 2, score: { safety: 8.5, language: 9.2, culture: 8.8, ethics: 9.5, commercial: 7.5 } },
-  { id: 'legacy-002-ep2', title: '涼茶世家 第二集', creator: '陳志明', mode: 'legacy', waitHours: 5, score: { safety: 9.0, language: 8.5, culture: 9.0, ethics: 9.5, commercial: 8.5 } },
-  { id: 'drama-003-ep12', title: '海邊老友記 第十二集', creator: '黃小明', mode: 'drama', waitHours: 5, score: { safety: 8.0, language: 7.5, culture: 8.5, ethics: 9.0, commercial: 8.0 } },
-  { id: 'drama-001-ep8', title: '獅子山下 第八集', creator: '王小龍', mode: 'drama', waitHours: 5, score: { safety: 9.5, language: 9.0, culture: 9.5, ethics: 10, commercial: 9.0 } },
+  { id: 'drama-002-ep5', title: '街市情緣 第五集', creator: '李美華', mode: 'drama', waitHours: 2, score: { content: 8.5, language: 9.2, culture: 8.8, ethics: 9.5, commercial: 7.5 } },
+  { id: 'legacy-002-ep2', title: '涼茶世家 第二集', creator: '陳志明', mode: 'legacy', waitHours: 5, score: { content: 9.0, language: 8.5, culture: 9.0, ethics: 9.5, commercial: 8.5 } },
+  { id: 'drama-003-ep12', title: '海邊老友記 第十二集', creator: '黃小明', mode: 'drama', waitHours: 5, score: { content: 8.0, language: 7.5, culture: 8.5, ethics: 9.0, commercial: 8.0 } },
+  { id: 'drama-001-ep8', title: '獅子山下 第八集', creator: '王小龍', mode: 'drama', waitHours: 5, score: { content: 9.5, language: 9.0, culture: 9.5, ethics: 10, commercial: 9.0 } },
 ];
 
 export const MOCK_NOTIFICATIONS = [
@@ -155,7 +155,7 @@ export const MOCK_NOTIFICATIONS = [
     id: 'n1', type: 'revision' as const,
     title: '街市情緣 第三集', reviewer: '王審批員',
     overallScore: 8.5,
-    scores: { safety: 9, language: 8, culture: 10, ethics: 10, commercial: 6 },
+    scores: { content: 9, language: 8, culture: 10, ethics: 10, commercial: 6 },
     issue: '第三場景出現未經授權之品牌標誌，請予移除。',
     date: '八月二十日',
   },
@@ -218,5 +218,9 @@ export const MOCK_CHAPTERS_LEGACY = [
   { id: 'ch5', title: '薪火相傳', description: '將手藝傳授下一代', duration: 4, topic: '傳承' },
 ];
 
-// Alias for convenience
-export const mockProjects = MOCK_ALL_SERIES;
+// Alias for convenience — add episodeCount + rating shims so viewer pages compile
+export const mockProjects = MOCK_ALL_SERIES.map(p => ({
+  ...p,
+  episodeCount: p.episodes,
+  rating: (p.esgScore ?? 8.0).toFixed(1),
+}));
