@@ -1,7 +1,7 @@
 import { PublicNav } from '@/components/layout/PublicNav';
 import { Logo } from '@/components/shared/Logo';
 
-export function About() {
+export default function About() {
   return (
     <div className="min-h-screen bg-bg-soft">
       <PublicNav />

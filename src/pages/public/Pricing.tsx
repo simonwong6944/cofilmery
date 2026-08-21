@@ -32,7 +32,7 @@ const FAQ = [
   { q: '為何勞務分紅並非 100%？', a: '我們需要維持平台運作及人工審批成本。' },
 ];
 
-export function Pricing() {
+export default function Pricing() {
   return (
     <div className="min-h-screen bg-bg-soft">
       <PublicNav />

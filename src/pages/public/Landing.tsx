@@ -5,7 +5,7 @@ import { Film, BookOpen, BookMarked, Users, Eye, ArrowRight, Play } from 'lucide
 import { MOCK_DRAMA_SERIES, MOCK_LEGACY_SERIES } from '@/lib/mockData';
 import { ModeBadge } from '@/components/shared/ModeBadge';
 
-export function Landing() {
+export default function Landing() {
   return (
     <div className="min-h-screen bg-bg-soft">
       <PublicNav />

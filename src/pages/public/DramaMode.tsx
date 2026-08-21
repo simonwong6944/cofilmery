@@ -4,7 +4,7 @@ import { MOCK_DRAMA_SERIES } from '@/lib/mockData';
 import { ModeBadge } from '@/components/shared/ModeBadge';
 import { Eye, ArrowRight, MessageSquare, Cpu, Camera, Mic } from 'lucide-react';
 
-export function DramaMode() {
+export default function DramaMode() {
   return (
     <div className="min-h-screen bg-bg-soft">
       <PublicNav />

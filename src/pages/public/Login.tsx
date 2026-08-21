@@ -41,7 +41,7 @@ const ROLE_CARDS = [
   },
 ];
 
-export function Login() {
+export default function Login() {
   const [selectedRole, setSelectedRole] = useState<UserRole>('creator');
   const [email, setEmail] = useState('creator@demo.com');
   const [password, setPassword] = useState('demo');

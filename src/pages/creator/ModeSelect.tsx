@@ -3,7 +3,7 @@ import { CreatorSidebar } from '@/components/layout/CreatorSidebar';
 import { Logo } from '@/components/shared/Logo';
 import { Film, BookOpen, ArrowRight, Cpu, Camera, Mic, MessageSquare, Video, FileText, Scissors } from 'lucide-react';
 
-export function ModeSelect() {
+export default function ModeSelect() {
   const navigate = useNavigate();
   return (
     <div className="flex h-screen bg-bg-soft overflow-hidden">

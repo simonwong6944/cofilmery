@@ -20,7 +20,7 @@ import Pricing from '@/pages/public/Pricing';
 import CreatorDashboard from '@/pages/creator/CreatorDashboard';
 import CreatorWorks from '@/pages/creator/CreatorWorks';
 import ModeSelect from '@/pages/creator/ModeSelect';
-import { DramaWorkflow } from '@/pages/creator/DramaWorkflow';
+import DramaWorkflow from '@/pages/creator/DramaWorkflow';
 import LegacyWorkflow from '@/pages/creator/LegacyWorkflow';
 import ScriptEditor from '@/pages/creator/ScriptEditor';
 import Assets from '@/pages/creator/Assets';

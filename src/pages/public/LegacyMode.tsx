@@ -4,7 +4,7 @@ import { MOCK_LEGACY_SERIES } from '@/lib/mockData';
 import { ModeBadge } from '@/components/shared/ModeBadge';
 import { User, FileCheck, Video, Cpu, ArrowRight, Eye } from 'lucide-react';
 
-export function LegacyMode() {
+export default function LegacyMode() {
   return (
     <div className="min-h-screen bg-bg-soft">
       <PublicNav />

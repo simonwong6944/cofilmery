@@ -4,7 +4,7 @@ import { MOCK_ALL_SERIES } from '@/lib/mockData';
 import { ModeBadge } from '@/components/shared/ModeBadge';
 import { Eye, Heart, Share2, Clock, Download } from 'lucide-react';
 
-export function WorkDetail() {
+export default function WorkDetail() {
   const { id } = useParams();
   const work = MOCK_ALL_SERIES.find(s => s.id === id) ?? MOCK_ALL_SERIES[0];
   return (

@@ -7,7 +7,7 @@ import { Eye, Clock } from 'lucide-react';
 
 type Filter = 'all' | 'drama' | 'legacy';
 
-export function Works() {
+export default function Works() {
   const [filter, setFilter] = useState<Filter>('all');
   const filtered = filter === 'all' ? MOCK_ALL_SERIES : MOCK_ALL_SERIES.filter(s => s.mode === filter);
   return (

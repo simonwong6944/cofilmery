@@ -2,7 +2,7 @@ import { PublicNav } from '@/components/layout/PublicNav';
 import { TierBadge } from '@/components/shared/TierBadge';
 import { Link } from 'react-router-dom';
 
-export function Recruit() {
+export default function Recruit() {
   return (
     <div className="min-h-screen bg-bg-soft">
       <PublicNav />

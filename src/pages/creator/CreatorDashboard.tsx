@@ -10,7 +10,7 @@ import { MOCK_ALL_SERIES, MOCK_CURRENT_CREATOR } from '@/lib/mockData';
 import { useAuthStore } from '@/store/authStore';
 import { Coins, Eye, TrendingUp, Leaf, MoreHorizontal } from 'lucide-react';
 
-export function CreatorDashboard() {
+export default function CreatorDashboard() {
   const { user } = useAuthStore();
   const creator = MOCK_CURRENT_CREATOR;
   return (

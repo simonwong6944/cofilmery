@@ -316,7 +316,7 @@ function S9Publish() {
 
 const STEPS = [S0Initiate, S1Materials, S2Script, S3Storyboard, S4Visuals, S5Subtitles, S6Voiceover, S7Compile, S8Submit, S9Publish];
 
-export function DramaWorkflow() {
+export default function DramaWorkflow() {
   const { step } = useParams();
   const navigate = useNavigate();
   const currentStep = Math.min(parseInt(step ?? '0', 10), 9);

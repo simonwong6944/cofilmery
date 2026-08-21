@@ -8,7 +8,7 @@ const SUBJECTS = [
   { name: '張女士', story: '自閉症兒童之母親，創辦本地支援中心', views: 1900, status: '送審中' },
 ];
 
-export function SponsoredLegacy() {
+export default function SponsoredLegacy() {
   return (
     <div className="min-h-screen bg-bg-soft">
       <PublicNav />

@@ -1,6 +1,6 @@
 import { PublicNav } from '@/components/layout/PublicNav';
 
-export function Enterprise() {
+export default function Enterprise() {
   return (
     <div className="min-h-screen bg-bg-soft">
       <PublicNav />
