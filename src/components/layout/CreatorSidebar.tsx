@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Logo } from '@/components/shared/Logo';
+import { LocaleSwitcher } from '@/components/shared/LocaleSwitcher';
 import { LayoutDashboard, FolderOpen, PlusCircle, Coins, Award, Bell } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/authStore';
@@ -54,6 +55,7 @@ export function CreatorSidebar() {
           );
         })}
       </nav>
+      <LocaleSwitcher layout="stacked" />
     </aside>
   );
 }

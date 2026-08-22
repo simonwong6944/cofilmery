@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Heart, Film, Play, Trash2, ChevronLeft, Search, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Logo } from '@/components/shared/Logo';
-import { mockProjects } from '@/lib/mockData';
+import { LocaleSwitcher } from '@/components/shared/LocaleSwitcher';
 import { useLocaleStore } from '@/store/localeStore';
 import { t } from '@/i18n';
 
@@ -34,6 +34,9 @@ export default function Favorites() {
         </Link>
         <Logo size="md" withWordmark theme="dark"/>
         <span className="text-white/30 text-sm">/ {tr.viewer.favorites.breadcrumb}</span>
+        <div className="ml-auto">
+          <LocaleSwitcher layout="row" className="text-white/60 [&_button]:text-white/50 [&_button]:hover:text-white" />
+        </div>
       </header>
 
       <main className="max-w-3xl mx-auto px-6 py-8">

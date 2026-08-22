@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Logo } from '@/components/shared/Logo';
+import { LocaleSwitcher } from '@/components/shared/LocaleSwitcher';
 import {
   LayoutDashboard, ListVideo, PlaySquare, Users, UserCheck,
   ShieldAlert, Coins, Megaphone, Leaf, Building2, Heart,
@@ -58,6 +59,7 @@ export function AdminSidebar() {
           );
         })}
       </nav>
+      <LocaleSwitcher layout="stacked" />
     </aside>
   );
 }

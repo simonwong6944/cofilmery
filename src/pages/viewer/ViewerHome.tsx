@@ -6,6 +6,7 @@ import { mockProjects } from '@/lib/mockData';
 import { useAuthStore } from '@/store/authStore';
 import { useLocaleStore } from '@/store/localeStore';
 import { t } from '@/i18n';
+import { LocaleSwitcher } from '@/components/shared/LocaleSwitcher';
 
 const FEATURED_WORK = mockProjects[0];
 const RECOMMENDED = mockProjects.filter(p => p.status === 'published');
@@ -75,6 +76,8 @@ export default function ViewerHome() {
               <Bell className="w-5 h-5"/>
               <span className="absolute top-0.5 right-0.5 w-2 h-2 bg-accent rounded-full"/>
             </button>
+            {/* Locale switcher for viewer */}
+            <LocaleSwitcher layout="row" className="text-white/70 [&_button]:text-white/60 [&_button:hover]:text-white [&_.text-primary]:text-accent" />
             <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white text-xs font-bold">
               {user?.name?.[0] ?? 'U'}
             </div>

@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils';
+import { useNavigate } from 'react-router-dom';
 
 interface LogoProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
@@ -6,6 +7,8 @@ interface LogoProps {
   withTagline?: boolean;
   theme?: 'light' | 'dark';
   className?: string;
+  /** If true (default), clicking the logo navigates to home ("/"). Set false to disable. */
+  clickable?: boolean;
 }
 
 // Logo image sizes — icon-only height when withWordmark=false,
@@ -26,15 +29,25 @@ export function Logo({
   withTagline = false,
   theme = 'light',
   className,
+  clickable = true,
 }: LogoProps) {
+  const navigate = useNavigate();
   const s = sizes[size];
   const taglineSize = { sm: 'text-[9px]', md: 'text-[10px]', lg: 'text-xs', xl: 'text-sm' }[size];
   const taglineColor = theme === 'dark' ? 'text-gray-300' : 'text-muted';
 
+  const handleClick = clickable
+    ? () => navigate('/')
+    : undefined;
+
+  const wrapperClass = clickable ? 'cursor-pointer' : '';
+
   if (withWordmark) {
-    // Use the full logo image (icon + wordmark already in image)
     return (
-      <div className={cn('flex flex-col items-start leading-none', className)}>
+      <div
+        className={cn('flex flex-col items-start leading-none', wrapperClass, className)}
+        onClick={handleClick}
+      >
         <img
           src={LOGO_SRC}
           alt="CoFilmery · AI短視頻共創平台"
@@ -50,10 +63,13 @@ export function Logo({
     );
   }
 
-  // Icon-only mode: crop to just the C icon portion on the left
+  // Icon-only mode
   return (
-    <div className={cn('flex items-center leading-none overflow-hidden', className)}
-      style={{ height: s.iconH, width: s.iconH }}>
+    <div
+      className={cn('flex items-center leading-none overflow-hidden', wrapperClass, className)}
+      style={{ height: s.iconH, width: s.iconH }}
+      onClick={handleClick}
+    >
       <img
         src={LOGO_SRC}
         alt="CoFilmery"
@@ -62,7 +78,6 @@ export function Logo({
           width: 'auto',
           objectFit: 'cover',
           objectPosition: 'left center',
-          // Show only the left ~30% which contains the C icon
           maxWidth: `${s.iconH * 1.05}px`,
         }}
         draggable={false}

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Play, Star, Film, Search, Filter, Clock, ChevronLeft, Grid, List } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Logo } from '@/components/shared/Logo';
+import { LocaleSwitcher } from '@/components/shared/LocaleSwitcher';
 import { mockProjects } from '@/lib/mockData';
 import { useLocaleStore } from '@/store/localeStore';
 import { t } from '@/i18n';
@@ -45,6 +46,9 @@ export default function DramaWall() {
           </Link>
           <Logo size="md" withWordmark theme="dark" />
           <span className="text-white/30 text-sm">/ {tr.viewer.dramaWall.allWorks}</span>
+          <div className="ml-auto">
+            <LocaleSwitcher layout="row" className="text-white/60 [&_button]:text-white/50 [&_button]:hover:text-white" />
+          </div>
         </div>
       </header>
 

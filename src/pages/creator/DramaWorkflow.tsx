@@ -308,13 +308,13 @@ function PlanOverview({ onNext }: { onNext: () => void }) {
 
       <div className="flex gap-3">
         <button className="flex items-center gap-2 border border-line px-5 py-3 rounded-xl text-muted hover:border-primary hover:text-primary transition-colors text-sm">
-          <Save size={15} /> 儲存草稿
+          <Save size={15} /> {tr.creator.drama.s9.saveDraft}
         </button>
         <button
           onClick={onNext}
           className="flex-1 bg-accent text-white py-3 rounded-xl font-semibold hover:bg-accent/90 transition-colors flex items-center justify-center gap-2"
         >
-          <Check size={18} /> 確認策劃，進入資產庫
+          <Check size={18} /> {tr.creator.drama.s0.confirmBtn}
         </button>
       </div>
     </div>
@@ -430,18 +430,18 @@ function S1AssetBank({ onNext }: { onNext: () => void }) {
   const [showSponsorInfo, setShowSponsorInfo] = useState(false);
 
   const sponsorCategories: { id: SponsorCategory; icon: React.ElementType; label: string; desc: string; color: string }[] = [
-    { id: 'car',        icon: Car,             label: '汽車品牌',   desc: '豪華車 / 日系 / 商務',   color: 'text-blue-500' },
-    { id: 'restaurant', icon: UtensilsCrossed,  label: '餐廳 / 食肆', desc: '中菜 / 酒店 / 快餐',    color: 'text-orange-500' },
-    { id: 'product',    icon: ShoppingBag,      label: '產品 / 服裝', desc: '保健 / 護膚 / 年代服飾', color: 'text-purple-500' },
-    { id: 'location',   icon: MapPin,           label: '場景 / 地點', desc: '香港地標 / 特色場所',   color: 'text-green-500' },
+    { id: 'car',        icon: Car,            label: tr.creator.drama.s1.catCar,        desc: tr.creator.drama.s1.catCarDesc,        color: 'text-blue-500' },
+    { id: 'restaurant', icon: UtensilsCrossed, label: tr.creator.drama.s1.catRestaurant, desc: tr.creator.drama.s1.catRestaurantDesc, color: 'text-orange-500' },
+    { id: 'product',    icon: ShoppingBag,     label: tr.creator.drama.s1.catProduct,    desc: tr.creator.drama.s1.catProductDesc,    color: 'text-purple-500' },
+    { id: 'location',   icon: MapPin,          label: tr.creator.drama.s1.catLocation,   desc: tr.creator.drama.s1.catLocationDesc,   color: 'text-green-500' },
   ];
 
-  const ownAssetTypes = [
-    { icon: Users,  label: '角色參考圖', color: 'text-blue-500',   accept: 'JPG / PNG', count: 0 },
-    { icon: Image,  label: '場景參考圖', color: 'text-green-500',  accept: 'JPG / PNG', count: 2 },
-    { icon: Camera, label: '道具 / 服裝', color: 'text-purple-500', accept: 'JPG / PNG', count: 0 },
-    { icon: Music,  label: '背景音樂',   color: 'text-amber-500',  accept: 'MP3 / WAV', count: 1 },
-  ];
+  const ownAssetIcons = [Users, Image, Camera, Music];
+  const ownAssetColors = ['text-blue-500','text-green-500','text-purple-500','text-amber-500'];
+  const ownAssetTypes = tr.creator.drama.s1.ownAssets.map((a, i) => ({
+    icon: ownAssetIcons[i], label: a.label, color: ownAssetColors[i],
+    accept: a.accept, count: [0,2,0,1][i],
+  }));
 
   const toggleAsset = (cat: SponsorCategory, brand: { id: string; name: string }, asset: { id: string; name: string; img: string; tag: string }) => {
     setSelectedSponsorAssets(prev => {
@@ -460,8 +460,8 @@ function S1AssetBank({ onNext }: { onNext: () => void }) {
     <div className="max-w-2xl">
       {/* Header */}
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-primary">S1 · 資產庫</h2>
-        <p className="text-muted text-sm mt-1">上傳自有素材，或從贊助商品牌庫選用道具、場景、車輛、產品，豐富劇集視覺並帶來贊助收益。</p>
+        <h2 className="text-2xl font-bold text-primary">{tr.creator.drama.s1.title}</h2>
+        <p className="text-muted text-sm mt-1">{tr.creator.drama.s1.subtitle}</p>
         <div className="flex items-center gap-2 mt-2 flex-wrap">
           <div className="inline-flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-medium">
             <Zap size={11} /> 綁定系列 ID：DRAMA-2026-001
@@ -484,7 +484,7 @@ function S1AssetBank({ onNext }: { onNext: () => void }) {
               : 'text-muted hover:text-ink'
           }`}
         >
-          <Upload size={15} /> 自有素材上傳
+          <Upload size={15} /> {tr.creator.drama.s1.ownTab}
         </button>
         <button
           onClick={() => setActiveTab('sponsor')}
@@ -494,7 +494,7 @@ function S1AssetBank({ onNext }: { onNext: () => void }) {
               : 'text-muted hover:text-ink'
           }`}
         >
-          <Gift size={15} /> 贊助商品牌資產庫
+          <Gift size={15} /> {tr.creator.drama.s1.sponsorTab}
           {totalSelected > 0 && (
             <span className="bg-white/25 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">
               {totalSelected}
@@ -522,14 +522,14 @@ function S1AssetBank({ onNext }: { onNext: () => void }) {
               </div>
               <div className="border-2 border-dashed border-line rounded-lg p-4 text-center hover:border-primary transition-colors cursor-pointer">
                 <Upload size={20} className="mx-auto text-muted mb-1" />
-                <p className="text-xs text-muted">點擊上傳或拖放</p>
+                <p className="text-xs text-muted">{tr.creator.drama.s1.uploadPrompt}</p>
               </div>
             </div>
           ))}
 
           {/* Preview grid */}
           <div className="bg-card rounded-xl border border-line p-5 shadow-card">
-            <h3 className="font-semibold text-ink text-sm mb-3">已上傳素材預覽</h3>
+            <h3 className="font-semibold text-ink text-sm mb-3">{tr.creator.drama.s1.previewTitle}</h3>
             <div className="grid grid-cols-4 gap-2">
               {[
                 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=120&h=120&fit=crop',
@@ -559,8 +559,8 @@ function S1AssetBank({ onNext }: { onNext: () => void }) {
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-3">
             <Gift size={18} className="text-accent flex-shrink-0 mt-0.5" />
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-amber-800">贊助商品牌資產庫</p>
-              <p className="text-xs text-amber-700 mt-0.5">從認證贊助商品牌庫選用道具、汽車、場景，AI 生成時自動植入品牌視覺，創作者可獲得額外贊助積分或收益分成。</p>
+              <p className="text-sm font-semibold text-amber-800">{tr.creator.drama.s1.sponsorTitle}</p>
+              <p className="text-xs text-amber-700 mt-0.5">{tr.creator.drama.s1.sponsorDesc}</p>
             </div>
             <button onClick={() => setShowSponsorInfo(v => !v)} className="flex-shrink-0 text-amber-500 hover:text-amber-700">
               <Info size={15} />
@@ -569,11 +569,11 @@ function S1AssetBank({ onNext }: { onNext: () => void }) {
 
           {showSponsorInfo && (
             <div className="bg-card border border-line rounded-xl p-4 text-xs text-muted space-y-1.5">
-              <p className="font-semibold text-ink text-sm">如何運作？</p>
-              <p>① 創作者在資產庫選擇贊助商品牌的汽車 / 場景 / 產品</p>
-              <p>② AI 生成分鏡 / 關鍵幀時自動將品牌資產融入畫面</p>
-              <p>③ 品牌方按曝光集數支付贊助費，分成給創作者（平台收 30%）</p>
-              <p>④ 白金贊助商享有優先曝光，創作者可額外獲得品牌積分</p>
+              <p className="font-semibold text-ink text-sm">{tr.creator.drama.s1.howItWorksTitle}</p>
+              <p>{tr.creator.drama.s1.howItWorks1}</p>
+              <p>{tr.creator.drama.s1.howItWorks2}</p>
+              <p>{tr.creator.drama.s1.howItWorks3}</p>
+              <p>{tr.creator.drama.s1.howItWorks4}</p>
             </div>
           )}
 
@@ -633,7 +633,7 @@ function S1AssetBank({ onNext }: { onNext: () => void }) {
                   {isExpanded && (
                     <div className="px-4 pb-4 border-t border-line pt-3">
                       <p className="text-xs text-muted mb-3 flex items-center gap-1">
-                        <Package size={11} /> 點擊圖片選用，可多選
+                        <Package size={11} /> {tr.creator.drama.s1.clickToSelect}
                       </p>
                       <div className="grid grid-cols-3 gap-3">
                         {brand.assets.map(asset => {
@@ -703,7 +703,7 @@ function S1AssetBank({ onNext }: { onNext: () => void }) {
               <div className="mt-3 p-3 bg-amber-50 rounded-lg border border-amber-100">
                 <p className="text-xs text-amber-700 flex items-center gap-1.5">
                   <Zap size={11} />
-                  AI 生成分鏡 / 關鍵幀時將自動植入以上 {totalSelected} 個品牌資產，每集曝光可獲品牌贊助積分。
+                  {tr.creator.drama.s1.sponsorNote} {totalSelected} {tr.creator.drama.s1.sponsorNote2}
                 </p>
               </div>
             </div>
@@ -718,11 +718,11 @@ function S1AssetBank({ onNext }: { onNext: () => void }) {
           className="w-full bg-primary text-white py-3 rounded-xl font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
         >
           <ChevronRight size={18} />
-          資產庫確認，進入角色設定
+          {tr.creator.drama.s1.confirmBtn}
         </button>
         {totalSelected > 0 && (
           <p className="text-center text-xs text-muted mt-2">
-            已為此系列綁定 {totalSelected} 個贊助商資產，將用於 S4 分鏡生成
+            {tr.creator.drama.s1.confirmNote} {totalSelected} {tr.creator.drama.s1.confirmNote2}
           </p>
         )}
       </div>
@@ -754,6 +754,9 @@ function CharacterProfileCard({
   similarity: string; setSimilarity: (v: string) => void;
   mode: 'drama' | 'legacy';
 }) {
+  const { locale } = useLocaleStore();
+  const tr = t();
+  void locale;
   const [traits, setTraits] = useState(['開朗樂觀', '勤力', '重情義', '愛說故事', '傳統']);
   const [newTrait, setNewTrait] = useState('');
   const [addingTrait, setAddingTrait] = useState(false);
@@ -770,32 +773,28 @@ function CharacterProfileCard({
   const setApp = (k: keyof AppearanceOptions, v: string) =>
     setAppearance(prev => ({ ...prev, [k]: prev[k] === v ? '' : v }));
 
+  const simColors = [
+    { color: 'bg-green-500', border: 'border-green-500', bg: 'bg-green-50' },
+    { color: 'bg-blue-500',  border: 'border-blue-500',  bg: 'bg-blue-50'  },
+    { color: 'bg-purple-500',border: 'border-purple-500',bg: 'bg-purple-50'},
+  ];
+  const s2tr = tr.creator.drama.s2;
   const similarityLabels = [
-    { id: '極似', label: '極似', desc: 'AI 強鎖定，近乎一模一樣', color: 'bg-green-500', border: 'border-green-500', bg: 'bg-green-50' },
-    { id: '70%',  label: '70%',  desc: '主要特徵保持，細節有變化', color: 'bg-blue-500',  border: 'border-blue-500',  bg: 'bg-blue-50'  },
-    { id: '神韻', label: '神韻', desc: '捕捉神態氣質，不拘形似',   color: 'bg-purple-500',border: 'border-purple-500',bg: 'bg-purple-50'},
+    { id: s2tr.simVeryClose, label: s2tr.simVeryClose, desc: s2tr.simVeryCloseDesc, ...simColors[0] },
+    { id: s2tr.simSeventyPct, label: s2tr.simSeventyPct, desc: s2tr.simSeventyPctDesc, ...simColors[1] },
+    { id: s2tr.simSpirit, label: s2tr.simSpirit, desc: s2tr.simSpiritDesc, ...simColors[2] },
   ];
 
-  const TRAIT_PRESETS = [
-    '開朗樂觀','勤力','重情義','愛說故事','傳統','溫柔體貼','沉默寡言',
-    '幽默風趣','固執','好勝','善解人意','獨立自強','念舊','慷慨','堅毅',
-  ];
+  const TRAIT_PRESETS = tr.creator.drama.shared.traitPresets;
 
-  // Appearance option rows
-  const appearanceRows: { label: string; key: keyof AppearanceOptions; opts: string[] }[] = [
-    { label: '身高',   key: 'height',     opts: ['矮小', '中等身高', '高挑', '高大'] },
-    { label: '體型',   key: 'build',      opts: ['瘦削', '纖細', '適中', '微胖', '肥胖', '壯實'] },
-    { label: '膚色',   key: 'skin',       opts: ['白皙', '小麥色', '深色', '古銅色'] },
-    { label: '頭髮款式', key: 'hair',     opts: ['直髮', '捲髮', '波浪髮', '光頭', '微卷'] },
-    { label: '頭髮顏色', key: 'hairColor', opts: ['黑色', '深棕', '灰白', '全白', '染色'] },
-    { label: '頭髮長度', key: 'hairLength', opts: ['極短', '短髮', '中長', '長髮', '超長'] },
-    { label: '臉型',   key: 'face',       opts: ['圓臉', '鵝蛋臉', '方臉', '長臉', '瓜子臉'] },
-    { label: '眼神',   key: 'eyes',       opts: ['眼神溫和', '眼神銳利', '眼神慈祥', '眼神憂鬱'] },
-    { label: '眼鏡',   key: 'eyewear',    opts: ['無眼鏡', '細框眼鏡', '粗框眼鏡', '老花眼鏡', '墨鏡'] },
-    { label: '面部特徵', key: 'facial',   opts: ['無鬚', '短鬚', '山羊鬚', '八字鬚', '滿臉鬚', '酒窩', '皺紋明顯'] },
-    { label: '姿態',   key: 'posture',    opts: ['昂首挺胸', '含胸駝背', '輕鬆隨意', '端莊穩重'] },
-    { label: '衣著風格', key: 'style',    opts: ['傳統唐裝', '工人裝束', '整齊西裝', '休閒便服', '廚師圍裙', '旗袍', '運動服'] },
+  // Appearance option rows — from locale so they rebuild on locale change
+  const appearanceRowLabels = tr.creator.drama.s2.appearanceRows;
+  const appearanceRowKeys: (keyof AppearanceOptions)[] = [
+    'height','build','skin','hair','hairColor','hairLength',
+    'face','eyes','eyewear','facial','posture','style',
   ];
+  const appearanceRows: { label: string; key: keyof AppearanceOptions; opts: string[] }[] =
+    appearanceRowLabels.map((r, i) => ({ label: r.label, key: appearanceRowKeys[i], opts: r.opts }));
 
   const accentColor = mode === 'drama' ? 'primary' : 'accent';
 
@@ -813,21 +812,21 @@ function CharacterProfileCard({
           <div className="flex-1 space-y-2">
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-xs text-muted">{mode === 'drama' ? '角色名稱' : '受訪者稱呼'}</label>
+                <label className="text-xs text-muted">{mode === 'drama' ? s2tr.charNameLabel : tr.creator.legacy.s2.nameLabel}</label>
                 <input className="w-full border border-line rounded px-2 py-1.5 text-sm bg-bg-soft focus:outline-none focus:border-primary" defaultValue={name} />
               </div>
               <div>
-                <label className="text-xs text-muted">{mode === 'drama' ? '角色定位' : '職業 / 身份'}</label>
+                <label className="text-xs text-muted">{mode === 'drama' ? s2tr.charRoleLabel : tr.creator.legacy.s2.roleLabel}</label>
                 <input className="w-full border border-line rounded px-2 py-1.5 text-sm bg-bg-soft focus:outline-none focus:border-primary" defaultValue={role} />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-xs text-muted">年齡</label>
+                <label className="text-xs text-muted">{s2tr.charAgeLabel}</label>
                 <input className="w-full border border-line rounded px-2 py-1.5 text-sm bg-bg-soft focus:outline-none focus:border-primary" defaultValue={age} />
               </div>
               <div>
-                <label className="text-xs text-muted">背景簡介</label>
+                <label className="text-xs text-muted">{mode === 'drama' ? s2tr.charBgLabel : tr.creator.legacy.s2.bgLabel}</label>
                 <input className="w-full border border-line rounded px-2 py-1.5 text-sm bg-bg-soft focus:outline-none focus:border-primary" defaultValue={bg} />
               </div>
             </div>
@@ -837,15 +836,15 @@ function CharacterProfileCard({
         {/* Upload refs */}
         <div className="border border-dashed border-line rounded-lg p-3 text-center cursor-pointer hover:border-primary transition-colors">
           <Upload size={14} className="mx-auto text-muted mb-1" />
-          <p className="text-xs text-muted">上傳參考圖（可多張，用於 AI 生成一致性）</p>
+          <p className="text-xs text-muted">{mode === 'drama' ? s2tr.uploadRef : tr.creator.legacy.s2.uploadRef}</p>
         </div>
       </div>
 
       {/* 性格特質 */}
       <div className="bg-card rounded-xl border border-line p-5 shadow-card">
         <div className="flex items-center justify-between mb-3">
-          <label className="text-sm font-semibold text-ink">性格特質</label>
-          <span className="text-xs text-muted">AI 會據此調整說話語氣與行為模式</span>
+          <label className="text-sm font-semibold text-ink">{s2tr.traitsLabel}</label>
+          <span className="text-xs text-muted">{mode === 'drama' ? s2tr.traitsSubtitle : tr.creator.legacy.s2.traitsSubtitle}</span>
         </div>
 
         {/* Active traits */}
@@ -866,7 +865,7 @@ function CharacterProfileCard({
               onClick={() => setAddingTrait(true)}
               className="text-xs text-muted border border-dashed border-line px-3 py-1 rounded-full hover:border-primary hover:text-primary transition-colors flex items-center gap-1"
             >
-              <Plus size={10} /> 新增特質
+              <Plus size={10} /> {s2tr.addTrait}
             </button>
           )}
         </div>
@@ -877,19 +876,19 @@ function CharacterProfileCard({
             <input
               autoFocus
               className="flex-1 border border-primary rounded-lg px-3 py-1.5 text-sm bg-bg-soft focus:outline-none"
-              placeholder="輸入特質..."
+              placeholder={s2tr.traitInputPlaceholder}
               value={newTrait}
               onChange={e => setNewTrait(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') addTrait(); if (e.key === 'Escape') setAddingTrait(false); }}
             />
-            <button onClick={addTrait} className="bg-primary text-white text-xs px-3 py-1.5 rounded-lg">確認</button>
-            <button onClick={() => setAddingTrait(false)} className="text-muted text-xs px-2 py-1.5 rounded-lg hover:bg-bg-soft">取消</button>
+            <button onClick={addTrait} className="bg-primary text-white text-xs px-3 py-1.5 rounded-lg">{s2tr.traitConfirm}</button>
+            <button onClick={() => setAddingTrait(false)} className="text-muted text-xs px-2 py-1.5 rounded-lg hover:bg-bg-soft">{s2tr.traitCancel}</button>
           </div>
         )}
 
         {/* Preset suggestions */}
         <div>
-          <p className="text-xs text-muted mb-1.5">快速加入：</p>
+          <p className="text-xs text-muted mb-1.5">{s2tr.quickAdd}</p>
           <div className="flex flex-wrap gap-1.5">
             {TRAIT_PRESETS.filter(p => !traits.includes(p)).map(p => (
               <button
@@ -912,13 +911,13 @@ function CharacterProfileCard({
         >
           <div className="flex items-center gap-2">
             <Users size={16} className="text-primary" />
-            <span className="text-sm font-semibold text-ink">外型細節設定</span>
-            <span className="text-xs text-muted">（高矮肥瘦、頭髮、臉型、衣著等）</span>
+            <span className="text-sm font-semibold text-ink">{s2tr.appearanceTitle}</span>
+            <span className="text-xs text-muted">{s2tr.appearanceSubtitle}</span>
           </div>
           <div className="flex items-center gap-2">
             {Object.values(appearance).filter(Boolean).length > 0 && (
               <span className="bg-primary/10 text-primary text-[10px] px-2 py-0.5 rounded-full font-medium">
-                已設定 {Object.values(appearance).filter(Boolean).length} 項
+                {s2tr.appearanceSet} {Object.values(appearance).filter(Boolean).length} 項
               </span>
             )}
             <ChevronDown size={16} className={`text-muted transition-transform ${showAppearance ? 'rotate-180' : ''}`} />
@@ -950,18 +949,18 @@ function CharacterProfileCard({
 
             {/* Free text supplement */}
             <div>
-              <label className="text-xs font-semibold text-ink mb-1.5 block">補充描述（自由填寫）</label>
+              <label className="text-xs font-semibold text-ink mb-1.5 block">{s2tr.supplement}</label>
               <textarea
                 className="w-full border border-line rounded-lg px-3 py-2 text-xs bg-bg-soft focus:outline-none focus:border-primary resize-none"
                 rows={2}
-                placeholder="例：右耳有一顆痣、慣用右手、走路略帶跛腳..."
+                placeholder={s2tr.supplementPlaceholder}
               />
             </div>
 
             {/* Preview summary */}
             {Object.values(appearance).some(Boolean) && (
               <div className="bg-primary/5 border border-primary/20 rounded-lg p-3">
-                <p className="text-xs text-primary font-semibold mb-1">AI 外型描述預覽：</p>
+                <p className="text-xs text-primary font-semibold mb-1">{s2tr.appearancePreview}</p>
                 <p className="text-xs text-ink leading-relaxed">
                   {[
                     appearance.height, appearance.build,
@@ -981,9 +980,9 @@ function CharacterProfileCard({
       {/* 身份視覺一致性 */}
       <div className="bg-card rounded-xl border border-line p-5 shadow-card">
         <div className="flex items-center justify-between mb-1">
-          <label className="text-sm font-semibold text-ink">身份視覺一致性設定</label>
+          <label className="text-sm font-semibold text-ink">{s2tr.similarityTitle}</label>
         </div>
-        <p className="text-xs text-muted mb-3">控制 AI 在每集生成時，與此角色外型的吻合程度</p>
+        <p className="text-xs text-muted mb-3">{mode === 'drama' ? s2tr.similaritySubtitle : tr.creator.legacy.s2.similaritySubtitle}</p>
         <div className="grid grid-cols-3 gap-2">
           {similarityLabels.map(s => (
             <button
@@ -1004,10 +1003,10 @@ function CharacterProfileCard({
           ))}
         </div>
         <div className="mt-3 text-xs text-muted bg-bg-soft rounded-lg p-2.5">
-          {similarity === '極似' && '⚡ AI 將嚴格鎖定臉部特徵與外型，每集高度一致。適合主角。'}
-          {similarity === '70%' && '✦ AI 保持主要特徵（體型、臉型、髮型），允許光線/角度差異。適合配角。'}
-          {similarity === '神韻' && '◈ AI 捕捉角色氣質與神態，不強求形似。適合群眾角色或寫意風格。'}
-          {!similarity && '請選擇一致性程度'}
+          {similarity === s2tr.simVeryClose && (mode === 'drama' ? s2tr.simHintVeryClose : tr.creator.legacy.s2.simHintVeryClose)}
+          {similarity === s2tr.simSeventyPct && (mode === 'drama' ? s2tr.simHint70 : tr.creator.legacy.s2.simHint70)}
+          {similarity === s2tr.simSpirit && (mode === 'drama' ? s2tr.simHintSpirit : tr.creator.legacy.s2.simHintSpirit)}
+          {!similarity && (mode === 'drama' ? s2tr.simHintNone : tr.creator.legacy.s2.simHintNone)}
         </div>
       </div>
     </div>
@@ -1044,17 +1043,17 @@ function S2CharacterSetup({ onNext }: { onNext: () => void }) {
   return (
     <div className="max-w-2xl">
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-primary">S2 · 角色設定</h2>
-        <p className="text-muted text-sm mt-1">建立系列角色卡，設定性格特質、外型細節與 AI 生成一致性，讓每集角色更真實立體。</p>
+        <h2 className="text-2xl font-bold text-primary">{tr.creator.drama.s2.title}</h2>
+        <p className="text-muted text-sm mt-1">{tr.creator.drama.s2.subtitle}</p>
       </div>
 
       <div className="space-y-4 mb-6">
         {/* 角色陣容選擇器 */}
         <div className="bg-card rounded-xl border border-line p-4 shadow-card">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="font-semibold text-ink text-sm">角色陣容</h3>
+            <h3 className="font-semibold text-ink text-sm">{tr.creator.drama.s2.castTitle}</h3>
             <button className="text-accent text-sm hover:underline flex items-center gap-1">
-              <Plus size={13} /> 新增角色
+              <Plus size={13} /> {tr.creator.drama.s2.addChar}
             </button>
           </div>
           <div className="flex gap-3 flex-wrap">
@@ -1098,7 +1097,7 @@ function S2CharacterSetup({ onNext }: { onNext: () => void }) {
         className="w-full bg-primary text-white py-3 rounded-xl font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
       >
         <ChevronRight size={18} />
-        角色確認，進入故事框架
+        {tr.creator.drama.s2.confirmBtn}
         <CreditIndicator cost={0} className="ml-2" />
       </button>
     </div>
@@ -1154,8 +1153,8 @@ function S3StoryFramework({ onNext }: { onNext: () => void }) {
   return (
     <div className="max-w-2xl">
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-primary">S3 · 故事框架</h2>
-        <p className="text-muted text-sm mt-1">分三步建立完整故事：輸入大綱 → AI 生成結構 → AI 逐集展開腳本。</p>
+        <h2 className="text-2xl font-bold text-primary">{tr.creator.drama.s3.title}</h2>
+        <p className="text-muted text-sm mt-1">{tr.creator.drama.s3.subtitle}</p>
       </div>
 
       <div className="space-y-4">
@@ -1168,8 +1167,8 @@ function S3StoryFramework({ onNext }: { onNext: () => void }) {
             <div className="flex items-center gap-3">
               <span className="w-7 h-7 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center">3a</span>
               <div className="text-left">
-                <div className="font-bold text-ink">大綱輸入</div>
-                <div className="text-xs text-muted">創作者輸入故事核心</div>
+                <div className="font-bold text-ink">{tr.creator.drama.s3.phase3aTitle}</div>
+                <div className="text-xs text-muted">{tr.creator.drama.s3.phase3aSubtitle}</div>
               </div>
             </div>
             {phase3a ? <ChevronDown size={16} className="text-muted" /> : <ChevronRight size={16} className="text-muted" />}
@@ -1179,33 +1178,33 @@ function S3StoryFramework({ onNext }: { onNext: () => void }) {
             <div className="px-5 pb-5 space-y-4 border-t border-line pt-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-muted mb-1 block">核心衝突</label>
+                  <label className="text-xs text-muted mb-1 block">{tr.creator.drama.s3.conflictLabel}</label>
                   <textarea
                     className="w-full border border-line rounded-lg px-3 py-2 bg-bg-soft text-sm text-ink resize-none focus:outline-none focus:border-primary"
                     rows={2}
-                    placeholder="主角面對什麼核心困境？"
+                    placeholder={tr.creator.drama.s3.conflictPlaceholder}
                     defaultValue="陳伯年輕時放棄廚師夢，退休後不知如何面對空白人生"
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-muted mb-1 block">主角弧光（成長路徑）</label>
+                  <label className="text-xs text-muted mb-1 block">{tr.creator.drama.s3.arcLabel}</label>
                   <textarea
                     className="w-full border border-line rounded-lg px-3 py-2 bg-bg-soft text-sm text-ink resize-none focus:outline-none focus:border-primary"
                     rows={2}
-                    placeholder="主角由什麼狀態成長到什麼狀態？"
+                    placeholder={tr.creator.drama.s3.arcPlaceholder}
                     defaultValue="由「人生已完」的失落感，走向「重新被需要」的圓滿"
                   />
                 </div>
               </div>
               <div>
-                <label className="text-xs text-muted mb-1 block">主要場景</label>
+                <label className="text-xs text-muted mb-1 block">{tr.creator.drama.s3.sceneLabel}</label>
                 <input
                   className="w-full border border-line rounded-lg px-3 py-2 bg-bg-soft text-sm text-ink focus:outline-none focus:border-primary"
                   defaultValue="灣仔街市、陳伯家廳、社區廚藝中心"
                 />
               </div>
               <div>
-                <label className="text-xs text-muted mb-1 block">重要角色關係</label>
+                <label className="text-xs text-muted mb-1 block">{tr.creator.drama.s3.relationsLabel}</label>
                 <input
                   className="w-full border border-line rounded-lg px-3 py-2 bg-bg-soft text-sm text-ink focus:outline-none focus:border-primary"
                   defaultValue="陳伯（主）＋ 陳太（支持者）＋ 阿明（觸發者）"
@@ -1215,7 +1214,7 @@ function S3StoryFramework({ onNext }: { onNext: () => void }) {
                 onClick={() => { setPhase3b(true); setPhase3a(false); }}
                 className="w-full bg-primary text-white py-2.5 rounded-xl font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
               >
-                <Sparkles size={15} /> AI 生成故事框架
+                <Sparkles size={15} /> {tr.creator.drama.s3.generateBtn}
                 <CreditIndicator cost={15} className="ml-1" />
               </button>
             </div>
@@ -1232,10 +1231,10 @@ function S3StoryFramework({ onNext }: { onNext: () => void }) {
               <div className="flex items-center gap-3">
                 <span className="w-7 h-7 rounded-full bg-accent text-white text-xs font-bold flex items-center justify-center">3b</span>
                 <div className="text-left">
-                  <div className="font-bold text-ink">故事框架</div>
-                  <div className="text-xs text-muted">AI 生成章節 / 幕結構</div>
+                  <div className="font-bold text-ink">{tr.creator.drama.s3.phase3bTitle}</div>
+                  <div className="text-xs text-muted">{tr.creator.drama.s3.phase3bSubtitle}</div>
                 </div>
-                {phase3bDone && <span className="ml-2 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">已確認</span>}
+                {phase3bDone && <span className="ml-2 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">{tr.creator.drama.s3.confirmed}</span>}
               </div>
               {phase3b ? <ChevronDown size={16} className="text-muted" /> : <ChevronRight size={16} className="text-muted" />}
             </button>
@@ -1249,7 +1248,7 @@ function S3StoryFramework({ onNext }: { onNext: () => void }) {
                       <span className="text-xs text-muted ml-2">{arc.eps}</span>
                     </div>
                     <button className="text-xs text-accent hover:underline flex items-center gap-1">
-                      <RefreshCw size={11} /> 重生
+                      <RefreshCw size={11} /> {tr.creator.drama.s3.regenerate}
                     </button>
                   </div>
                   <p className="text-xs text-ink font-medium mb-1">{arc.theme}</p>
@@ -1259,7 +1258,7 @@ function S3StoryFramework({ onNext }: { onNext: () => void }) {
                       <div key={j} className="bg-white rounded-lg px-3 py-2 text-xs border border-line/50">
                         <span className="font-semibold text-primary">第{pt.ep}集</span>
                         <span className="text-ink ml-2">{pt.plot}</span>
-                        <div className="text-amber-600 mt-0.5">🔗 懸念：{pt.hook}</div>
+                        <div className="text-amber-600 mt-0.5">{tr.creator.drama.s3.clueHook}{pt.hook}</div>
                       </div>
                     ))}
                   </div>
@@ -1268,13 +1267,13 @@ function S3StoryFramework({ onNext }: { onNext: () => void }) {
 
               <div className="flex gap-2">
                 <button className="flex items-center gap-1.5 border border-line px-4 py-2 rounded-lg text-sm text-muted hover:border-primary hover:text-primary transition-colors">
-                  <RefreshCw size={13} /> 全部重生
+                  <RefreshCw size={13} /> {tr.creator.drama.s3.regenerateAll}
                 </button>
                 <button
                   onClick={() => { setPhase3bDone(true); setPhase3c(true); setPhase3b(false); }}
                   className="flex-1 bg-accent text-white py-2 rounded-lg text-sm font-semibold hover:bg-accent/90 transition-colors flex items-center justify-center gap-1.5"
                 >
-                  <Check size={14} /> 確認框架，AI 展開分集腳本
+                  <Check size={14} /> {tr.creator.drama.s3.confirmFrameworkBtn}
                   <CreditIndicator cost={10} className="ml-1" />
                 </button>
               </div>
@@ -1292,8 +1291,8 @@ function S3StoryFramework({ onNext }: { onNext: () => void }) {
               <div className="flex items-center gap-3">
                 <span className="w-7 h-7 rounded-full bg-green-600 text-white text-xs font-bold flex items-center justify-center">3c</span>
                 <div className="text-left">
-                  <div className="font-bold text-ink">分集展開</div>
-                  <div className="text-xs text-muted">AI 逐集腳本格式（含鉤子）</div>
+                  <div className="font-bold text-ink">{tr.creator.drama.s3.phase3cTitle}</div>
+                  <div className="text-xs text-muted">{tr.creator.drama.s3.phase3cSubtitle}</div>
                 </div>
               </div>
               {phase3c ? <ChevronDown size={16} className="text-muted" /> : <ChevronRight size={16} className="text-muted" />}
@@ -1306,18 +1305,18 @@ function S3StoryFramework({ onNext }: { onNext: () => void }) {
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-bold text-primary text-sm">第 {ep.ep} 集</span>
                     <button className="text-xs text-accent hover:underline flex items-center gap-1">
-                      <RefreshCw size={11} /> 重生本集
+                      <RefreshCw size={11} /> {tr.creator.drama.s3.regenerate}本集
                     </button>
                   </div>
                   <div className="space-y-1.5 text-xs">
-                    <div><span className="text-muted font-medium">場景：</span><span className="text-ink">{ep.scene}</span></div>
-                    <div><span className="text-muted font-medium">核心衝突：</span><span className="text-ink">{ep.conflict}</span></div>
+                    <div><span className="text-muted font-medium">{tr.creator.drama.s3.sceneTag}</span><span className="text-ink">{ep.scene}</span></div>
+                    <div><span className="text-muted font-medium">{tr.creator.drama.s3.conflictTag}</span><span className="text-ink">{ep.conflict}</span></div>
                     <div className="bg-white border border-line rounded-lg p-2">
-                      <span className="text-muted font-medium">對白片段：</span>
+                      <span className="text-muted font-medium">{tr.creator.drama.s3.dialogueTag}</span>
                       <p className="text-ink mt-0.5 italic">「{ep.dialogue}」</p>
                     </div>
                     <div className="bg-amber-50 border border-amber-200 rounded-lg p-2">
-                      <span className="text-amber-700 font-medium">結尾鉤子：</span>
+                      <span className="text-amber-700 font-medium">{tr.creator.drama.s3.hookTag}</span>
                       <span className="text-amber-800">{ep.hook}</span>
                     </div>
                   </div>
@@ -1329,20 +1328,20 @@ function S3StoryFramework({ onNext }: { onNext: () => void }) {
                 <p className="text-sm text-primary font-medium mb-1">已生成 第1–5集</p>
                 <p className="text-xs text-muted mb-3">繼續生成第 6–30 集</p>
                 <button className="bg-primary text-white px-6 py-2 rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors flex items-center gap-2 mx-auto">
-                  <Sparkles size={14} /> 批量生成第6–30集
+                  <Sparkles size={14} /> {tr.creator.drama.s3.bulkGenerateBtn}
                   <CreditIndicator cost={50} className="ml-1" />
                 </button>
               </div>
 
               <div className="flex gap-2">
                 <button className="flex items-center gap-1.5 border border-line px-4 py-2 rounded-lg text-sm text-muted hover:border-primary transition-colors">
-                  <BookOpen size={13} /> 下載全集腳本
+                  <BookOpen size={13} /> {tr.creator.drama.s3.downloadScript}
                 </button>
                 <button
                   onClick={onNext}
                   className="flex-1 bg-primary text-white py-2 rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-1.5"
                 >
-                  <ChevronRight size={14} /> 確認所有集數，進入分鏡
+                  <ChevronRight size={14} /> {tr.creator.drama.s3.confirmEpsBtn}
                 </button>
               </div>
             </div>
@@ -1370,18 +1369,18 @@ function S4Storyboard({ onNext }: { onNext: () => void }) {
   return (
     <div className="w-full max-w-3xl">
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-primary">S4 · 分鏡</h2>
-        <p className="text-muted text-sm mt-1">AI 根據 3c 腳本自動生成分鏡初稿，可用自然語言編輯每個鏡頭。</p>
+        <h2 className="text-2xl font-bold text-primary">{tr.creator.drama.s4.title}</h2>
+        <p className="text-muted text-sm mt-1">{tr.creator.drama.s4.subtitle}</p>
       </div>
 
       <div className="flex items-center justify-between mb-3">
         <span className="text-sm text-muted">第1集 · 共 {panels.length} 個鏡頭</span>
         <div className="flex gap-2">
           <button className="text-xs border border-line px-3 py-1.5 rounded-lg text-muted hover:border-primary transition-colors">
-            上一集
+            {tr.creator.drama.s4.prevEp}
           </button>
           <button className="text-xs border border-line px-3 py-1.5 rounded-lg text-muted hover:border-primary transition-colors">
-            下一集
+            {tr.creator.drama.s4.nextEp}
           </button>
         </div>
       </div>
@@ -1397,11 +1396,11 @@ function S4Storyboard({ onNext }: { onNext: () => void }) {
               <p className="text-sm font-semibold text-ink mt-0.5 mb-1">{p.title}</p>
               <p className="text-xs text-muted leading-relaxed">{p.desc}</p>
               <div className="flex gap-1 mt-2">
-                <button className="text-xs text-accent hover:underline">✏ 編輯</button>
+                <button className="text-xs text-accent hover:underline">{tr.creator.drama.s4.editShot}</button>
                 <span className="text-muted">·</span>
-                <button className="text-xs text-muted hover:text-primary">AI改寫</button>
+                <button className="text-xs text-muted hover:text-primary">{tr.creator.drama.s4.aiRewrite}</button>
                 <span className="text-muted">·</span>
-                <button className="text-xs text-red-400 hover:underline">🗑</button>
+                <button className="text-xs text-red-400 hover:underline">{tr.creator.drama.s4.deleteShot}</button>
               </div>
             </div>
           </div>
@@ -1409,7 +1408,7 @@ function S4Storyboard({ onNext }: { onNext: () => void }) {
         <div className="shrink-0 w-52 border-2 border-dashed border-line rounded-xl flex items-center justify-center cursor-pointer hover:border-primary transition-colors">
           <div className="text-center text-muted">
             <span className="text-3xl block">+</span>
-            <span className="text-xs">新增鏡頭</span>
+            <span className="text-xs">{tr.creator.drama.s4.addShot}</span>
           </div>
         </div>
       </div>
@@ -1418,11 +1417,11 @@ function S4Storyboard({ onNext }: { onNext: () => void }) {
       <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 mb-6">
         <div className="flex items-center gap-2 mb-2">
           <Sparkles size={14} className="text-primary" />
-          <span className="text-sm font-semibold text-primary">AI 分鏡助手</span>
+          <span className="text-sm font-semibold text-primary">{tr.creator.drama.s4.aiAssistant}</span>
         </div>
         <input
           className="w-full bg-white border border-line rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary"
-          placeholder="輸入修改指令，例：「把鏡頭3改成夜景，用柔和燈光」"
+          placeholder={tr.creator.drama.s4.aiInputPlaceholder}
         />
       </div>
 
@@ -1430,7 +1429,7 @@ function S4Storyboard({ onNext }: { onNext: () => void }) {
         onClick={onNext}
         className="w-full bg-primary text-white py-3 rounded-xl font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
       >
-        <ChevronRight size={18} /> 確認分鏡，生成關鍵幀
+        <ChevronRight size={18} /> {tr.creator.drama.s4.confirmBtn}
         <CreditIndicator cost={60} className="ml-2" />
       </button>
     </div>
@@ -1449,17 +1448,17 @@ function S5Keyframes({ onNext }: { onNext: () => void }) {
   return (
     <div className="max-w-2xl">
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-primary">S5 · 關鍵幀生成</h2>
-        <p className="text-muted text-sm mt-1">為每個分鏡生成關鍵視覺幀，角色一致性由 S2 角色設定保障。</p>
+        <h2 className="text-2xl font-bold text-primary">{tr.creator.drama.s5.title}</h2>
+        <p className="text-muted text-sm mt-1">{tr.creator.drama.s5.subtitle}</p>
       </div>
 
       {/* 生成模式 */}
       <div className="bg-card rounded-xl border border-line p-5 shadow-card mb-4">
-        <label className="block text-sm font-semibold text-ink mb-3">生成模式</label>
+        <label className="block text-sm font-semibold text-ink mb-3">{tr.creator.drama.s5.genModeLabel}</label>
         <div className="grid grid-cols-2 gap-3">
           {[
-            { id: 'reference' as const, label: '參考圖模式', desc: '以 S1 資產庫的圖片作參考，保持視覺一致', icon: Image },
-            { id: 'text' as const, label: '純文字模式', desc: '純 Prompt 生成，適合場景需全新創作', icon: Edit3 },
+            { id: 'reference' as const, label: tr.creator.drama.s5.modeReference, desc: tr.creator.drama.s5.modeReferenceDesc, icon: Image },
+            { id: 'text' as const, label: tr.creator.drama.s5.modeText, desc: tr.creator.drama.s5.modeTextDesc, icon: Edit3 },
           ].map(m => (
             <button
               key={m.id}
@@ -1480,7 +1479,7 @@ function S5Keyframes({ onNext }: { onNext: () => void }) {
       <div className="bg-card rounded-xl border border-line p-5 shadow-card mb-4">
         <div className="flex items-center gap-2 mb-3">
           <Check size={16} className="text-green-500" />
-          <h3 className="font-semibold text-ink text-sm">資產完整度檢查</h3>
+          <h3 className="font-semibold text-ink text-sm">{tr.creator.drama.s5.assetCheckTitle}</h3>
         </div>
         <div className="space-y-2">
           {[
@@ -1495,7 +1494,7 @@ function S5Keyframes({ onNext }: { onNext: () => void }) {
                 : <AlertTriangle size={14} className="text-amber-500" />
               }
               <span className={item.ok ? 'text-ink' : 'text-amber-700'}>{item.label}</span>
-              {!item.ok && <span className="text-xs text-amber-600 ml-auto">建議補充</span>}
+              {!item.ok && <span className="text-xs text-amber-600 ml-auto">{tr.creator.drama.s5.recommended}</span>}
             </div>
           ))}
         </div>
@@ -1504,9 +1503,9 @@ function S5Keyframes({ onNext }: { onNext: () => void }) {
       {/* 生成預覽 */}
       <div className="bg-card rounded-xl border border-line p-5 shadow-card mb-6">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="font-semibold text-ink text-sm">第1集 關鍵幀預覽</h3>
+          <h3 className="font-semibold text-ink text-sm">{tr.creator.drama.s5.previewTitle}</h3>
           <button className="text-xs text-accent hover:underline flex items-center gap-1">
-            <RefreshCw size={11} /> 全部重生
+            <RefreshCw size={11} /> {tr.creator.drama.s5.regenerateAll}
           </button>
         </div>
         <div className="grid grid-cols-3 gap-2">
@@ -1518,14 +1517,14 @@ function S5Keyframes({ onNext }: { onNext: () => void }) {
             <div key={i} className="relative group cursor-pointer">
               <img src={src} alt="" className="w-full aspect-video object-cover rounded-lg" />
               <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 rounded-lg flex items-center justify-center gap-2 transition-opacity">
-                <button className="text-white text-xs bg-white/20 px-2 py-1 rounded">接受</button>
-                <button className="text-white text-xs bg-white/20 px-2 py-1 rounded">重生</button>
+                <button className="text-white text-xs bg-white/20 px-2 py-1 rounded">{tr.creator.drama.s5.accept}</button>
+                <button className="text-white text-xs bg-white/20 px-2 py-1 rounded">{tr.creator.drama.s5.regenerate}</button>
               </div>
             </div>
           ))}
         </div>
         <p className="text-xs text-green-600 mt-2 flex items-center gap-1">
-          <Check size={11} /> 角色一致性：陳伯 94% · 陳太 88%
+          <Check size={11} /> {tr.creator.drama.s5.consistencyLabel}陳伯 94% · 陳太 88%
         </p>
       </div>
 
@@ -1533,7 +1532,7 @@ function S5Keyframes({ onNext }: { onNext: () => void }) {
         onClick={onNext}
         className="w-full bg-primary text-white py-3 rounded-xl font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
       >
-        <ChevronRight size={18} /> 確認關鍵幀，批量生成影片
+        <ChevronRight size={18} /> {tr.creator.drama.s5.confirmBtn}
         <CreditIndicator cost={120} className="ml-2" />
       </button>
     </div>
@@ -1552,21 +1551,21 @@ function S6VideoGen({ onNext }: { onNext: () => void }) {
   return (
     <div className="max-w-2xl">
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-primary">S6 · 影片批量生成</h2>
-        <p className="text-muted text-sm mt-1">以 Seedance 2.0 批量生成所有集數影片，角色一致性跨集保持。</p>
+        <h2 className="text-2xl font-bold text-primary">{tr.creator.drama.s6.title}</h2>
+        <p className="text-muted text-sm mt-1">{tr.creator.drama.s6.subtitle}</p>
       </div>
 
       {gate === 'params' && (
         <div className="space-y-4">
           <div className="bg-card rounded-xl border border-line p-5 shadow-card">
-            <h3 className="font-semibold text-ink text-sm mb-4">生成參數確認</h3>
+            <h3 className="font-semibold text-ink text-sm mb-4">{tr.creator.drama.s6.paramsTitle}</h3>
             <div className="space-y-3 text-sm">
               {[
-                { label: '影片引擎', value: 'Seedance 2.0（最高一致性）' },
-                { label: '輸出畫質', value: '1080p Full HD' },
-                { label: '批量集數', value: '第1–30集（共30集）' },
-                { label: '每集時長', value: '60秒' },
-                { label: '角色一致性', value: '跨集保持（綁定系列 ID）' },
+                { label: tr.creator.drama.s6.engineLabel, value: 'Seedance 2.0（最高一致性）' },
+                { label: tr.creator.drama.s6.qualityLabel, value: '1080p Full HD' },
+                { label: tr.creator.drama.s6.batchLabel, value: '第1–30集（共30集）' },
+                { label: tr.creator.drama.s6.durationLabel, value: '60秒' },
+                { label: tr.creator.drama.s6.consistencyLabel, value: '跨集保持（綁定系列 ID）' },
               ].map(({ label, value }) => (
                 <div key={label} className="flex items-center justify-between">
                   <span className="text-muted">{label}</span>
@@ -1579,7 +1578,7 @@ function S6VideoGen({ onNext }: { onNext: () => void }) {
             onClick={() => setGate('credit')}
             className="w-full bg-primary text-white py-3 rounded-xl font-semibold hover:bg-primary/90 transition-colors"
           >
-            確認參數，查看積分消耗
+            {tr.creator.drama.s6.confirmParamsBtn}
           </button>
         </div>
       )}
@@ -1588,22 +1587,22 @@ function S6VideoGen({ onNext }: { onNext: () => void }) {
         <div className="space-y-4">
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 text-center">
             <Zap size={32} className="mx-auto text-amber-500 mb-3" />
-            <p className="font-bold text-ink text-lg mb-1">確認消耗 300 積分</p>
-            <p className="text-muted text-sm mb-2">批量生成 30 集 × 60秒影片</p>
-            <p className="text-xs text-muted">現有積分：842 · 生成後餘：542</p>
+            <p className="font-bold text-ink text-lg mb-1">{tr.creator.drama.s6.creditConfirmTitle}</p>
+            <p className="text-muted text-sm mb-2">{tr.creator.drama.s6.creditConfirmDesc}</p>
+            <p className="text-xs text-muted">{tr.creator.drama.s6.creditBalance}</p>
           </div>
           <div className="flex gap-3">
             <button
               onClick={() => setGate('params')}
               className="flex-1 border border-line px-5 py-3 rounded-xl text-muted hover:border-primary transition-colors text-sm"
             >
-              返回修改
+              {tr.creator.drama.s6.backBtn}
             </button>
             <button
               onClick={() => setGate('generating')}
               className="flex-1 bg-accent text-white py-3 rounded-xl font-semibold hover:bg-accent/90 transition-colors"
             >
-              確認，開始生成！
+              {tr.creator.drama.s6.startGenBtn}
             </button>
           </div>
         </div>
@@ -1614,8 +1613,8 @@ function S6VideoGen({ onNext }: { onNext: () => void }) {
           <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4 animate-pulse">
             <Film size={28} className="text-primary" />
           </div>
-          <p className="font-bold text-ink text-lg mb-1">AI 正在生成影片中⋯</p>
-          <p className="text-muted text-sm mb-4">第1–30集批量生成，預計需 15–20 分鐘</p>
+          <p className="font-bold text-ink text-lg mb-1">{tr.creator.drama.s6.generating}</p>
+          <p className="text-muted text-sm mb-4">{tr.creator.drama.s6.generatingDesc}</p>
           <div className="space-y-2 text-sm text-left mb-4">
             {['第1–5集', '第6–10集', '第11–15集'].map((eps, i) => (
               <div key={eps} className="flex items-center gap-2">
@@ -1628,7 +1627,7 @@ function S6VideoGen({ onNext }: { onNext: () => void }) {
             ))}
           </div>
           <button onClick={() => setGate('done')} className="text-xs text-accent hover:underline">
-            模擬完成（Demo）
+            {tr.creator.drama.s6.generatingDemo}
           </button>
         </div>
       )}
@@ -1637,8 +1636,8 @@ function S6VideoGen({ onNext }: { onNext: () => void }) {
         <div className="space-y-4">
           <div className="bg-green-50 border border-green-200 rounded-xl p-5 text-center">
             <Check size={28} className="mx-auto text-green-500 mb-2" />
-            <p className="font-bold text-ink">30集影片生成完成！</p>
-            <p className="text-sm text-muted mt-1">共消耗 300 積分</p>
+            <p className="font-bold text-ink">{tr.creator.drama.s6.doneTitle}</p>
+            <p className="text-sm text-muted mt-1">{tr.creator.drama.s6.doneDesc}</p>
           </div>
           <div className="grid grid-cols-3 gap-2">
             {[1, 2, 3].map(ep => (
@@ -1657,7 +1656,7 @@ function S6VideoGen({ onNext }: { onNext: () => void }) {
             onClick={onNext}
             className="w-full bg-primary text-white py-3 rounded-xl font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
           >
-            <ChevronRight size={18} /> 影片確認，進入粵語配音
+            <ChevronRight size={18} /> {tr.creator.drama.s6.confirmBtn}
           </button>
         </div>
       )}
@@ -1672,17 +1671,15 @@ function S7Voiceover({ onNext }: { onNext: () => void }) {
   const { locale } = useLocaleStore();
   const tr = t();
   void locale;
-  const voices = [
-    { id: 'v1', label: '懷舊男聲 · 陳伯（粵語）', desc: '沉穩溫厚，70歲長者質感', active: true },
-    { id: 'v2', label: '溫柔女聲 · 陳太（粵語）', desc: '細膩體貼，60歲熟齡女聲', active: false },
-    { id: 'v3', label: '旁白聲（粵語）', desc: '親切敘事感，貫穿全集', active: false },
-  ];
+  const voices = tr.creator.drama.s7.voices.map((v, i) => ({
+    id: `v${i+1}`, label: v.label, desc: v.desc, active: i === 0,
+  }));
 
   return (
     <div className="max-w-2xl">
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-primary">S7 · 粵語配音</h2>
-        <p className="text-muted text-sm mt-1">Seedance API 生成粵語配音並同步唇形，確保長者觀眾最佳收看體驗。</p>
+        <h2 className="text-2xl font-bold text-primary">{tr.creator.drama.s7.title}</h2>
+        <p className="text-muted text-sm mt-1">{tr.creator.drama.s7.subtitle}</p>
       </div>
 
       <div className="space-y-3 mb-6">
@@ -1694,31 +1691,31 @@ function S7Voiceover({ onNext }: { onNext: () => void }) {
               <p className="text-xs text-muted">{v.desc}</p>
             </div>
             <button className="flex items-center gap-1.5 text-xs text-accent border border-accent px-3 py-1.5 rounded-lg hover:bg-accent/5">
-              <Mic size={12} /> 試聽
+              <Mic size={12} /> {tr.creator.drama.s7.audition}
             </button>
           </div>
         ))}
       </div>
 
       <div className="bg-card rounded-xl border border-line p-5 shadow-card mb-4">
-        <h3 className="font-semibold text-ink text-sm mb-3">唇形同步設定</h3>
+        <h3 className="font-semibold text-ink text-sm mb-3">{tr.creator.drama.s7.lipsyncTitle}</h3>
         <div className="flex items-center justify-between text-sm mb-2">
-          <span className="text-muted">唇形同步（Lip-sync）</span>
+          <span className="text-muted">{tr.creator.drama.s7.lipsyncLabel}</span>
           <label className="flex items-center gap-2 cursor-pointer">
             <div className="w-10 h-5 bg-primary rounded-full relative">
               <div className="w-4 h-4 bg-white rounded-full absolute right-0.5 top-0.5" />
             </div>
-            <span className="text-primary font-medium text-xs">開啟</span>
+            <span className="text-primary font-medium text-xs">{tr.creator.drama.s7.lipsyncOn}</span>
           </label>
         </div>
-        <p className="text-xs text-muted">AI 會自動調整角色唇形配合粵語配音，長者觀眾更容易跟隨。</p>
+        <p className="text-xs text-muted">{tr.creator.drama.s7.lipsyncDesc}</p>
       </div>
 
       <button
         onClick={onNext}
         className="w-full bg-primary text-white py-3 rounded-xl font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
       >
-        <Mic size={18} /> 生成粵語配音
+        <Mic size={18} /> {tr.creator.drama.s7.confirmBtn}
         <CreditIndicator cost={80} className="ml-2" />
       </button>
     </div>
@@ -1735,10 +1732,10 @@ function S8PlatformEdit({ onNext }: { onNext: () => void }) {
   return (
     <div className="w-full max-w-3xl">
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-primary">S8 · 平台內剪輯</h2>
-        <p className="text-muted text-sm mt-1">平台內剪輯不消耗積分。可修剪片段、調整字幕、加入 BGM。</p>
+        <h2 className="text-2xl font-bold text-primary">{tr.creator.drama.s8.title}</h2>
+        <p className="text-muted text-sm mt-1">{tr.creator.drama.s8.subtitle}</p>
         <div className="inline-flex items-center gap-1.5 mt-2 bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-medium">
-          <Check size={11} /> 此步驟免費，不消耗積分
+          <Check size={11} /> {tr.creator.drama.s8.freeStep}
         </div>
       </div>
 
@@ -1754,13 +1751,13 @@ function S8PlatformEdit({ onNext }: { onNext: () => void }) {
 
       {/* 時間軸 */}
       <div className="bg-card rounded-xl border border-line p-5 shadow-card mb-4">
-        <h3 className="font-semibold text-ink text-sm mb-3">時間軸剪輯</h3>
+        <h3 className="font-semibold text-ink text-sm mb-3">{tr.creator.drama.s8.timelineTitle}</h3>
         <div className="space-y-2">
           {[
-            { label: '影片軌', color: 'bg-primary', width: '100%' },
-            { label: '字幕軌', color: 'bg-accent', width: '85%' },
-            { label: 'BGM', color: 'bg-green-500', width: '100%' },
-            { label: '配音軌', color: 'bg-purple-400', width: '70%' },
+            { label: tr.creator.drama.s8.videoTrack, color: 'bg-primary', width: '100%' },
+            { label: tr.creator.drama.s8.subtitleTrack, color: 'bg-accent', width: '85%' },
+            { label: tr.creator.drama.s8.bgmTrack, color: 'bg-green-500', width: '100%' },
+            { label: tr.creator.drama.s8.voiceTrack, color: 'bg-purple-400', width: '70%' },
           ].map(track => (
             <div key={track.label} className="flex items-center gap-3">
               <span className="text-xs text-muted w-14 text-right">{track.label}</span>
@@ -1775,17 +1772,17 @@ function S8PlatformEdit({ onNext }: { onNext: () => void }) {
       {/* 字幕 + BGM 選項 */}
       <div className="grid grid-cols-2 gap-3 mb-4">
         <div className="bg-card rounded-xl border border-line p-4 shadow-card">
-          <h4 className="font-semibold text-ink text-sm mb-2">字幕設定</h4>
+          <h4 className="font-semibold text-ink text-sm mb-2">{tr.creator.drama.s8.subtitleTitle}</h4>
           <div className="space-y-1.5 text-xs text-muted">
-            <div className="flex justify-between"><span>字型大小</span><span className="text-ink font-medium">大（長者友善）</span></div>
-            <div className="flex justify-between"><span>字幕位置</span><span className="text-ink font-medium">底部居中</span></div>
-            <div className="flex justify-between"><span>語言</span><span className="text-ink font-medium">繁體中文</span></div>
+            <div className="flex justify-between"><span>{tr.creator.drama.s8.subtitleSize}</span><span className="text-ink font-medium">{tr.creator.drama.s8.subtitleSizeVal}</span></div>
+            <div className="flex justify-between"><span>{tr.creator.drama.s8.subtitlePos}</span><span className="text-ink font-medium">{tr.creator.drama.s8.subtitlePosVal}</span></div>
+            <div className="flex justify-between"><span>{tr.creator.drama.s8.subtitleLang}</span><span className="text-ink font-medium">{tr.creator.drama.s8.subtitleLangVal}</span></div>
           </div>
         </div>
         <div className="bg-card rounded-xl border border-line p-4 shadow-card">
-          <h4 className="font-semibold text-ink text-sm mb-2">背景音樂</h4>
+          <h4 className="font-semibold text-ink text-sm mb-2">{tr.creator.drama.s8.bgmTitle}</h4>
           <div className="space-y-1.5">
-            {['溫暖鋼琴曲', '懷舊廣東歌（純音樂）', '輕鬆木結他'].map((bgm, i) => (
+            {tr.creator.drama.s8.bgmOptions.map((bgm, i) => (
               <label key={bgm} className="flex items-center gap-2 text-xs cursor-pointer">
                 <input type="radio" name="bgm" className="accent-accent" defaultChecked={i === 0} />
                 <span className="text-ink">{bgm}</span>
@@ -1799,7 +1796,7 @@ function S8PlatformEdit({ onNext }: { onNext: () => void }) {
         onClick={onNext}
         className="w-full bg-primary text-white py-3 rounded-xl font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
       >
-        <ChevronRight size={18} /> 剪輯完成，提交審批發佈
+        <ChevronRight size={18} /> {tr.creator.drama.s8.confirmBtn}
       </button>
     </div>
   );
@@ -1814,29 +1811,27 @@ function S9ReviewPublish({ onNext }: { onNext: () => void }) {
   void locale;
   const [submitted, setSubmitted] = useState(false);
 
-  const dims = [
-    { key: 'content', label: '內容品質', score: 9, note: '故事流暢，情感真實' },
-    { key: 'language', label: '語言表達', score: 8, note: '粵語用詞貼近長者日常' },
-    { key: 'culture', label: '文化適切', score: 9, note: '香港街市文化呈現準確' },
-    { key: 'ethics', label: '倫理規範', score: 10, note: '無敏感內容，價值觀正面' },
-    { key: 'commercial', label: '商業合規', score: 8, note: '建議移除隱性品牌標誌' },
-  ];
+  const dimKeys = ['content', 'language', 'culture', 'ethics', 'commercial'];
+  const dimScores = [9, 8, 9, 10, 8];
+  const dims = tr.creator.drama.s9.dims.map((d, i) => ({
+    key: dimKeys[i], label: d.label, score: dimScores[i], note: d.note,
+  }));
 
   if (submitted) {
     return (
       <div className="max-w-2xl text-center">
         <div className="text-6xl mb-6">🎉</div>
-        <h2 className="text-2xl font-bold text-primary mb-3">作品已審批通過！</h2>
-        <p className="text-muted mb-2">《街市情緣》將發佈至 CoEldery 85 長者觀眾平台</p>
-        <p className="text-xs text-muted mb-8">預計觸達：12,500 位長者觀眾</p>
+        <h2 className="text-2xl font-bold text-primary mb-3">{tr.creator.drama.s9.successTitle}</h2>
+        <p className="text-muted mb-2">{tr.creator.drama.s9.successDesc}</p>
+        <p className="text-xs text-muted mb-8">{tr.creator.drama.s9.successReach}</p>
         <div className="grid grid-cols-2 gap-4 mb-8 text-left">
           {[
-            { label: '發佈範圍', value: '公開發佈至 CoEldery 85' },
-            { label: '發佈日期', value: '2026 年 8 月 22 日' },
-            { label: '預計觸達', value: '約 12,500 位長者觀眾' },
-            { label: '勞務分紅', value: '觀看收益 70%' },
-            { label: 'ESG 積分', value: '+85 社企貢獻積分' },
-            { label: '系列 ID', value: 'DRAMA-2026-001' },
+            { label: tr.creator.drama.s9.publishRange, value: '公開發佈至 CoEldery 85' },
+            { label: tr.creator.drama.s9.publishDate, value: '2026 年 8 月 22 日' },
+            { label: tr.creator.drama.s9.expectedReach, value: '約 12,500 位長者觀眾' },
+            { label: tr.creator.drama.s9.revenueShare, value: '觀看收益 70%' },
+            { label: tr.creator.drama.s9.esgPoints, value: '+85 社企貢獻積分' },
+            { label: tr.creator.drama.s9.seriesId, value: 'DRAMA-2026-001' },
           ].map(({ label, value }) => (
             <div key={label} className="bg-card rounded-xl p-4 shadow-card">
               <p className="text-xs text-muted mb-1">{label}</p>
@@ -1846,10 +1841,10 @@ function S9ReviewPublish({ onNext }: { onNext: () => void }) {
         </div>
         <div className="flex gap-3 justify-center">
           <button className="bg-accent text-white px-8 py-3 rounded-xl font-bold hover:bg-accent/90 transition-colors">
-            確認發佈
+            {tr.creator.drama.s9.confirmPublish}
           </button>
           <button className="border border-line px-8 py-3 rounded-xl text-ink hover:border-primary transition-colors">
-            分享至社交媒體
+            {tr.creator.drama.s9.shareBtn}
           </button>
         </div>
       </div>
@@ -1859,8 +1854,8 @@ function S9ReviewPublish({ onNext }: { onNext: () => void }) {
   return (
     <div className="max-w-2xl">
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-primary">S9 · 審批與發佈</h2>
-        <p className="text-muted text-sm mt-1">五維度 AI 評分，確認後提交人工審核，通過即發佈。</p>
+        <h2 className="text-2xl font-bold text-primary">{tr.creator.drama.s9.title}</h2>
+        <p className="text-muted text-sm mt-1">{tr.creator.drama.s9.subtitle}</p>
       </div>
 
       <div className="space-y-3 mb-6">
@@ -1879,15 +1874,15 @@ function S9ReviewPublish({ onNext }: { onNext: () => void }) {
       </div>
 
       <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 mb-4">
-        <p className="text-sm text-primary font-semibold">AI 總評：8.8/10 · 建議通過</p>
-        <p className="text-xs text-muted mt-1">作品情感真實、文化貼近，適合長者觀眾。建議商業合規方面加強說明。</p>
+        <p className="text-sm text-primary font-semibold">{tr.creator.drama.s9.aiSummary}</p>
+        <p className="text-xs text-muted mt-1">{tr.creator.drama.s9.aiSummaryDesc}</p>
       </div>
 
       <div className="bg-card rounded-xl border border-line p-5 shadow-card mb-6">
-        <h3 className="font-semibold text-ink text-sm mb-3">發佈設定</h3>
+        <h3 className="font-semibold text-ink text-sm mb-3">{tr.creator.drama.s9.publishTitle}</h3>
         <div className="space-y-3">
           <div>
-            <label className="text-xs text-muted mb-1 block">發佈對象</label>
+            <label className="text-xs text-muted mb-1 block">{tr.creator.drama.s9.publishAudienceLabel}</label>
             <select className="w-full border border-line rounded-lg px-3 py-2 bg-bg-soft text-sm focus:outline-none focus:border-primary">
               <option>公開發佈（CoEldery 85 平台）</option>
               <option>登入用戶限定</option>
@@ -1895,7 +1890,7 @@ function S9ReviewPublish({ onNext }: { onNext: () => void }) {
             </select>
           </div>
           <div>
-            <label className="text-xs text-muted mb-1 block">相關標籤</label>
+            <label className="text-xs text-muted mb-1 block">{tr.creator.drama.s9.tagsLabel}</label>
             <input
               className="w-full border border-line rounded-lg px-3 py-2 bg-bg-soft text-sm focus:outline-none focus:border-primary"
               defaultValue="街市、圓夢、長者故事、香港情懷、CoEldery85"
@@ -1906,16 +1901,16 @@ function S9ReviewPublish({ onNext }: { onNext: () => void }) {
 
       <div className="flex gap-3">
         <button className="flex items-center gap-2 border border-line px-5 py-3 rounded-xl text-muted hover:border-primary transition-colors text-sm">
-          <Eye size={15} /> 預覽
+          <Eye size={15} /> {tr.creator.drama.s9.previewBtn}
         </button>
         <button className="flex items-center gap-2 border border-line px-5 py-3 rounded-xl text-muted hover:border-accent transition-colors text-sm">
-          <Save size={15} /> 儲存草稿
+          <Save size={15} /> {tr.creator.drama.s9.saveDraft}
         </button>
         <button
           onClick={() => setSubmitted(true)}
           className="flex-1 bg-accent text-white py-3 rounded-xl font-semibold hover:bg-accent/90 transition-colors flex items-center justify-center gap-2"
         >
-          <Send size={16} /> 提交審批發佈
+          <Send size={16} /> {tr.creator.drama.s9.submitBtn}
         </button>
       </div>
     </div>
