@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { AestheticComposer, type AestheticOutput } from '@/components/shared/AestheticComposer';
+import { Layers } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { CreatorSidebar } from '@/components/layout/CreatorSidebar';
 import { StepNavigation } from '@/components/shared/StepNavigation';
@@ -26,6 +28,8 @@ function S0SeriesSetup({ onNext }: { onNext: () => void }) {
   const [genre, setGenre] = useState('');
   const [tone, setTone] = useState('');
   const [need, setNeed] = useState('');
+  const [aestheticLockOpen, setAestheticLockOpen] = useState(false);
+  const [aestheticLocked, setAestheticLocked] = useState<AestheticOutput | null>(null);
 
   const genreIcons = ['🌟','💛','👨‍👩‍👧‍👦','🌺','🕰️','🤝'];
   const genres = tr.creator.drama.s0.genres.map((g, i) => ({
@@ -201,6 +205,43 @@ function S0SeriesSetup({ onNext }: { onNext: () => void }) {
             <p className="font-semibold text-sm text-ink">{tr.creator.drama.s0.warningTitle}</p>
             <p className="text-sm text-muted mt-0.5">{tr.creator.drama.s0.warningDesc}</p>
           </div>
+        </div>
+
+        {/* 系列美學鎖 */}
+        <div className="bg-card rounded-xl border border-line shadow-card overflow-hidden">
+          <button
+            onClick={() => setAestheticLockOpen(v => !v)}
+            className="w-full flex items-center justify-between p-4 hover:bg-bg-soft transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${aestheticLocked ? 'bg-violet-500' : 'bg-bg-soft border border-line'}`}>
+                <Layers size={15} className={aestheticLocked ? 'text-white' : 'text-muted'} />
+              </div>
+              <div className="text-left">
+                <div className="text-sm font-semibold text-ink">{tr.aestheticComposer.seriesLock.title}</div>
+                <div className="text-xs text-muted">
+                  {aestheticLocked
+                    ? tr.aestheticComposer.seriesLock.locked
+                    : tr.aestheticComposer.seriesLock.hint}
+                </div>
+              </div>
+            </div>
+            <ChevronDown size={16} className={`text-muted transition-transform ${aestheticLockOpen ? 'rotate-180' : ''}`} />
+          </button>
+          {aestheticLockOpen && (
+            <div className="border-t border-line p-4">
+              <AestheticComposer
+                mode="drama"
+                initialOutput={aestheticLocked ?? undefined}
+                isSeriesLock
+                onApply={(output) => {
+                  setAestheticLocked(output);
+                  setAestheticLockOpen(false);
+                }}
+                onCancel={() => setAestheticLockOpen(false)}
+              />
+            </div>
+          )}
         </div>
 
         <button
@@ -1444,12 +1485,56 @@ function S5Keyframes({ onNext }: { onNext: () => void }) {
   const tr = t();
   void locale;
   const [genMode, setGenMode] = useState<'reference' | 'text'>('reference');
+  const [aestheticOpen, setAestheticOpen] = useState(false);
+  const [aestheticOutput, setAestheticOutput] = useState<AestheticOutput | null>(null);
 
   return (
     <div className="max-w-2xl">
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-primary">{tr.creator.drama.s5.title}</h2>
         <p className="text-muted text-sm mt-1">{tr.creator.drama.s5.subtitle}</p>
+      </div>
+
+      {/* 美學定義器前置步驟 */}
+      <div className="bg-card rounded-xl border border-line shadow-card overflow-hidden mb-4">
+        <button
+          onClick={() => setAestheticOpen(v => !v)}
+          className="w-full flex items-center justify-between p-4 hover:bg-bg-soft transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${aestheticOutput ? 'bg-violet-500' : 'bg-bg-soft border border-line'}`}>
+              <Layers size={15} className={aestheticOutput ? 'text-white' : 'text-muted'} />
+            </div>
+            <div className="text-left">
+              <div className="text-sm font-semibold text-ink">{tr.aestheticComposer.common.toolName}</div>
+              <div className="text-xs text-muted">
+                {aestheticOutput
+                  ? tr.aestheticComposer.seriesLock.locked
+                  : tr.aestheticComposer.composer.subtitle}
+              </div>
+            </div>
+          </div>
+          <ChevronDown size={16} className={`text-muted transition-transform ${aestheticOpen ? 'rotate-180' : ''}`} />
+        </button>
+        {aestheticOpen && (
+          <div className="border-t border-line p-4">
+            <AestheticComposer
+              mode="drama"
+              initialOutput={aestheticOutput ?? undefined}
+              onApply={(output) => {
+                setAestheticOutput(output);
+                setAestheticOpen(false);
+              }}
+              onCancel={() => setAestheticOpen(false)}
+            />
+          </div>
+        )}
+        {aestheticOutput && !aestheticOpen && (
+          <div className="border-t border-line px-4 py-2 bg-violet-50 text-xs text-violet-700 flex items-center gap-2">
+            <Check size={12} />
+            <span className="line-clamp-1">{aestheticOutput.compiledPromptZh}</span>
+          </div>
+        )}
       </div>
 
       {/* 生成模式 */}

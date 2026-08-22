@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { AestheticComposer, type AestheticOutput } from '@/components/shared/AestheticComposer';
+import { Layers } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useLocaleStore } from '@/store/localeStore';
 import { t } from '@/i18n';
@@ -767,6 +769,8 @@ function S6StoryLine({ onNext }: { onNext: () => void }) {
   const { locale } = useLocaleStore();
   const tr = t();
   void locale;
+  const [aestheticOpen, setAestheticOpen] = useState(false);
+  const [aestheticOutput, setAestheticOutput] = useState<AestheticOutput | null>(null);
   const storyline = [
     { time: '00:00', title: '開場：街市清晨', desc: '用陳伯描述朝早五點入貨的畫面切入，帶出街市的人情味', type: '場景導入' },
     { time: '01:30', title: '入行的緣起', desc: '父親帶入行、十八歲學徒，展示時代背景', type: '人生轉折' },
@@ -780,6 +784,48 @@ function S6StoryLine({ onNext }: { onNext: () => void }) {
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-primary">{tr.creator.legacy.s6.title}</h2>
         <p className="text-muted text-sm mt-1">{tr.creator.legacy.s6.subtitle}</p>
+      </div>
+
+      {/* 美學定義器前置步驟（舊照修復 / 故事視覺風格）*/}
+      <div className="bg-card rounded-xl border border-line shadow-card overflow-hidden mb-4">
+        <button
+          onClick={() => setAestheticOpen(v => !v)}
+          className="w-full flex items-center justify-between p-4 hover:bg-bg-soft transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${aestheticOutput ? 'bg-violet-500' : 'bg-bg-soft border border-line'}`}>
+              <Layers size={15} className={aestheticOutput ? 'text-white' : 'text-muted'} />
+            </div>
+            <div className="text-left">
+              <div className="text-sm font-semibold text-ink">{tr.aestheticComposer.common.toolName}</div>
+              <div className="text-xs text-muted">
+                {aestheticOutput
+                  ? tr.aestheticComposer.seriesLock.locked
+                  : tr.aestheticComposer.composer.subtitle}
+              </div>
+            </div>
+          </div>
+          <ChevronDown size={16} className={`text-muted transition-transform ${aestheticOpen ? 'rotate-180' : ''}`} />
+        </button>
+        {aestheticOpen && (
+          <div className="border-t border-line p-4">
+            <AestheticComposer
+              mode="legacy"
+              initialOutput={aestheticOutput ?? undefined}
+              onApply={(output) => {
+                setAestheticOutput(output);
+                setAestheticOpen(false);
+              }}
+              onCancel={() => setAestheticOpen(false)}
+            />
+          </div>
+        )}
+        {aestheticOutput && !aestheticOpen && (
+          <div className="border-t border-line px-4 py-2 bg-violet-50 text-xs text-violet-700 flex items-center gap-2">
+            <Check size={12} />
+            <span className="line-clamp-1">{aestheticOutput.compiledPromptZh}</span>
+          </div>
+        )}
       </div>
 
       <div className="bg-card rounded-xl border border-line p-5 shadow-card mb-4">
