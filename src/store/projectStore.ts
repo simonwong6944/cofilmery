@@ -1,11 +1,13 @@
 /**
  * useProjectStore — 全域 project 狀態
  * Phase 3: 儲存 Story Architect 產出（角色卡、分集故事卡、系列上下文）
+ * Phase 4: 加入 aestheticLock（全劇美學鎖），供 S3→S4 過場後全劇繼承
  * 供 ScriptEditor、Storyboard 等下游工具讀取，實現跨組件資料共享
  */
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { CharacterCard, EpisodeStoryCard, SeriesContext, TopicOption } from '@/adapters/types';
+import type { AestheticOutput } from '@/components/shared/AestheticComposer';
 
 interface ProjectState {
   // ── 基本資訊 ─────────────────────────────────────────────
@@ -19,12 +21,15 @@ interface ProjectState {
   characters: CharacterCard[];
   storyCards: EpisodeStoryCard[];
 
+  // ── 全劇美學鎖（S3→S4 之間設定，全劇繼承）────────────────
+  aestheticLock: AestheticOutput | null;
+
   // ── Co-create 標記 ─────────────────────────────────────────
-  isCoCreated: boolean;       // 創作者提供過 humanInput
-  coCreateNote: string;       // 共創備注（從 S1bOutline coCreateNote 取得）
+  isCoCreated: boolean;
+  coCreateNote: string;
 
   // ── 當前編輯集數 ─────────────────────────────────────────
-  currentEpisode: number;     // 當前編輯的集數（1-based）
+  currentEpisode: number;
 
   // ── Actions ──────────────────────────────────────────────
   setProjectId: (id: string, title?: string) => void;
@@ -33,6 +38,7 @@ interface ProjectState {
   setOutline: (outline: ProjectState['outline']) => void;
   setCharacters: (chars: CharacterCard[]) => void;
   setStoryCards: (cards: EpisodeStoryCard[]) => void;
+  setAestheticLock: (lock: AestheticOutput | null) => void;
   setCoCreated: (flag: boolean, note?: string) => void;
   setCurrentEpisode: (ep: number) => void;
   getStoryCard: (episodeNumber: number) => EpisodeStoryCard | null;
@@ -41,8 +47,8 @@ interface ProjectState {
 
 const INITIAL: Omit<ProjectState,
   'setProjectId' | 'setContext' | 'setSelectedTopic' | 'setOutline' |
-  'setCharacters' | 'setStoryCards' | 'setCoCreated' | 'setCurrentEpisode' |
-  'getStoryCard' | 'reset'
+  'setCharacters' | 'setStoryCards' | 'setAestheticLock' | 'setCoCreated' |
+  'setCurrentEpisode' | 'getStoryCard' | 'reset'
 > = {
   projectId: 'demo-project',
   projectTitle: '街市情緣',
@@ -51,6 +57,7 @@ const INITIAL: Omit<ProjectState,
   outline: [],
   characters: [],
   storyCards: [],
+  aestheticLock: null,
   isCoCreated: false,
   coCreateNote: '',
   currentEpisode: 1,
@@ -76,6 +83,8 @@ export const useProjectStore = create<ProjectState>()(
 
       setStoryCards: (cards) => set({ storyCards: cards }),
 
+      setAestheticLock: (lock) => set({ aestheticLock: lock }),
+
       setCoCreated: (flag, note) => set({
         isCoCreated: flag,
         ...(note !== undefined ? { coCreateNote: note } : {}),
@@ -92,7 +101,6 @@ export const useProjectStore = create<ProjectState>()(
     }),
     {
       name: 'cofilmery-project',
-      // 只持久化必要欄位，敏感 API 資料不持久化
       partialize: (state) => ({
         projectId: state.projectId,
         projectTitle: state.projectTitle,
@@ -101,6 +109,7 @@ export const useProjectStore = create<ProjectState>()(
         outline: state.outline,
         characters: state.characters,
         storyCards: state.storyCards,
+        aestheticLock: state.aestheticLock,
         isCoCreated: state.isCoCreated,
         coCreateNote: state.coCreateNote,
         currentEpisode: state.currentEpisode,

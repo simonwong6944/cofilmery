@@ -34,8 +34,6 @@ function S0SeriesSetup({ onNext }: { onNext: () => void }) {
   const [genre, setGenre] = useState('');
   const [tone, setTone] = useState('');
   const [need, setNeed] = useState('');
-  const [aestheticLockOpen, setAestheticLockOpen] = useState(false);
-  const [aestheticLocked, setAestheticLocked] = useState<AestheticOutput | null>(null);
 
   const genreIcons = ['🌟','💛','👨‍👩‍👧‍👦','🌺','🕰️','🤝'];
   const genres = tr.creator.drama.s0.genres.map((g, i) => ({
@@ -213,41 +211,10 @@ function S0SeriesSetup({ onNext }: { onNext: () => void }) {
           </div>
         </div>
 
-        {/* 系列美學鎖 */}
-        <div className="bg-card rounded-xl border border-line shadow-card overflow-hidden">
-          <button
-            onClick={() => setAestheticLockOpen(v => !v)}
-            className="w-full flex items-center justify-between p-4 hover:bg-bg-soft transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${aestheticLocked ? 'bg-violet-500' : 'bg-bg-soft border border-line'}`}>
-                <Layers size={15} className={aestheticLocked ? 'text-white' : 'text-muted'} />
-              </div>
-              <div className="text-left">
-                <div className="text-sm font-semibold text-ink">{tr.aestheticComposer.seriesLock.title}</div>
-                <div className="text-xs text-muted">
-                  {aestheticLocked
-                    ? tr.aestheticComposer.seriesLock.locked
-                    : tr.aestheticComposer.seriesLock.hint}
-                </div>
-              </div>
-            </div>
-            <ChevronDown size={16} className={`text-muted transition-transform ${aestheticLockOpen ? 'rotate-180' : ''}`} />
-          </button>
-          {aestheticLockOpen && (
-            <div className="border-t border-line p-4">
-              <AestheticComposer
-                mode="drama"
-                initialOutput={aestheticLocked ?? undefined}
-                isSeriesLock
-                onApply={(output) => {
-                  setAestheticLocked(output);
-                  setAestheticLockOpen(false);
-                }}
-                onCancel={() => setAestheticLockOpen(false)}
-              />
-            </div>
-          )}
+        {/* 視覺提示：美學鎖在 S3 完成後才設定 */}
+        <div className="bg-violet-50 border border-violet-200 rounded-xl p-4 flex items-center gap-3">
+          <Layers size={16} className="text-violet-500 shrink-0" />
+          <p className="text-xs text-violet-700">全劇視覺風格（美學鎖）將在 S3 故事框架完成後統一設定，令視覺從第一格就緊扣故事。</p>
         </div>
 
         <button
@@ -466,6 +433,122 @@ const TIER_COLORS: Record<string, string> = {
   '銀牌贊助': 'bg-gray-100 text-gray-600 border-gray-300',
 };
 
+// ─────────────────────────────────────────
+// 全劇美學鎖（S3 → S4 之間的唯一權威入口）
+// 故事已定，進入視覺化前為整套劇定調一次視覺風格
+// 之後每集 S4/S5 自動繼承，僅允許局部微調
+// ─────────────────────────────────────────
+function SeriesAestheticLock({ onNext }: { onNext: () => void }) {
+  const { locale } = useLocaleStore();
+  const tr = t();
+  void locale;
+
+  const { aestheticLock, setAestheticLock } = useProjectStore();
+  const [open, setOpen] = useState(true); // 預設展開，引導填寫
+
+  return (
+    <div className="max-w-2xl space-y-4">
+      {/* 標題 */}
+      <div className="mb-2">
+        <div className="inline-flex items-center gap-2 bg-violet-100 text-violet-700 px-3 py-1 rounded-full text-xs font-semibold mb-3">
+          <Layers size={12} /> 全劇美學鎖
+        </div>
+        <h2 className="text-2xl font-bold text-primary">為整套劇定調視覺風格</h2>
+        <p className="text-muted text-sm mt-1">
+          故事框架已定，進入分鏡前，設定一次全劇美學。<br />
+          之後每集 S4 分鏡、S5 關鍵幀都會自動繼承，只允許局部微調，唔會覆寫呢度的設定。
+        </p>
+      </div>
+
+      {/* 已鎖定狀態摘要 */}
+      {aestheticLock && !open && (
+        <div className="bg-violet-50 border border-violet-300 rounded-xl p-4 flex items-start gap-3">
+          <div className="w-8 h-8 bg-violet-500 rounded-lg flex items-center justify-center shrink-0">
+            <Layers size={15} className="text-white" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-violet-800">{tr.aestheticComposer.seriesLock.locked}</p>
+            <p className="text-xs text-violet-600 mt-0.5 line-clamp-2">{aestheticLock.compiledPromptZh}</p>
+          </div>
+          <button
+            onClick={() => setOpen(true)}
+            className="text-xs text-violet-600 hover:text-violet-800 border border-violet-300 px-3 py-1.5 rounded-lg transition-colors shrink-0"
+          >
+            修改
+          </button>
+        </div>
+      )}
+
+      {/* AestheticComposer 展開 */}
+      {open && (
+        <div className="bg-card rounded-xl border border-line shadow-card overflow-hidden">
+          <div className="p-4 border-b border-line flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Layers size={16} className="text-violet-600" />
+              <span className="text-sm font-semibold text-ink">{tr.aestheticComposer.common.toolName}</span>
+            </div>
+            {aestheticLock && (
+              <button
+                onClick={() => setOpen(false)}
+                className="text-xs text-muted hover:text-ink transition-colors"
+              >
+                收起
+              </button>
+            )}
+          </div>
+          <div className="p-4">
+            <AestheticComposer
+              mode="drama"
+              initialOutput={aestheticLock ?? undefined}
+              isSeriesLock
+              onApply={(output) => {
+                setAestheticLock(output);
+                setOpen(false);
+              }}
+              onCancel={aestheticLock ? () => setOpen(false) : undefined}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* 過場說明 */}
+      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-xs text-blue-800 space-y-1">
+        <p className="font-semibold flex items-center gap-1.5"><Info size={13} /> 美學鎖如何運作？</p>
+        <p>・S4 分鏡、S5 關鍵幀頂部會顯示「繼承全劇美學：<span className="font-semibold">{aestheticLock?.compiledPromptZh?.slice(0, 20) ?? '未設定'}…</span>」</p>
+        <p>・每集可局部微調（只影響當前集），唔會改動呢度的全劇設定。</p>
+        <p>・之後返呢度可以修改全劇美學；改完後新一集自動套用，舊集保留局部調整。</p>
+      </div>
+
+      {/* CTA */}
+      <div className="flex gap-3">
+        {!aestheticLock && (
+          <button
+            onClick={onNext}
+            className="flex items-center gap-2 border border-line px-5 py-3 rounded-xl text-muted hover:border-primary hover:text-primary transition-colors text-sm"
+          >
+            稍後再設定，先去分鏡
+          </button>
+        )}
+        <button
+          onClick={onNext}
+          disabled={!aestheticLock}
+          className={`flex-1 py-3 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2 ${
+            aestheticLock
+              ? 'bg-violet-600 text-white hover:bg-violet-700'
+              : 'bg-line text-muted cursor-not-allowed'
+          }`}
+        >
+          <ChevronRight size={18} />
+          {aestheticLock ? '全劇美學已鎖，進入分鏡' : '請先設定全劇美學'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────
+// S1: 資產庫
+// ─────────────────────────────────────────
 function S1AssetBank({ onNext }: { onNext: () => void }) {
   const { locale } = useLocaleStore();
   const tr = t();
@@ -1324,6 +1407,9 @@ function S4Storyboard({ onNext }: { onNext: () => void }) {
   const { locale } = useLocaleStore();
   const tr = t();
   void locale;
+  const { aestheticLock } = useProjectStore();
+  const [localAestheticOpen, setLocalAestheticOpen] = useState(false);
+  const [localAdjustment, setLocalAdjustment] = useState<AestheticOutput | null>(null);
   const panels = [
     { scene: 1, title: '街市清晨開檔', desc: '陳伯熟練地掛起豬肉，街坊陸續到來', cam: '全景→特寫', dur: 8 },
     { scene: 2, title: '最後一天告別', desc: '街坊圍著陳伯，眼帶不捨', cam: '中景，慢推鏡', dur: 10 },
@@ -1337,6 +1423,50 @@ function S4Storyboard({ onNext }: { onNext: () => void }) {
         <h2 className="text-2xl font-bold text-primary">{tr.creator.drama.s4.title}</h2>
         <p className="text-muted text-sm mt-1">{tr.creator.drama.s4.subtitle}</p>
       </div>
+
+      {/* 全劇美學繼承 banner */}
+      <div className={`rounded-xl border p-3 mb-4 flex items-center gap-3 ${aestheticLock ? 'bg-violet-50 border-violet-200' : 'bg-amber-50 border-amber-200'}`}>
+        <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${aestheticLock ? 'bg-violet-500' : 'bg-amber-400'}`}>
+          <Layers size={13} className="text-white" />
+        </div>
+        <div className="flex-1 min-w-0">
+          {aestheticLock ? (
+            <>
+              <p className="text-xs font-semibold text-violet-800">本集繼承全劇美學：</p>
+              <p className="text-xs text-violet-600 truncate">{aestheticLock.compiledPromptZh}</p>
+            </>
+          ) : (
+            <p className="text-xs text-amber-700">尚未設定全劇美學鎖。可繼續進行，或返回美學鎖頁面設定後再來。</p>
+          )}
+        </div>
+        <button
+          onClick={() => setLocalAestheticOpen(v => !v)}
+          className="shrink-0 text-xs border border-violet-300 text-violet-600 hover:bg-violet-100 px-3 py-1.5 rounded-lg transition-colors"
+        >
+          {localAdjustment ? '已微調 ✓' : '局部微調'}
+        </button>
+      </div>
+
+      {/* 局部微調展開（不覆寫全劇鎖） */}
+      {localAestheticOpen && (
+        <div className="bg-card rounded-xl border border-violet-200 shadow-card overflow-hidden mb-4">
+          <div className="p-3 border-b border-violet-100 bg-violet-50 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold text-violet-800">本集局部微調（只影響本集，不改動全劇美學鎖）</p>
+              <p className="text-xs text-violet-600 mt-0.5">改全劇 look 請返「全劇美學鎖」時機</p>
+            </div>
+            <button onClick={() => setLocalAestheticOpen(false)} className="text-xs text-violet-500 hover:text-violet-700">收起</button>
+          </div>
+          <div className="p-4">
+            <AestheticComposer
+              mode="drama"
+              initialOutput={localAdjustment ?? aestheticLock ?? undefined}
+              onApply={(output) => { setLocalAdjustment(output); setLocalAestheticOpen(false); }}
+              onCancel={() => setLocalAestheticOpen(false)}
+            />
+          </div>
+        </div>
+      )}
 
       <div className="flex items-center justify-between mb-3">
         <span className="text-sm text-muted">第1集 · 共 {panels.length} 個鏡頭</span>
@@ -1408,9 +1538,10 @@ function S5Keyframes({ onNext }: { onNext: () => void }) {
   const { locale } = useLocaleStore();
   const tr = t();
   void locale;
+  const { aestheticLock } = useProjectStore();
   const [genMode, setGenMode] = useState<'reference' | 'text'>('reference');
-  const [aestheticOpen, setAestheticOpen] = useState(false);
-  const [aestheticOutput, setAestheticOutput] = useState<AestheticOutput | null>(null);
+  const [localAestheticOpen, setLocalAestheticOpen] = useState(false);
+  const [localAdjustment, setLocalAdjustment] = useState<AestheticOutput | null>(null);
 
   return (
     <div className="max-w-2xl">
@@ -1419,47 +1550,49 @@ function S5Keyframes({ onNext }: { onNext: () => void }) {
         <p className="text-muted text-sm mt-1">{tr.creator.drama.s5.subtitle}</p>
       </div>
 
-      {/* 美學定義器前置步驟 */}
-      <div className="bg-card rounded-xl border border-line shadow-card overflow-hidden mb-4">
+      {/* 全劇美學繼承 banner */}
+      <div className={`rounded-xl border p-3 mb-4 flex items-center gap-3 ${aestheticLock ? 'bg-violet-50 border-violet-200' : 'bg-amber-50 border-amber-200'}`}>
+        <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${aestheticLock ? 'bg-violet-500' : 'bg-amber-400'}`}>
+          <Layers size={13} className="text-white" />
+        </div>
+        <div className="flex-1 min-w-0">
+          {aestheticLock ? (
+            <>
+              <p className="text-xs font-semibold text-violet-800">本集繼承全劇美學：</p>
+              <p className="text-xs text-violet-600 truncate">{aestheticLock.compiledPromptZh}</p>
+            </>
+          ) : (
+            <p className="text-xs text-amber-700">尚未設定全劇美學鎖。可繼續進行，或返回美學鎖頁面設定後再來。</p>
+          )}
+        </div>
         <button
-          onClick={() => setAestheticOpen(v => !v)}
-          className="w-full flex items-center justify-between p-4 hover:bg-bg-soft transition-colors"
+          onClick={() => setLocalAestheticOpen(v => !v)}
+          className="shrink-0 text-xs border border-violet-300 text-violet-600 hover:bg-violet-100 px-3 py-1.5 rounded-lg transition-colors"
         >
-          <div className="flex items-center gap-3">
-            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${aestheticOutput ? 'bg-violet-500' : 'bg-bg-soft border border-line'}`}>
-              <Layers size={15} className={aestheticOutput ? 'text-white' : 'text-muted'} />
-            </div>
-            <div className="text-left">
-              <div className="text-sm font-semibold text-ink">{tr.aestheticComposer.common.toolName}</div>
-              <div className="text-xs text-muted">
-                {aestheticOutput
-                  ? tr.aestheticComposer.seriesLock.locked
-                  : tr.aestheticComposer.composer.subtitle}
-              </div>
-            </div>
-          </div>
-          <ChevronDown size={16} className={`text-muted transition-transform ${aestheticOpen ? 'rotate-180' : ''}`} />
+          {localAdjustment ? '已微調 ✓' : '局部微調'}
         </button>
-        {aestheticOpen && (
-          <div className="border-t border-line p-4">
+      </div>
+
+      {/* 局部微調展開 */}
+      {localAestheticOpen && (
+        <div className="bg-card rounded-xl border border-violet-200 shadow-card overflow-hidden mb-4">
+          <div className="p-3 border-b border-violet-100 bg-violet-50 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold text-violet-800">本格局部微調（只影響本格，不改動全劇美學鎖）</p>
+              <p className="text-xs text-violet-600 mt-0.5">改全劇 look 請返「全劇美學鎖」時機</p>
+            </div>
+            <button onClick={() => setLocalAestheticOpen(false)} className="text-xs text-violet-500 hover:text-violet-700">收起</button>
+          </div>
+          <div className="p-4">
             <AestheticComposer
               mode="drama"
-              initialOutput={aestheticOutput ?? undefined}
-              onApply={(output) => {
-                setAestheticOutput(output);
-                setAestheticOpen(false);
-              }}
-              onCancel={() => setAestheticOpen(false)}
+              initialOutput={localAdjustment ?? aestheticLock ?? undefined}
+              onApply={(output) => { setLocalAdjustment(output); setLocalAestheticOpen(false); }}
+              onCancel={() => setLocalAestheticOpen(false)}
             />
           </div>
-        )}
-        {aestheticOutput && !aestheticOpen && (
-          <div className="border-t border-line px-4 py-2 bg-violet-50 text-xs text-violet-700 flex items-center gap-2">
-            <Check size={12} />
-            <span className="line-clamp-1">{aestheticOutput.compiledPromptZh}</span>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* 生成模式 */}
       <div className="bg-card rounded-xl border border-line p-5 shadow-card mb-4">
@@ -1928,51 +2061,70 @@ function S9ReviewPublish({ onNext }: { onNext: () => void }) {
 
 // ─────────────────────────────────────────
 // Main Component
-// Route index map (11 items, no hidden routes):
+// Route index map (12 items):
 //   0  = S0SeriesSetup
-//   1  = PlanOverview        (策劃案總覽，導覽列有視覺標記)
-//   2  = S1AssetBank
-//   3  = S2CharacterSetup    (新版)
-//   4  = S3StoryFramework    (新版)
-//   5  = S4Storyboard
-//   6  = S5Keyframes
-//   7  = S6VideoGen
-//   8  = S7Voiceover
-//   9  = S8PlatformEdit
-//   10 = S9ReviewPublish
+//   1  = PlanOverview          (策劃案總覽，導覽列有視覺標記，isPlanOverview)
+//   2  = S1AssetBank           → nav 1
+//   3  = S2CharacterSetup      → nav 2
+//   4  = S3StoryFramework      → nav 3
+//   5  = SeriesAestheticLock   (全劇美學鎖，導覽列有視覺標記，isAestheticLock)
+//   6  = S4Storyboard          → nav 4
+//   7  = S5Keyframes           → nav 5
+//   8  = S6VideoGen            → nav 6
+//   9  = S7Voiceover           → nav 7
+//  10  = S8PlatformEdit        → nav 8
+//  11  = S9ReviewPublish       → nav 9
 // ─────────────────────────────────────────
 const STEPS = [
-  S0SeriesSetup,       // 0
-  PlanOverview,        // 1 (策劃案總覽，有視覺標記)
-  S1AssetBank,         // 2
-  S2CharacterSetup,    // 3 (新版)
-  S3StoryFramework,    // 4 (新版)
-  S4Storyboard,        // 5
-  S5Keyframes,         // 6
-  S6VideoGen,          // 7
-  S7Voiceover,         // 8
-  S8PlatformEdit,      // 9
-  S9ReviewPublish,     // 10
+  S0SeriesSetup,        // 0
+  PlanOverview,         // 1 (策劃案總覽，isPlanOverview)
+  S1AssetBank,          // 2 → nav 1
+  S2CharacterSetup,     // 3 → nav 2
+  S3StoryFramework,     // 4 → nav 3
+  SeriesAestheticLock,  // 5 (全劇美學鎖，isAestheticLock)
+  S4Storyboard,         // 6 → nav 4
+  S5Keyframes,          // 7 → nav 5
+  S6VideoGen,           // 8 → nav 6
+  S7Voiceover,          // 9 → nav 7
+  S8PlatformEdit,       // 10 → nav 8
+  S9ReviewPublish,      // 11 → nav 9
 ];
 
 // routeStep 轉 navStep：
 // route 0 → nav 0 (S0)
-// route 1 → nav 0 (PlanOverview，不在 dramaSteps 計數，用 isPlanOverview)
-// route 2 → nav 1 (S1)
-// route 3+ → nav (route - 2)
+// route 1 → nav 0 (PlanOverview，isPlanOverview flag)
+// route 2 → nav 1 (S1AssetBank)
+// route 3 → nav 2 (S2CharacterSetup)
+// route 4 → nav 3 (S3StoryFramework)
+// route 5 → nav 3 (SeriesAestheticLock，isAestheticLock flag，navStep 停在 3)
+// route 6 → nav 4 (S4Storyboard)
+// route 7 → nav 5 (S5Keyframes)
+// route 8 → nav 6 (S6VideoGen)
+// route 9 → nav 7 (S7Voiceover)
+// route 10 → nav 8 (S8PlatformEdit)
+// route 11 → nav 9 (S9ReviewPublish)
 function routeStepToNavStep(routeStep: number): number {
-  if (routeStep === 0) return 0;
-  if (routeStep === 1) return 0; // PlanOverview：navStep 停在 0，靠 isPlanOverview flag
-  return routeStep - 2;
+  if (routeStep <= 1) return 0;          // S0 / PlanOverview
+  if (routeStep <= 4) return routeStep - 1; // S1→1, S2→2, S3→3
+  if (routeStep === 5) return 3;         // SeriesAestheticLock：navStep 停在 3
+  return routeStep - 2;                  // S4(6)→4, S5(7)→5 … S9(11)→9
 }
 
 // navStep 轉 routeStep（導覽列點擊）：
 // nav 0 → route 0 (S0)
-// nav 1 → route 2 (S1AssetBank)
-// nav n≥2 → route n+2
+// nav 1 → route 2 (S1)
+// nav 2 → route 3 (S2)
+// nav 3 → route 4 (S3)
+// nav 4 → route 6 (S4，跳過 route 5 SeriesAestheticLock)
+// nav 5 → route 7 (S5)
+// nav 6 → route 8 (S6)
+// nav 7 → route 9 (S7)
+// nav 8 → route 10 (S8)
+// nav 9 → route 11 (S9)
 function navStepToRouteStep(navStep: number): number {
   if (navStep === 0) return 0;
-  return navStep + 2;
+  if (navStep <= 3) return navStep + 1;  // nav 1→2(S1), nav 2→3(S2), nav 3→4(S3)
+  return navStep + 2;                   // nav 4→6(S4), nav 5→7(S5) … nav 9→11(S9)
 }
 
 export default function DramaWorkflow() {
@@ -1982,14 +2134,16 @@ export default function DramaWorkflow() {
   const tr = t();
   void locale;
 
-  const routeStep = Math.min(parseInt(step ?? '0', 10), 10);
+  const routeStep = Math.min(parseInt(step ?? '0', 10), 11);
   const StepComponent = STEPS[routeStep];
 
   // isPlanOverview: route 1 是策劃案總覽，導覽列 navStep 維持在 0 但顯示視覺標記
   const isPlanOverview = routeStep === 1;
+  // isAestheticLock: route 5 是全劇美學鎖，導覽列 navStep 維持在 3 但顯示視覺標記
+  const isAestheticLock = routeStep === 5;
   const navStep = routeStepToNavStep(routeStep);
 
-  const goNext = () => navigate(`/creator/drama/${Math.min(routeStep + 1, 10)}`);
+  const goNext = () => navigate(`/creator/drama/${Math.min(routeStep + 1, 11)}`);
 
   // Determine series title for header
   const seriesTitles: Record<number, string> = {
@@ -2017,8 +2171,10 @@ export default function DramaWorkflow() {
               mode="drama"
               currentStep={navStep}
               isPlanOverview={isPlanOverview}
+              isAestheticLock={isAestheticLock}
               onStepClick={s => navigate(`/creator/drama/${navStepToRouteStep(s)}`)}
               onPlanOverviewClick={() => navigate('/creator/drama/1')}
+              onAestheticLockClick={() => navigate('/creator/drama/5')}
             />
           </div>
           {/* Canvas */}
