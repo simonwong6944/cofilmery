@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useLocaleStore } from '@/store/localeStore';
+import { t } from '@/i18n';
 import {
   Mic, FileText, Upload, CheckCircle, Send, Globe, Award,
   ChevronRight, RefreshCw, Check, Sparkles, Users, BookOpen,
@@ -15,35 +17,39 @@ import { CreditIndicator } from '@/components/shared/CreditIndicator';
 // ─────────────────────────────────────────
 // S0: 專案設定
 // ─────────────────────────────────────────
-const LEGACY_MODES = [
-  {
-    id: 'personal',
-    icon: '👤',
-    label: '個人模式',
-    tagline: '個人 · 家庭',
-    desc: '個人記錄自己一生故事傳承給後代，或由子女、孫兒為父母、祖父母拍攝他們的珍貴人生歲月。',
-    examples: ['退休老師口述執教生涯', '孫兒採訪阿公阿婆', '子女為父母製作壽宴影片'],
-  },
-  {
-    id: 'corporate',
-    icon: '🏢',
-    label: '企業模式',
-    tagline: '企業 · 機構',
-    desc: '企業為員工拍攝在公司的付出與成就故事。不論是創辦人、高管，還是長期服務的普通員工，每位都有值得記錄的故事。',
-    examples: ['創辦人創業歷程專題', '服務三十年員工的故事', '退休員工「那些年」系列'],
-  },
-  {
-    id: 'social',
-    icon: '🌍',
-    label: '社會人士模式',
-    tagline: '社會 · 公益',
-    desc: '由政府、機構、學校或學生，為默默付出的社會人士拍攝故事，記錄老師、環保義工、好心人對社會的貢獻。',
-    examples: ['學生為校長拍退休紀念片', '環保義工的堅持歷程', '義工婆婆照顧陌生老人的故事'],
-  },
-];
-
 function S0ProjectSetup({ onNext }: { onNext: () => void }) {
+  const { locale } = useLocaleStore();
+  const tr = t();
+  void locale;
   const [subMode, setSubMode] = useState('personal');
+
+  // LEGACY_MODES defined inside component so labels rebuild on locale change
+  const LEGACY_MODES = [
+    {
+      id: 'personal',
+      icon: '👤',
+      label: tr.creator.modeSelect.legacySub1Label,
+      tagline: '個人 · 家庭',
+      desc: tr.creator.modeSelect.legacySub1Desc,
+      examples: ['退休老師口述執教生涯', '孫兒採訪阿公阿婆', '子女為父母製作壽宴影片'],
+    },
+    {
+      id: 'corporate',
+      icon: '🏢',
+      label: tr.creator.modeSelect.legacySub2Label,
+      tagline: '企業 · 機構',
+      desc: tr.creator.modeSelect.legacySub2Desc,
+      examples: ['創辦人創業歷程專題', '服務三十年員工的故事', '退休員工「那些年」系列'],
+    },
+    {
+      id: 'social',
+      icon: '🌍',
+      label: tr.creator.modeSelect.legacySub3Label,
+      tagline: '社會 · 公益',
+      desc: tr.creator.modeSelect.legacySub3Desc,
+      examples: ['學生為校長拍退休紀念片', '環保義工的堅持歷程', '義工婆婆照顧陌生老人的故事'],
+    },
+  ];
 
   const themes = [
     { id: 'craft', label: '手藝與職業', desc: '老師傅的技藝與歲月' },
@@ -1084,12 +1090,15 @@ const STEPS = [
 export default function LegacyWorkflow() {
   const { step } = useParams();
   const navigate = useNavigate();
+  const { locale } = useLocaleStore();
+  const tr = t();
+  void locale;
   const currentStep = Math.min(parseInt(step ?? '0', 10), 9);
   const StepComponent = STEPS[currentStep];
 
   const goNext = () => navigate(`/creator/legacy/${Math.min(currentStep + 1, 9)}`);
 
-  const seriesTitles: Record<number, string> = { 0: '新傳承項目' };
+  const seriesTitles: Record<number, string> = { 0: tr.creator.modeSelect.legacyTitle };
   const headerTitle = seriesTitles[currentStep] ?? '陳伯的街市歲月';
 
   return (
@@ -1098,11 +1107,11 @@ export default function LegacyWorkflow() {
       <div className="flex flex-col flex-1 overflow-hidden">
         <header className="bg-card border-b border-line px-6 py-3 flex items-center gap-4 shrink-0">
           <Logo size="sm" withWordmark />
-          <span className="text-accent font-bold">傳承模式</span>
+          <span className="text-accent font-bold">{tr.creator.modeSelect.legacyTitle}</span>
           <span className="text-muted text-sm">· {headerTitle}</span>
           <div className="ml-auto flex items-center gap-3">
             <Heart size={16} className="text-accent" />
-            <span className="text-xs text-muted">積分：842</span>
+            <span className="text-xs text-muted">{tr.creator.credits} 842</span>
           </div>
         </header>
         <div className="flex flex-1 overflow-hidden">

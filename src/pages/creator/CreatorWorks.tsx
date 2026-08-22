@@ -1,23 +1,30 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Film, Search, Filter, Eye, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Plus, Film, Search, Filter, Eye, Clock } from 'lucide-react';
 import { CreatorSidebar } from '@/components/layout/CreatorSidebar';
 import { Logo } from '@/components/shared/Logo';
 import { ModeBadge } from '@/components/shared/ModeBadge';
 import { StatusBadge } from '@/components/shared/StatusBadge';
+import { useLocaleStore } from '@/store/localeStore';
+import { t } from '@/i18n';
 import { mockProjects } from '@/lib/mockData';
-
-const tabs = [
-  { id: 'all', label: '全部' },
-  { id: 'draft', label: '草稿' },
-  { id: 'reviewing', label: '審核中' },
-  { id: 'published', label: '已發佈' },
-  { id: 'revision', label: '需修改' },
-];
 
 export default function CreatorWorks() {
   const [activeTab, setActiveTab] = useState('all');
   const [search, setSearch] = useState('');
+  const { locale } = useLocaleStore();
+  const tr = t();
+
+  // suppress unused warning — locale subscribed for re-render
+  void locale;
+
+  const tabs = [
+    { id: 'all',        label: tr.creator.works.tabAll },
+    { id: 'draft',      label: tr.creator.works.tabDraft },
+    { id: 'reviewing',  label: tr.creator.works.tabReviewing },
+    { id: 'published',  label: tr.creator.works.tabPublished },
+    { id: 'revision',   label: tr.creator.works.tabRevision },
+  ];
 
   const filtered = mockProjects.filter(p => {
     if (activeTab !== 'all' && p.status !== activeTab) return false;
@@ -32,14 +39,14 @@ export default function CreatorWorks() {
         <header className="bg-card border-b border-line px-6 py-3 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-4">
             <Logo size="sm" withWordmark />
-            <span className="text-primary font-bold text-lg">我的作品</span>
+            <span className="text-primary font-bold text-lg">{tr.creator.works.title}</span>
           </div>
           <Link
             to="/creator/new"
             className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors text-sm font-semibold"
           >
             <Plus className="w-4 h-4" />
-            新增作品
+            {tr.creator.works.addWork}
           </Link>
         </header>
 
@@ -50,14 +57,14 @@ export default function CreatorWorks() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
               <input
                 className="form-input pl-9 py-2"
-                placeholder="搜尋作品..."
+                placeholder={tr.creator.works.searchPlaceholder}
                 value={search}
                 onChange={e => setSearch(e.target.value)}
               />
             </div>
             <button className="flex items-center gap-2 border border-line px-3 py-2 rounded-lg text-sm text-muted hover:border-primary hover:text-primary transition-colors">
               <Filter className="w-4 h-4" />
-              篩選
+              {tr.creator.works.filterBtn}
             </button>
           </div>
 
@@ -82,9 +89,9 @@ export default function CreatorWorks() {
           {filtered.length === 0 ? (
             <div className="text-center py-20 text-muted">
               <Film className="w-12 h-12 mx-auto mb-4 opacity-30" />
-              <p>暫無作品</p>
+              <p>{tr.creator.works.noWorks}</p>
               <Link to="/creator/new" className="mt-4 inline-block text-primary hover:underline text-sm">
-                立即建立新作品
+                {tr.creator.works.createFirst}
               </Link>
             </div>
           ) : (
@@ -110,11 +117,11 @@ export default function CreatorWorks() {
                     <div className="flex items-center justify-between text-xs text-muted">
                       <div className="flex items-center gap-1">
                         <Eye className="w-3.5 h-3.5" />
-                        {project.views.toLocaleString()} 觀看
+                        {project.views.toLocaleString()} {tr.creator.works.views}
                       </div>
                       <div className="flex items-center gap-1">
                         <Clock className="w-3.5 h-3.5" />
-                        {project.episodeCount} 集
+                        {project.episodeCount} {tr.creator.works.episodes}
                       </div>
                     </div>
 
@@ -123,10 +130,10 @@ export default function CreatorWorks() {
                         to={`/creator/drama/0`}
                         className="flex-1 text-center text-sm text-primary hover:underline font-medium"
                       >
-                        繼續編輯
+                        {tr.creator.works.continueEdit}
                       </Link>
                       <button className="text-sm text-muted hover:text-red-500 transition-colors">
-                        刪除
+                        {tr.creator.works.delete}
                       </button>
                     </div>
                   </div>

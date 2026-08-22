@@ -4,6 +4,8 @@ import { cn } from '@/lib/utils';
 import { CreditIndicator } from './CreditIndicator';
 import { MOCK_AI_MESSAGES } from '@/lib/mockData';
 import { aiAdapter } from '@/adapters/mockAdapter';
+import { useLocaleStore } from '@/store/localeStore';
+import { t } from '@/i18n';
 
 interface Message { role: 'user' | 'assistant'; content: string; suggestions?: string[] }
 
@@ -12,13 +14,19 @@ export function AIAssistantPanel({ projectTitle = '第三集 · 街市情緣' }:
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const { locale } = useLocaleStore();
+  const tr = t();
+
+  // suppress unused warning — locale subscribed for re-render
+  void locale;
+
   const quickActions = [
-    { icon: RefreshCw, label: '重生劇本', cost: 50 },
-    { icon: Check,     label: '接受建議', cost: 0 },
-    { icon: Edit3,     label: '改寫對白', cost: 20 },
-    { icon: Sliders,   label: '調整風格', cost: 15 },
-    { icon: Languages, label: '翻譯為書面語', cost: 10 },
-    { icon: Mic,       label: '加入粵語配音', cost: 80 },
+    { icon: RefreshCw, label: tr.creator.aiAssistant.actions.regenerate, cost: 50 },
+    { icon: Check,     label: tr.creator.aiAssistant.actions.accept,     cost: 0 },
+    { icon: Edit3,     label: tr.creator.aiAssistant.actions.rewrite,    cost: 20 },
+    { icon: Sliders,   label: tr.creator.aiAssistant.actions.adjustStyle,cost: 15 },
+    { icon: Languages, label: tr.creator.aiAssistant.actions.toFormal,   cost: 10 },
+    { icon: Mic,       label: tr.creator.aiAssistant.actions.addVoice,   cost: 80 },
   ];
 
   const handleSend = async () => {
@@ -38,7 +46,7 @@ export function AIAssistantPanel({ projectTitle = '第三集 · 街市情緣' }:
       <div className="flex items-center justify-between px-4 py-3 border-b border-line bg-primary/5">
         <div className="flex items-center gap-2">
           <Bot size={18} className="text-primary" />
-          <span className="font-semibold text-sm text-primary">AI 創作助手</span>
+          <span className="font-semibold text-sm text-primary">{tr.creator.aiAssistant.title}</span>
           <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
         </div>
         <span className="text-xs text-muted">⋯</span>
@@ -46,7 +54,7 @@ export function AIAssistantPanel({ projectTitle = '第三集 · 街市情緣' }:
 
       {/* Context */}
       <div className="px-4 py-2 bg-bg-soft border-b border-line">
-        <p className="text-xs text-muted">正在編輯：{projectTitle}</p>
+        <p className="text-xs text-muted">{tr.creator.aiAssistant.editing}{projectTitle}</p>
       </div>
 
       {/* Messages */}
@@ -74,7 +82,7 @@ export function AIAssistantPanel({ projectTitle = '第三集 · 街市情緣' }:
         ))}
         {loading && (
           <div className="flex justify-start">
-            <div className="bg-bg-soft rounded-2xl px-4 py-2.5 text-sm text-muted animate-pulse">思考中⋯</div>
+            <div className="bg-bg-soft rounded-2xl px-4 py-2.5 text-sm text-muted animate-pulse">{tr.creator.aiAssistant.thinking}</div>
           </div>
         )}
       </div>
@@ -96,7 +104,7 @@ export function AIAssistantPanel({ projectTitle = '第三集 · 街市情緣' }:
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
-            placeholder="請輸入修改要求⋯"
+            placeholder={tr.creator.aiAssistant.placeholder}
             className="flex-1 px-3 py-2 text-sm rounded-lg bg-bg-soft border border-line focus:outline-none focus:border-primary"
           />
           <button onClick={handleSend} className="bg-primary text-white rounded-lg p-2 hover:bg-primary/90 transition-colors">

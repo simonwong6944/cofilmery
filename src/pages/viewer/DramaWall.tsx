@@ -3,11 +3,17 @@ import { Play, Star, Film, Search, Filter, Clock, ChevronLeft, Grid, List } from
 import { Link } from 'react-router-dom';
 import { Logo } from '@/components/shared/Logo';
 import { mockProjects } from '@/lib/mockData';
+import { useLocaleStore } from '@/store/localeStore';
+import { t } from '@/i18n';
 
 type SortKey = 'views' | 'rating' | 'newest';
 type ModeFilter = 'all' | 'drama' | 'legacy';
 
 export default function DramaWall() {
+  const { locale } = useLocaleStore();
+  const tr = t();
+  void locale;
+
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<SortKey>('views');
   const [modeFilter, setModeFilter] = useState<ModeFilter>('all');
@@ -23,6 +29,12 @@ export default function DramaWall() {
       return 0;
     });
 
+  const modeFilterOptions: [ModeFilter, string][] = [
+    ['all',    tr.viewer.dramaWall.filterAll],
+    ['drama',  tr.viewer.dramaWall.filterDrama],
+    ['legacy', tr.viewer.dramaWall.filterLegacy],
+  ];
+
   return (
     <div className="min-h-screen bg-gray-950 text-white">
       {/* Header */}
@@ -32,7 +44,7 @@ export default function DramaWall() {
             <ChevronLeft className="w-5 h-5"/>
           </Link>
           <Logo size="md" withWordmark theme="dark" />
-          <span className="text-white/30 text-sm">/ 所有作品</span>
+          <span className="text-white/30 text-sm">/ {tr.viewer.dramaWall.allWorks}</span>
         </div>
       </header>
 
@@ -43,7 +55,7 @@ export default function DramaWall() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40"/>
             <input
               className="w-full bg-white/10 text-white placeholder-white/40 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:bg-white/15 border border-white/10 focus:border-primary/50"
-              placeholder="搜尋作品名稱、描述…"
+              placeholder={tr.viewer.dramaWall.searchPlaceholder}
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
@@ -51,7 +63,7 @@ export default function DramaWall() {
 
           {/* Mode Filter */}
           <div className="flex rounded-lg overflow-hidden border border-white/10">
-            {([['all', '全部'], ['drama', '戲劇'], ['legacy', '傳承']] as [ModeFilter, string][]).map(([val, label]) => (
+            {modeFilterOptions.map(([val, label]) => (
               <button
                 key={val}
                 onClick={() => setModeFilter(val)}
@@ -70,9 +82,9 @@ export default function DramaWall() {
               onChange={e => setSort(e.target.value as SortKey)}
               className="bg-white/10 text-white text-sm rounded-lg px-3 py-2 border border-white/10 focus:outline-none focus:border-primary/50"
             >
-              <option value="views">按觀看人數</option>
-              <option value="rating">按評分</option>
-              <option value="newest">最新發佈</option>
+              <option value="views">{tr.viewer.dramaWall.sortByViews}</option>
+              <option value="rating">{tr.viewer.dramaWall.sortByRating}</option>
+              <option value="newest">{tr.viewer.dramaWall.sortNewest}</option>
             </select>
           </div>
 
@@ -92,7 +104,9 @@ export default function DramaWall() {
             </button>
           </div>
 
-          <span className="text-white/40 text-sm ml-auto">{projects.length} 套作品</span>
+          <span className="text-white/40 text-sm ml-auto">
+            {projects.length} {tr.viewer.dramaWall.worksCount}
+          </span>
         </div>
       </div>
 
@@ -100,8 +114,8 @@ export default function DramaWall() {
         {projects.length === 0 ? (
           <div className="text-center py-20 text-white/30">
             <Film className="w-16 h-16 mx-auto mb-4 opacity-50"/>
-            <p className="text-xl mb-2">找不到作品</p>
-            <p className="text-sm">試試不同搜尋條件</p>
+            <p className="text-xl mb-2">{tr.viewer.dramaWall.noWorks}</p>
+            <p className="text-sm">{tr.viewer.dramaWall.noWorksHint}</p>
           </div>
         ) : viewMode === 'grid' ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -125,11 +139,13 @@ export default function DramaWall() {
                   </div>
                   <div className="absolute top-3 left-3">
                     <span className={`text-xs font-bold px-2 py-1 rounded-full ${(p as any).mode === 'drama' ? 'bg-blue-600/90 text-white' : 'bg-amber-600/90 text-white'}`}>
-                      {(p as any).mode === 'drama' ? '🎭 戲劇' : '📜 傳承'}
+                      {(p as any).mode === 'drama'
+                        ? `🎭 ${tr.viewer.dramaWall.filterDrama}`
+                        : `📜 ${tr.viewer.dramaWall.filterLegacy}`}
                     </span>
                   </div>
                   <div className="absolute bottom-3 right-3 bg-black/70 text-white text-xs px-2 py-1 rounded-lg flex items-center gap-1">
-                    <Clock className="w-3 h-3"/>{p.episodeCount} 集
+                    <Clock className="w-3 h-3"/>{p.episodeCount} {tr.common.episode}
                   </div>
                 </div>
                 <div className="p-4">
@@ -137,7 +153,7 @@ export default function DramaWall() {
                   <p className="text-white/50 text-xs line-clamp-2 mb-3">{p.description}</p>
                   <div className="flex items-center justify-between text-xs text-white/50">
                     <span className="flex items-center gap-1"><Star className="w-3 h-3 text-accent fill-accent"/>{p.rating}</span>
-                    <span>{p.views.toLocaleString()} 觀看</span>
+                    <span>{p.views.toLocaleString()} {tr.common.views}</span>
                   </div>
                 </div>
               </Link>
@@ -165,13 +181,15 @@ export default function DramaWall() {
                   <p className="text-white/50 text-xs line-clamp-1">{p.description}</p>
                   <div className="flex items-center gap-3 mt-1.5 text-xs text-white/40">
                     <span className="flex items-center gap-1"><Star className="w-3 h-3 text-accent fill-accent"/>{p.rating}</span>
-                    <span>{p.views.toLocaleString()} 觀看</span>
-                    <span>{p.episodeCount} 集</span>
+                    <span>{p.views.toLocaleString()} {tr.common.views}</span>
+                    <span>{p.episodeCount} {tr.common.episode}</span>
                   </div>
                 </div>
                 <div>
                   <span className={`text-xs px-2 py-1 rounded-full ${(p as any).mode === 'drama' ? 'bg-blue-600/30 text-blue-300' : 'bg-amber-600/30 text-amber-300'}`}>
-                    {(p as any).mode === 'drama' ? '戲劇' : '傳承'}
+                    {(p as any).mode === 'drama'
+                      ? tr.viewer.dramaWall.filterDrama
+                      : tr.viewer.dramaWall.filterLegacy}
                   </span>
                 </div>
                 <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center group-hover:bg-primary transition-colors">

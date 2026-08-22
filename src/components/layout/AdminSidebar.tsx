@@ -6,27 +6,35 @@ import {
   AlertTriangle, Cpu, BarChart3, Settings
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-const NAV_ITEMS = [
-  { path: '/admin',                    icon: LayoutDashboard, label: '總覽' },
-  { path: '/admin/queue',              icon: ListVideo,       label: '審批隊列' },
-  { path: '/admin/review/drama-002-ep5', icon: PlaySquare,   label: '單作品審批' },
-  { path: '/admin/users',              icon: Users,           label: '用戶管理' },
-  { path: '/admin/creators',           icon: UserCheck,       label: '創作者管理' },
-  { path: '/admin/moderation',         icon: ShieldAlert,     label: '內容審核' },
-  { path: '/admin/credits',            icon: Coins,           label: '信用額引擎' },
-  { path: '/admin/brands',             icon: Megaphone,       label: '品牌廣告' },
-  { path: '/admin/esg',                icon: Leaf,            label: 'ESG 贊助' },
-  { path: '/admin/enterprise',          icon: Building2,       label: '企業傳承' },
-  { path: '/admin/sponsored-legacy',   icon: Heart,           label: '贊助式傳承' },
-  { path: '/admin/redlines',           icon: AlertTriangle,   label: '紅線合規' },
-  { path: '/admin/adapters',           icon: Cpu,             label: 'AI Adapter' },
-  { path: '/admin/analytics',          icon: BarChart3,       label: '分析報表' },
-  { path: '/admin/settings',           icon: Settings,        label: '系統設定' },
-];
+import { useLocaleStore } from '@/store/localeStore';
+import { t } from '@/i18n';
 
 export function AdminSidebar() {
   const { pathname } = useLocation();
+  const { locale } = useLocaleStore();
+  const tr = t();
+
+  // suppress unused warning — locale subscribed for re-render
+  void locale;
+
+  const NAV_ITEMS = [
+    { path: '/admin',                      icon: LayoutDashboard, label: tr.admin.sidebar.overview },
+    { path: '/admin/queue',                icon: ListVideo,       label: tr.admin.sidebar.queue },
+    { path: '/admin/review/drama-002-ep5', icon: PlaySquare,      label: tr.admin.sidebar.review },
+    { path: '/admin/users',                icon: Users,           label: tr.admin.sidebar.users },
+    { path: '/admin/creators',             icon: UserCheck,       label: tr.admin.sidebar.creators },
+    { path: '/admin/moderation',           icon: ShieldAlert,     label: tr.admin.sidebar.moderation },
+    { path: '/admin/credits',              icon: Coins,           label: tr.admin.sidebar.credits },
+    { path: '/admin/brands',               icon: Megaphone,       label: tr.admin.sidebar.brands },
+    { path: '/admin/esg',                  icon: Leaf,            label: tr.admin.sidebar.esg },
+    { path: '/admin/enterprise',           icon: Building2,       label: tr.admin.sidebar.enterprise },
+    { path: '/admin/sponsored-legacy',     icon: Heart,           label: tr.admin.sidebar.sponsoredLegacy },
+    { path: '/admin/redlines',             icon: AlertTriangle,   label: tr.admin.sidebar.redlines },
+    { path: '/admin/adapters',             icon: Cpu,             label: tr.admin.sidebar.adapters },
+    { path: '/admin/analytics',            icon: BarChart3,       label: tr.admin.sidebar.analytics },
+    { path: '/admin/settings',             icon: Settings,        label: tr.admin.sidebar.settings },
+  ];
+
   return (
     <aside className="w-60 shrink-0 bg-card border-r border-line flex flex-col h-screen sticky top-0">
       <div className="px-4 py-4 border-b border-line">

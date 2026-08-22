@@ -3,8 +3,14 @@ import { Heart, Film, Play, Trash2, ChevronLeft, Search, Star } from 'lucide-rea
 import { Link } from 'react-router-dom';
 import { Logo } from '@/components/shared/Logo';
 import { mockProjects } from '@/lib/mockData';
+import { useLocaleStore } from '@/store/localeStore';
+import { t } from '@/i18n';
 
 export default function Favorites() {
+  const { locale } = useLocaleStore();
+  const tr = t();
+  void locale;
+
   const [favs, setFavs] = useState(mockProjects.slice(0, 4));
   const [search, setSearch] = useState('');
   const [removingId, setRemovingId] = useState<string | null>(null);
@@ -27,15 +33,15 @@ export default function Favorites() {
           <ChevronLeft className="w-5 h-5"/>
         </Link>
         <Logo size="md" withWordmark theme="dark"/>
-        <span className="text-white/30 text-sm">/ 我的收藏</span>
+        <span className="text-white/30 text-sm">/ {tr.viewer.favorites.breadcrumb}</span>
       </header>
 
       <main className="max-w-3xl mx-auto px-6 py-8">
         {/* Title */}
         <div className="flex items-center gap-3 mb-6">
           <Heart className="w-7 h-7 text-red-500 fill-red-500"/>
-          <h1 className="text-3xl font-bold text-white">我的收藏</h1>
-          <span className="bg-white/10 text-white/60 text-sm px-3 py-1 rounded-full ml-2">{favs.length} 套</span>
+          <h1 className="text-3xl font-bold text-white">{tr.viewer.favorites.title}</h1>
+          <span className="bg-white/10 text-white/60 text-sm px-3 py-1 rounded-full ml-2">{favs.length} {tr.common.episode.replace('集','套')}</span>
         </div>
 
         {/* Search */}
@@ -46,7 +52,7 @@ export default function Favorites() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="w-full bg-white/10 text-white placeholder-white/40 rounded-xl pl-11 pr-4 py-3 text-sm focus:outline-none focus:bg-white/15 border border-white/10"
-              placeholder="搜尋收藏作品…"
+              placeholder={tr.viewer.favorites.searchPlaceholder}
             />
           </div>
         )}
@@ -55,13 +61,13 @@ export default function Favorites() {
         {favs.length === 0 && (
           <div className="text-center py-20 text-white/30">
             <Heart className="w-16 h-16 mx-auto mb-4 opacity-30"/>
-            <p className="text-xl mb-2">收藏夾是空的</p>
-            <p className="text-sm mb-6">瀏覽作品並點擊心形圖標即可收藏</p>
+            <p className="text-xl mb-2">{tr.viewer.favorites.empty}</p>
+            <p className="text-sm mb-6">{tr.viewer.favorites.emptyHint}</p>
             <Link
               to="/viewer/drama"
               className="inline-flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-xl font-medium hover:bg-primary/90 transition-colors"
             >
-              <Film className="w-5 h-5"/>瀏覽作品
+              <Film className="w-5 h-5"/>{tr.viewer.favorites.browseWorks}
             </Link>
           </div>
         )}
@@ -89,12 +95,14 @@ export default function Favorites() {
                   <h3 className="font-bold text-white text-base truncate">{p.title}</h3>
                   <div className="flex items-center gap-3 mt-1 text-xs text-white/40">
                     <span className="flex items-center gap-1"><Star className="w-3 h-3 text-accent fill-accent"/>{p.rating}</span>
-                    <span>{p.episodeCount} 集</span>
-                    <span>{p.views.toLocaleString()} 觀看</span>
+                    <span>{p.episodeCount} {tr.common.episode}</span>
+                    <span>{p.views.toLocaleString()} {tr.common.views}</span>
                   </div>
                   <div className="mt-2">
                     <span className={`text-xs px-2 py-0.5 rounded-full ${(p as any).mode === 'drama' ? 'bg-blue-500/20 text-blue-300' : 'bg-amber-500/20 text-amber-300'}`}>
-                      {(p as any).mode === 'drama' ? '🎭 戲劇' : '📜 傳承'}
+                      {(p as any).mode === 'drama'
+                        ? `🎭 ${tr.viewer.dramaWall.filterDrama}`
+                        : `📜 ${tr.viewer.dramaWall.filterLegacy}`}
                     </span>
                   </div>
                 </div>
@@ -104,7 +112,7 @@ export default function Favorites() {
                   <button
                     onClick={() => handleRemove(p.id)}
                     className="w-9 h-9 flex items-center justify-center text-white/30 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-                    title="取消收藏"
+                    title={tr.viewer.favorites.removeBtn}
                   >
                     <Trash2 className="w-4 h-4"/>
                   </button>
@@ -124,7 +132,7 @@ export default function Favorites() {
         {favs.length > 0 && filtered.length === 0 && (
           <div className="text-center py-12 text-white/30">
             <Search className="w-10 h-10 mx-auto mb-3 opacity-50"/>
-            <p>找不到「{search}」的收藏</p>
+            <p>{tr.viewer.favorites.noResults.replace('{q}', search)}</p>
           </div>
         )}
 
@@ -132,13 +140,13 @@ export default function Favorites() {
         {favs.length > 0 && (
           <div className="mt-8 p-5 bg-gradient-to-r from-primary/20 to-accent/10 border border-white/10 rounded-2xl text-center">
             <Film className="w-8 h-8 text-accent mx-auto mb-2"/>
-            <p className="text-white font-medium mb-1">探索更多作品</p>
-            <p className="text-white/50 text-sm mb-3">CoFilmery 還有更多精彩的香港故事等你發現</p>
+            <p className="text-white font-medium mb-1">{tr.viewer.favorites.discoverMore}</p>
+            <p className="text-white/50 text-sm mb-3">{tr.viewer.favorites.discoverDesc}</p>
             <Link
               to="/viewer/drama"
               className="inline-flex items-center gap-2 bg-primary text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-primary/90 transition-colors"
             >
-              <Play className="w-4 h-4"/>瀏覽全部作品
+              <Play className="w-4 h-4"/>{tr.viewer.favorites.browseAll}
             </Link>
           </div>
         )}

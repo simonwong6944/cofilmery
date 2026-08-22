@@ -1,27 +1,31 @@
 import { useState } from 'react';
-import { Play, Heart, Clock, Star, Film, ChevronRight, Search, Bell, User, TrendingUp, Award } from 'lucide-react';
+import { Play, Heart, Clock, Star, Film, ChevronRight, Search, Bell, TrendingUp, Award } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Logo } from '@/components/shared/Logo';
 import { mockProjects } from '@/lib/mockData';
 import { useAuthStore } from '@/store/authStore';
+import { useLocaleStore } from '@/store/localeStore';
+import { t } from '@/i18n';
 
 const FEATURED_WORK = mockProjects[0];
 const RECOMMENDED = mockProjects.filter(p => p.status === 'published');
-const TRENDING = [...mockProjects].sort(() => Math.random() - 0.5).slice(0, 4);
-const NEW_RELEASES = mockProjects.slice(2, 5);
 
 export default function ViewerHome() {
-  const { user, logout } = useAuthStore();
+  const { user } = useAuthStore();
+  const { locale } = useLocaleStore();
+  const tr = t();
+  void locale;
+
   const [activeCategory, setActiveCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
 
   const categories = [
-    { id: 'all', label: '全部' },
-    { id: 'drama', label: '戲劇模式' },
-    { id: 'legacy', label: '傳承故事' },
-    { id: 'hk', label: '香港情懷' },
-    { id: 'family', label: '家庭倫理' },
+    { id: 'all',    label: tr.viewer.categories.all },
+    { id: 'drama',  label: tr.viewer.categories.drama },
+    { id: 'legacy', label: tr.viewer.categories.legacy },
+    { id: 'hk',     label: tr.viewer.categories.hk },
+    { id: 'family', label: tr.viewer.categories.family },
   ];
 
   const filtered = RECOMMENDED.filter(p => {
@@ -46,14 +50,20 @@ export default function ViewerHome() {
                 onChange={e => setSearchQuery(e.target.value)}
                 onBlur={() => { if (!searchQuery) setShowSearch(false); }}
                 className="w-full bg-white/10 text-white placeholder-white/40 rounded-xl px-4 py-2 text-sm focus:outline-none focus:bg-white/15"
-                placeholder="搜尋作品…"
+                placeholder={tr.viewer.home.searchPlaceholder}
               />
             </div>
           ) : (
             <nav className="hidden md:flex items-center gap-6 text-sm">
-              <Link to="/viewer/drama" className="text-white/80 hover:text-white transition-colors">所有作品</Link>
-              <Link to="/viewer/favorites" className="text-white/80 hover:text-white transition-colors flex items-center gap-1"><Heart className="w-4 h-4"/>收藏</Link>
-              <Link to="/viewer/history" className="text-white/80 hover:text-white transition-colors flex items-center gap-1"><Clock className="w-4 h-4"/>觀看記錄</Link>
+              <Link to="/viewer/drama" className="text-white/80 hover:text-white transition-colors">
+                {tr.viewer.home.allWorks}
+              </Link>
+              <Link to="/viewer/favorites" className="text-white/80 hover:text-white transition-colors flex items-center gap-1">
+                <Heart className="w-4 h-4"/>{tr.viewer.home.favorites}
+              </Link>
+              <Link to="/viewer/history" className="text-white/80 hover:text-white transition-colors flex items-center gap-1">
+                <Clock className="w-4 h-4"/>{tr.viewer.home.history}
+              </Link>
             </nav>
           )}
 
@@ -82,28 +92,30 @@ export default function ViewerHome() {
         />
         <div className="absolute inset-0 z-20 flex items-center">
           <div className="max-w-6xl mx-auto px-6 text-white">
-            <span className="inline-block bg-accent text-white text-xs font-bold px-3 py-1 rounded-full mb-3">🎬 今日精選</span>
+            <span className="inline-block bg-accent text-white text-xs font-bold px-3 py-1 rounded-full mb-3">
+              🎬 {tr.viewer.home.todayFeature}
+            </span>
             <h1 className="text-4xl font-bold mb-2">{FEATURED_WORK.title}</h1>
             <p className="text-white/80 text-lg mb-2 max-w-xl">{FEATURED_WORK.description}</p>
             <div className="flex items-center gap-3 mb-5 text-sm text-white/70">
               <span className="flex items-center gap-1"><Star className="w-4 h-4 text-accent fill-accent"/>{FEATURED_WORK.rating}</span>
               <span>·</span>
-              <span>{FEATURED_WORK.views.toLocaleString()} 人觀看</span>
+              <span>{FEATURED_WORK.views.toLocaleString()} {tr.viewer.drama.episodes}</span>
               <span>·</span>
-              <span>{FEATURED_WORK.episodeCount} 集</span>
+              <span>{FEATURED_WORK.episodeCount} {tr.common.episode}</span>
             </div>
             <div className="flex gap-3">
               <Link
                 to={`/viewer/watch/${FEATURED_WORK.id}`}
                 className="flex items-center gap-2 bg-white text-primary font-bold px-6 py-3 rounded-xl hover:bg-white/90 transition-colors text-lg"
               >
-                <Play className="w-5 h-5 fill-primary"/>立即觀看
+                <Play className="w-5 h-5 fill-primary"/>{tr.viewer.home.watchNow}
               </Link>
               <Link
                 to="/viewer/drama"
                 className="flex items-center gap-2 bg-white/10 text-white font-medium px-5 py-3 rounded-xl hover:bg-white/20 transition-colors border border-white/20"
               >
-                瀏覽更多
+                {tr.viewer.home.browseMore}
               </Link>
             </div>
           </div>
@@ -115,11 +127,17 @@ export default function ViewerHome() {
         <div className="bg-gradient-to-r from-primary/20 to-accent/10 border border-primary/20 rounded-2xl p-5 flex items-center gap-4">
           <div className="w-12 h-12 bg-primary/20 rounded-xl flex items-center justify-center text-2xl">👋</div>
           <div>
-            <h2 className="text-white font-bold text-lg">你好，{user?.name ?? '長者朋友'}！</h2>
-            <p className="text-white/60 text-sm">今日有 <span className="text-accent font-semibold">3</span> 套新作品等你欣賞，繼續上次的觀看記錄</p>
+            <h2 className="text-white font-bold text-lg">
+              {tr.viewer.home.welcomeGreeting}{user?.name ?? tr.viewer.home.defaultName}！
+            </h2>
+            <p className="text-white/60 text-sm">
+              {tr.viewer.home.newToday}{' '}
+              <span className="text-accent font-semibold">3</span>{' '}
+              {tr.viewer.home.newTodaySuffix}
+            </p>
           </div>
           <Link to="/viewer/history" className="ml-auto text-accent text-sm font-medium flex items-center gap-1 hover:underline whitespace-nowrap">
-            繼續觀看 <ChevronRight className="w-4 h-4"/>
+            {tr.viewer.home.continueWatching} <ChevronRight className="w-4 h-4"/>
           </Link>
         </div>
 
@@ -162,11 +180,11 @@ export default function ViewerHome() {
                   </div>
                   <div className="absolute top-3 left-3">
                     <span className={`text-xs font-bold px-2 py-1 rounded-full ${(p as any).mode === 'drama' ? 'bg-blue-500/80 text-white' : 'bg-amber-500/80 text-white'}`}>
-                      {(p as any).mode === 'drama' ? '🎭 戲劇' : '📜 傳承'}
+                      {(p as any).mode === 'drama' ? `🎭 ${tr.viewer.dramaWall.filterDrama}` : `📜 ${tr.viewer.dramaWall.filterLegacy}`}
                     </span>
                   </div>
                   <div className="absolute bottom-3 right-3 bg-black/70 text-white text-xs px-2 py-1 rounded-lg">
-                    {p.episodeCount} 集
+                    {p.episodeCount} {tr.common.episode}
                   </div>
                 </div>
                 <div className="p-4">
@@ -174,7 +192,7 @@ export default function ViewerHome() {
                   <p className="text-white/50 text-xs line-clamp-2 mb-3">{p.description}</p>
                   <div className="flex items-center justify-between text-xs text-white/50">
                     <span className="flex items-center gap-1"><Star className="w-3 h-3 text-accent fill-accent"/>{p.rating}</span>
-                    <span>{p.views.toLocaleString()} 觀看</span>
+                    <span>{p.views.toLocaleString()} {tr.common.views}</span>
                   </div>
                 </div>
               </Link>
@@ -183,7 +201,7 @@ export default function ViewerHome() {
           {filtered.length === 0 && (
             <div className="text-center py-16 text-white/30">
               <Film className="w-12 h-12 mx-auto mb-3"/>
-              <p>找不到符合的作品</p>
+              <p>{tr.viewer.dramaWall.noWorks}</p>
             </div>
           )}
         </section>
@@ -192,10 +210,10 @@ export default function ViewerHome() {
         <section>
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-xl font-bold text-white flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-accent"/>熱門排行
+              <TrendingUp className="w-5 h-5 text-accent"/>{tr.viewer.home.trending}
             </h2>
             <Link to="/viewer/drama" className="text-sm text-accent hover:underline flex items-center gap-1">
-              全部 <ChevronRight className="w-4 h-4"/>
+              {tr.viewer.home.viewAll} <ChevronRight className="w-4 h-4"/>
             </Link>
           </div>
           <div className="space-y-3">
@@ -218,7 +236,7 @@ export default function ViewerHome() {
                 </div>
                 <div className="flex-1">
                   <h3 className="text-white font-medium text-sm group-hover:text-accent transition-colors">{p.title}</h3>
-                  <p className="text-white/50 text-xs">{p.views.toLocaleString()} 觀看</p>
+                  <p className="text-white/50 text-xs">{p.views.toLocaleString()} {tr.common.views}</p>
                 </div>
                 <div className="flex items-center gap-1 text-white/50 text-xs">
                   <Star className="w-3 h-3 text-accent fill-accent"/>{p.rating}
@@ -232,13 +250,13 @@ export default function ViewerHome() {
         <section className="bg-gradient-to-r from-primary/30 to-accent/20 border border-white/10 rounded-2xl p-6">
           <div className="flex items-center gap-3 mb-4">
             <Award className="w-6 h-6 text-accent"/>
-            <h2 className="text-white font-bold text-lg">CoFilmery 社會影響力</h2>
+            <h2 className="text-white font-bold text-lg">{tr.viewer.home.esgTitle}</h2>
           </div>
           <div className="grid grid-cols-3 gap-4">
             {[
-              { value: '47,300', label: '總觀看次數', icon: '👁' },
-              { value: '6', label: '已發佈作品', icon: '🎬' },
-              { value: '5', label: '位認證創作者', icon: '🏆' },
+              { value: '47,300', label: tr.viewer.home.totalViews,        icon: '👁' },
+              { value: '6',      label: tr.viewer.home.publishedWorks,    icon: '🎬' },
+              { value: '5',      label: tr.viewer.home.certifiedCreators, icon: '🏆' },
             ].map(({ value, label, icon }) => (
               <div key={label} className="text-center">
                 <div className="text-2xl mb-1">{icon}</div>
@@ -249,7 +267,6 @@ export default function ViewerHome() {
           </div>
         </section>
 
-        {/* Mobile Bottom Nav Space */}
         <div className="h-4"/>
       </main>
     </div>

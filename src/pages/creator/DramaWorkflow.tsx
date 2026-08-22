@@ -5,6 +5,8 @@ import { StepNavigation } from '@/components/shared/StepNavigation';
 import { AIAssistantPanel } from '@/components/shared/AIAssistantPanel';
 import { CreditIndicator } from '@/components/shared/CreditIndicator';
 import { Logo } from '@/components/shared/Logo';
+import { useLocaleStore } from '@/store/localeStore';
+import { t } from '@/i18n';
 import {
   AlertTriangle, RefreshCw, Check, Mic, Save, ChevronDown, ChevronRight,
   Sparkles, Image, Film, Music, Edit3, Upload, Zap, Eye, Send,
@@ -1922,6 +1924,10 @@ function navStepToRouteStep(navStep: number): number {
 export default function DramaWorkflow() {
   const { step } = useParams();
   const navigate = useNavigate();
+  const { locale } = useLocaleStore();
+  const tr = t();
+  void locale;
+
   const routeStep = Math.min(parseInt(step ?? '0', 10), 10);
   const StepComponent = STEPS[routeStep];
 
@@ -1932,7 +1938,7 @@ export default function DramaWorkflow() {
 
   // Determine series title for header
   const seriesTitles: Record<number, string> = {
-    0: '新系列設定',
+    0: tr.creator.modeSelect.dramaTitle,
   };
   const headerTitle = seriesTitles[routeStep] ?? '街市情緣';
 
@@ -1942,11 +1948,11 @@ export default function DramaWorkflow() {
       <div className="flex flex-col flex-1 overflow-hidden">
         <header className="bg-card border-b border-line px-6 py-3 flex items-center gap-4 shrink-0">
           <Logo size="sm" withWordmark />
-          <span className="text-primary font-bold">戲劇模式</span>
+          <span className="text-primary font-bold">{tr.creator.modeSelect.dramaTitle}</span>
           <span className="text-muted text-sm">· {headerTitle}</span>
           <div className="ml-auto flex items-center gap-3">
             <Heart size={16} className="text-accent" />
-            <span className="text-xs text-muted">積分：842</span>
+            <span className="text-xs text-muted">{tr.creator.credits} 842</span>
           </div>
         </header>
         <div className="flex flex-1 overflow-hidden">

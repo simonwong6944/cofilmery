@@ -3,20 +3,28 @@ import { Logo } from '@/components/shared/Logo';
 import { LayoutDashboard, FolderOpen, PlusCircle, Coins, Award, Bell } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/authStore';
+import { useLocaleStore } from '@/store/localeStore';
+import { t } from '@/i18n';
 import { TierBadge } from '@/components/shared/TierBadge';
-
-const NAV_ITEMS = [
-  { path: '/creator',               icon: LayoutDashboard, label: '創作者中心' },
-  { path: '/creator/works',         icon: FolderOpen,      label: '作品列表' },
-  { path: '/creator/new',           icon: PlusCircle,      label: '新增創作' },
-  { path: '/creator/credits',       icon: Coins,           label: '點數中心' },
-  { path: '/creator/esg',           icon: Award,           label: 'ESG 階梯' },
-  { path: '/creator/notifications', icon: Bell,            label: '通知', badge: 2 },
-];
 
 export function CreatorSidebar() {
   const { pathname } = useLocation();
   const { user } = useAuthStore();
+  const { locale } = useLocaleStore();
+  const tr = t();
+
+  // suppress unused warning — locale subscribed for re-render
+  void locale;
+
+  const NAV_ITEMS = [
+    { path: '/creator',               icon: LayoutDashboard, label: tr.creator.nav.creatorCenter },
+    { path: '/creator/works',         icon: FolderOpen,      label: tr.creator.nav.myWorks },
+    { path: '/creator/new',           icon: PlusCircle,      label: tr.creator.nav.newWork },
+    { path: '/creator/credits',       icon: Coins,           label: tr.creator.nav.credits },
+    { path: '/creator/esg',           icon: Award,           label: tr.creator.nav.esgLadder },
+    { path: '/creator/notifications', icon: Bell,            label: tr.creator.nav.notifications, badge: 2 },
+  ];
+
   return (
     <aside className="w-56 shrink-0 bg-card border-r border-line flex flex-col h-screen sticky top-0">
       <div className="px-4 py-4 border-b border-line">
@@ -26,7 +34,7 @@ export function CreatorSidebar() {
         <div className="px-4 py-3 border-b border-line">
           <p className="font-semibold text-sm text-ink">{user.name}</p>
           <TierBadge tier={user.tier ?? 'trainee'} className="mt-1" />
-          <p className="text-xs text-muted mt-1">製作點數 {(user.credits ?? 0).toLocaleString()}</p>
+          <p className="text-xs text-muted mt-1">{tr.creator.nav.productionCredits} {(user.credits ?? 0).toLocaleString()}</p>
         </div>
       )}
       <nav className="flex-1 py-3 px-2">

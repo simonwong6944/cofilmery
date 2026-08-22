@@ -8,11 +8,19 @@ import { KPIStatCard } from '@/components/shared/KPIStatCard';
 import { TierBadge } from '@/components/shared/TierBadge';
 import { MOCK_ALL_SERIES, MOCK_CURRENT_CREATOR } from '@/lib/mockData';
 import { useAuthStore } from '@/store/authStore';
+import { useLocaleStore } from '@/store/localeStore';
+import { t } from '@/i18n';
 import { Coins, Eye, TrendingUp, Leaf, MoreHorizontal } from 'lucide-react';
 
 export default function CreatorDashboard() {
   const { user } = useAuthStore();
+  const { locale } = useLocaleStore();
+  const tr = t();
   const creator = MOCK_CURRENT_CREATOR;
+
+  // suppress unused warning — locale subscribed for re-render
+  void locale;
+
   return (
     <div className="flex h-screen bg-bg-soft overflow-hidden">
       <CreatorSidebar />
@@ -21,16 +29,16 @@ export default function CreatorDashboard() {
         <header className="bg-card border-b border-line px-6 py-3 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-4">
             <Logo size="sm" withWordmark />
-            <span className="text-lg font-bold text-primary">創作者中心</span>
+            <span className="text-lg font-bold text-primary">{tr.creator.dashboard}</span>
           </div>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 bg-bg-soft px-3 py-1.5 rounded-lg">
               <Coins size={16} className="text-accent" />
-              <span className="text-sm font-semibold text-ink">製作點數 {creator.credits.toLocaleString()}</span>
+              <span className="text-sm font-semibold text-ink">{tr.creator.credits} {creator.credits.toLocaleString()}</span>
             </div>
             <TierBadge tier="certified" />
             <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
-              {(user?.name ?? '創')[0]}
+              {(user?.name ?? tr.creator.dashboard[0])[0]}
             </div>
           </div>
         </header>
@@ -40,16 +48,16 @@ export default function CreatorDashboard() {
           <main className="flex-1 overflow-y-auto p-6">
             {/* Stats */}
             <div className="grid grid-cols-4 gap-4 mb-6">
-              <KPIStatCard label="進行中項目" value={creator.stats.inProgress} unit="個" trend="+3%" icon={<TrendingUp size={20}/>} />
-              <KPIStatCard label="本月收益" value={`HK$${creator.stats.monthlyRevenue.toLocaleString()}`} trend="+8%" icon={<Coins size={20}/>} />
-              <KPIStatCard label="觀看次數" value={creator.stats.views.toLocaleString()} trend="+12%" icon={<Eye size={20}/>} />
-              <KPIStatCard label="ESG 貢獻分" value={`${creator.esgScore}/${creator.esgScoreMax}`} trend="+5%" icon={<Leaf size={20}/>} />
+              <KPIStatCard label={tr.creator.stats.inProgress} value={creator.stats.inProgress} unit="個" trend="+3%" icon={<TrendingUp size={20}/>} />
+              <KPIStatCard label={tr.creator.stats.monthlyRevenue} value={`HK$${creator.stats.monthlyRevenue.toLocaleString()}`} trend="+8%" icon={<Coins size={20}/>} />
+              <KPIStatCard label={tr.creator.stats.views} value={creator.stats.views.toLocaleString()} trend="+12%" icon={<Eye size={20}/>} />
+              <KPIStatCard label={tr.creator.stats.esgScore} value={`${creator.esgScore}/${creator.esgScoreMax}`} trend="+5%" icon={<Leaf size={20}/>} />
             </div>
 
             {/* Project Cards */}
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-bold text-primary text-lg">我的作品</h2>
-              <Link to="/creator/new" className="bg-accent text-white text-sm px-4 py-2 rounded-lg hover:bg-accent/90 transition-colors">+ 新增創作</Link>
+              <h2 className="font-bold text-primary text-lg">{tr.creator.myWorks}</h2>
+              <Link to="/creator/new" className="bg-accent text-white text-sm px-4 py-2 rounded-lg hover:bg-accent/90 transition-colors">{tr.creator.addWork}</Link>
             </div>
             <div className="grid grid-cols-4 gap-4">
               {MOCK_ALL_SERIES.map(project => (

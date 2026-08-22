@@ -3,6 +3,8 @@ import { Clock, Film, Play, Trash2, ChevronLeft, CheckCircle, RotateCcw } from '
 import { Link } from 'react-router-dom';
 import { Logo } from '@/components/shared/Logo';
 import { mockProjects } from '@/lib/mockData';
+import { useLocaleStore } from '@/store/localeStore';
+import { t } from '@/i18n';
 
 type HistoryItem = {
   id: string;
@@ -18,21 +20,26 @@ type HistoryItem = {
   lastWatched: string;
 };
 
-const HISTORY_DATA: HistoryItem[] = mockProjects.slice(0, 5).map((p, i) => ({
-  id: p.id,
-  title: p.title,
-  description: p.description,
-  thumbnail: (p as any).thumbnail || 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=225&fit=crop',
-  mode: (p as any).mode || 'drama',
-  episodeCount: p.episodeCount,
-  rating: p.rating,
-  views: p.views,
-  watchedEp: Math.min(i + 1, p.episodeCount),
-  progress: [35, 72, 100, 18, 55][i],
-  lastWatched: ['剛才', '2 小時前', '昨天', '3 天前', '1 周前'][i],
-}));
-
 export default function History() {
+  const { locale } = useLocaleStore();
+  const tr = t();
+  void locale;
+
+  // Build demo data inside component (lastWatched uses tr keys, but those are timestamps so keep raw)
+  const HISTORY_DATA: HistoryItem[] = mockProjects.slice(0, 5).map((p, i) => ({
+    id: p.id,
+    title: p.title,
+    description: p.description,
+    thumbnail: (p as any).thumbnail || 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=225&fit=crop',
+    mode: (p as any).mode || 'drama',
+    episodeCount: p.episodeCount,
+    rating: p.rating,
+    views: p.views,
+    watchedEp: Math.min(i + 1, p.episodeCount),
+    progress: [35, 72, 100, 18, 55][i],
+    lastWatched: ['剛才', '2 小時前', '昨天', '3 天前', '1 周前'][i],
+  }));
+
   const [history, setHistory] = useState(HISTORY_DATA);
   const [cleared, setCleared] = useState(false);
 
@@ -45,6 +52,8 @@ export default function History() {
     setCleared(true);
   };
 
+  const unfinishedCount = history.filter(p => p.progress < 100 && p.progress > 0).length;
+
   return (
     <div className="min-h-screen bg-gray-950 text-white">
       {/* Header */}
@@ -53,7 +62,7 @@ export default function History() {
           <ChevronLeft className="w-5 h-5"/>
         </Link>
         <Logo size="md" withWordmark theme="dark"/>
-        <span className="text-white/30 text-sm">/ 觀看記錄</span>
+        <span className="text-white/30 text-sm">/ {tr.viewer.history.breadcrumb}</span>
       </header>
 
       <main className="max-w-3xl mx-auto px-6 py-8">
@@ -61,7 +70,7 @@ export default function History() {
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <Clock className="w-7 h-7 text-primary"/>
-            <h1 className="text-3xl font-bold text-white">觀看記錄</h1>
+            <h1 className="text-3xl font-bold text-white">{tr.viewer.history.title}</h1>
             <span className="bg-white/10 text-white/60 text-sm px-3 py-1 rounded-full">{history.length} 套</span>
           </div>
           {history.length > 0 && (
@@ -69,7 +78,7 @@ export default function History() {
               onClick={handleClearAll}
               className="flex items-center gap-1.5 text-sm text-white/40 hover:text-red-400 transition-colors"
             >
-              <Trash2 className="w-4 h-4"/>清除全部
+              <Trash2 className="w-4 h-4"/>{tr.viewer.history.clearAll}
             </button>
           )}
         </div>
@@ -78,21 +87,23 @@ export default function History() {
         {history.length === 0 && (
           <div className="text-center py-20 text-white/30">
             <Clock className="w-16 h-16 mx-auto mb-4 opacity-30"/>
-            <p className="text-xl mb-2">{cleared ? '已清除全部記錄' : '尚無觀看記錄'}</p>
-            <p className="text-sm mb-6">開始觀看作品，記錄將自動儲存</p>
+            <p className="text-xl mb-2">
+              {cleared ? tr.viewer.history.emptyCleared : tr.viewer.history.emptyNone}
+            </p>
+            <p className="text-sm mb-6">{tr.viewer.history.emptyHint}</p>
             <div className="flex flex-col gap-3 items-center">
               <Link
                 to="/viewer/drama"
                 className="inline-flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-xl font-medium hover:bg-primary/90 transition-colors"
               >
-                <Film className="w-5 h-5"/>瀏覽作品
+                <Film className="w-5 h-5"/>{tr.viewer.history.browseWorks}
               </Link>
               {cleared && (
                 <button
                   onClick={() => { setHistory(HISTORY_DATA); setCleared(false); }}
                   className="inline-flex items-center gap-2 text-white/50 hover:text-white text-sm transition-colors"
                 >
-                  <RotateCcw className="w-4 h-4"/>恢復示範資料
+                  <RotateCcw className="w-4 h-4"/>{tr.viewer.history.restoreDemo}
                 </button>
               )}
             </div>
@@ -133,15 +144,21 @@ export default function History() {
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <span className={`text-xs px-1.5 py-0.5 rounded ${p.mode === 'drama' ? 'bg-blue-500/20 text-blue-300' : 'bg-amber-500/20 text-amber-300'}`}>
-                            {p.mode === 'drama' ? '戲劇' : '傳承'}
+                            {p.mode === 'drama'
+                              ? tr.viewer.dramaWall.filterDrama
+                              : tr.viewer.dramaWall.filterLegacy}
                           </span>
                           <span className="text-white/30 text-xs">{p.lastWatched}</span>
                         </div>
                         <h3 className="font-bold text-white text-sm truncate">{p.title}</h3>
                         <p className="text-white/40 text-xs mt-0.5">
-                          已看第 {p.watchedEp} 集 / 共 {p.episodeCount} 集
-                          {p.progress < 100 && <span> · 播放至 {p.progress}%</span>}
-                          {p.progress >= 100 && <span className="text-green-400"> · 已看完</span>}
+                          {tr.viewer.history.watchedEp}{p.watchedEp}{tr.viewer.history.ofEp}{p.episodeCount}{tr.viewer.history.epUnit}
+                          {p.progress < 100 && (
+                            <span> {tr.viewer.history.playTo} {p.progress}%</span>
+                          )}
+                          {p.progress >= 100 && (
+                            <span className="text-green-400"> {tr.viewer.history.finished}</span>
+                          )}
                         </p>
                       </div>
                       <button
@@ -155,7 +172,7 @@ export default function History() {
                     {/* Progress Bar */}
                     <div className="mt-3">
                       <div className="flex justify-between text-xs text-white/30 mb-1">
-                        <span>觀看進度</span>
+                        <span>{tr.viewer.history.progressLabel}</span>
                         <span>{p.progress}%</span>
                       </div>
                       <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
@@ -183,12 +200,12 @@ export default function History() {
         )}
 
         {/* Continue Watching CTA */}
-        {history.filter(p => p.progress < 100 && p.progress > 0).length > 0 && (
+        {unfinishedCount > 0 && (
           <div className="mt-6 p-4 bg-gradient-to-r from-primary/20 to-accent/10 border border-white/10 rounded-2xl">
             <p className="text-white font-medium text-sm mb-1">
-              你有 {history.filter(p => p.progress < 100 && p.progress > 0).length} 套作品未看完
+              {tr.viewer.history.unfinished} {unfinishedCount} {tr.viewer.history.unfinishedSuffix}
             </p>
-            <p className="text-white/50 text-xs">繼續觀看，支持創作者的心意</p>
+            <p className="text-white/50 text-xs">{tr.viewer.history.unfinishedDesc}</p>
           </div>
         )}
       </main>
