@@ -12,6 +12,14 @@
       "database_name": "cofilmery-staging",
       "database_id": "881f5d21-5ba7-4dec-9f81-3cee45e89b0c"
     }
+  ],
+
+  // R2 object storage — shared bucket, staging uses a /staging/ prefix in keys
+  "r2_buckets": [
+    {
+      "binding": "FILES",
+      "bucket_name": "cofilmery-assets"
+    }
   ]
 
   // OPENROUTER_API_KEY must be set as a Cloudflare secret:

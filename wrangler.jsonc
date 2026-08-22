@@ -10,5 +10,11 @@
       "database_name": "cofilmery-production",
       "database_id": "762e3f3d-932d-49bd-9bdb-414167f19769"
     }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "FILES",
+      "bucket_name": "cofilmery-assets"
+    }
   ]
 }

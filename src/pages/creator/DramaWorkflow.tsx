@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { AestheticComposer, type AestheticOutput } from '@/components/shared/AestheticComposer';
 import {
   S1bOutline, S1cEpisodes,
@@ -495,25 +495,38 @@ function SeriesAestheticLock({ onNext }: { onNext: () => void }) {
     }));
   };
 
-  // 模擬「上傳」— 用 placeholder URL（demo 階段）
+  // 真實上傳 — 開啟 file picker，上傳到 R2，把 URL 加入 refImages
+  const uploadRef = useRef<HTMLInputElement>(null);
+  const [uploadingSection, setUploadingSection] = useState<RefImageSection | null>(null);
+  const { projectId: storeProjectId } = useProjectStore();
+
   const handleUpload = (section: RefImageSection) => {
-    const DEMO_URLS: Record<RefImageSection, string[]> = {
-      style: [
-        'https://images.unsplash.com/photo-1536599018102-9f803c140fc1?w=300&h=200&fit=crop',
-        'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=300&h=200&fit=crop',
-      ],
-      character: [
-        'https://images.unsplash.com/photo-1546961342-ea5f62d5a27b?w=300&h=200&fit=crop',
-        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=200&fit=crop',
-      ],
-      scene: [
-        'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=300&h=200&fit=crop',
-        'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=300&h=200&fit=crop',
-      ],
+    setUploadingSection(section);
+    uploadRef.current?.click();
+  };
+
+  const onRefFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || !uploadingSection) return;
+    const categoryMap: Record<RefImageSection, string> = {
+      style: 'other', character: 'character', scene: 'scene',
     };
-    const urls = DEMO_URLS[section];
-    const url = urls[refImages[section].length % urls.length];
-    addRefImage(section, url);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('projectId', storeProjectId || 'global');
+      fd.append('userId', 'creator-local');
+      fd.append('category', categoryMap[uploadingSection]);
+      const res = await fetch('/api/upload', { method: 'POST', body: fd });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json<{ fileUrl: string }>();
+      addRefImage(uploadingSection, data.fileUrl);
+    } catch (err) {
+      console.error('Upload failed:', err);
+    } finally {
+      setUploadingSection(null);
+    }
   };
 
   const RefImageSectionUI = ({
@@ -620,6 +633,15 @@ function SeriesAestheticLock({ onNext }: { onNext: () => void }) {
       )}
 
       {open && (<>
+        {/* Hidden file input for real uploads */}
+        <input
+          ref={uploadRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={onRefFileChange}
+        />
+
         {/* ── 參考圖三區（修正九）── */}
         <RefImageSectionUI sectionKey="style"     title={alTr.styleRefTitle}  subtitle={alTr.styleRefSubtitle}  />
         <RefImageSectionUI sectionKey="character" title={alTr.charRefTitle}   subtitle={alTr.charRefSubtitle}   />
@@ -706,11 +728,63 @@ function S1AssetBank({ onNext }: { onNext: () => void }) {
     { id: 'location',   icon: MapPin,          label: tr.creator.drama.s1.catLocation,   desc: tr.creator.drama.s1.catLocationDesc,   color: 'text-green-500' },
   ];
 
+  // 真實上傳 state
+  const { projectId: s1ProjectId } = useProjectStore();
+  const s1FileRef = useRef<HTMLInputElement>(null);
+  const [s1Uploading, setS1Uploading]   = useState(false);
+  const [s1UploadErr, setS1UploadErr]   = useState('');
+  const [s1Assets, setS1Assets]         = useState<Array<{ id: string; file_name: string; file_type: string; file_size: number; file_url: string; category: string }>>([]);
+  const [s1Loaded, setS1Loaded]         = useState(false);
+
+  const fetchS1Assets = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/assets?project_id=${s1ProjectId || 'global'}&limit=100`);
+      if (!res.ok) return;
+      const data = await res.json<{ assets: typeof s1Assets }>();
+      setS1Assets(data.assets ?? []);
+    } catch { /* non-blocking */ } finally {
+      setS1Loaded(true);
+    }
+  }, [s1ProjectId]);
+
+  useEffect(() => { fetchS1Assets(); }, [fetchS1Assets]);
+
+  const onS1FileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = '';
+    if (!files.length) return;
+    setS1Uploading(true); setS1UploadErr('');
+    try {
+      for (const file of files) {
+        const fd = new FormData();
+        fd.append('file', file);
+        fd.append('projectId', s1ProjectId || 'global');
+        fd.append('userId', 'creator-local');
+        fd.append('category', file.type.startsWith('audio/') ? 'audio' : file.type.startsWith('video/') ? 'video' : 'other');
+        const res = await fetch('/api/upload', { method: 'POST', body: fd });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      }
+      await fetchS1Assets();
+    } catch (err) {
+      setS1UploadErr(err instanceof Error ? err.message : '上傳失敗');
+    } finally {
+      setS1Uploading(false);
+    }
+  };
+
   const ownAssetIcons = [Users, Image, Camera, Music];
   const ownAssetColors = ['text-blue-500','text-green-500','text-purple-500','text-amber-500'];
   const ownAssetTypes = tr.creator.drama.s1.ownAssets.map((a, i) => ({
     icon: ownAssetIcons[i], label: a.label, color: ownAssetColors[i],
-    accept: a.accept, count: [0,2,0,1][i],
+    accept: a.accept,
+    // count from real assets (0 while loading)
+    count: s1Assets.filter(asset => {
+      if (i === 0) return asset.category === 'character';
+      if (i === 1) return asset.file_type.startsWith('image/');
+      if (i === 2) return asset.file_type.startsWith('video/');
+      if (i === 3) return asset.file_type.startsWith('audio/');
+      return false;
+    }).length,
   }));
 
   const toggleAsset = (cat: SponsorCategory, brand: { id: string; name: string }, asset: { id: string; name: string; img: string; tag: string }) => {
@@ -776,6 +850,23 @@ function S1AssetBank({ onNext }: { onNext: () => void }) {
       {/* ── TAB: 自有素材 ── */}
       {activeTab === 'own' && (
         <div className="space-y-4">
+          {/* Hidden file input */}
+          <input
+            ref={s1FileRef}
+            type="file"
+            multiple
+            accept="image/*,video/*,audio/*"
+            className="hidden"
+            onChange={onS1FileChange}
+          />
+
+          {/* Error banner */}
+          {s1UploadErr && (
+            <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 rounded-lg px-3 py-2 text-xs">
+              ⚠️ {s1UploadErr}
+            </div>
+          )}
+
           {ownAssetTypes.map((type, i) => (
             <div key={i} className="bg-card rounded-xl border border-line p-5 shadow-card">
               <div className="flex items-center justify-between mb-3">
@@ -790,33 +881,52 @@ function S1AssetBank({ onNext }: { onNext: () => void }) {
                 </div>
                 <span className="text-xs text-muted">{type.accept}</span>
               </div>
-              <div className="border-2 border-dashed border-line rounded-lg p-4 text-center hover:border-primary transition-colors cursor-pointer">
-                <Upload size={20} className="mx-auto text-muted mb-1" />
-                <p className="text-xs text-muted">{tr.creator.drama.s1.uploadPrompt}</p>
+              <div
+                onClick={() => !s1Uploading && s1FileRef.current?.click()}
+                className="border-2 border-dashed border-line rounded-lg p-4 text-center hover:border-primary transition-colors cursor-pointer"
+              >
+                {s1Uploading
+                  ? <div className="flex items-center justify-center gap-2 text-xs text-muted"><Upload size={16} className="animate-bounce" /> 上傳中…</div>
+                  : <><Upload size={20} className="mx-auto text-muted mb-1" /><p className="text-xs text-muted">{tr.creator.drama.s1.uploadPrompt}</p></>
+                }
               </div>
             </div>
           ))}
 
-          {/* Preview grid */}
+          {/* Real uploaded assets preview */}
           <div className="bg-card rounded-xl border border-line p-5 shadow-card">
             <h3 className="font-semibold text-ink text-sm mb-3">{tr.creator.drama.s1.previewTitle}</h3>
-            <div className="grid grid-cols-4 gap-2">
-              {[
-                'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=120&h=120&fit=crop',
-                'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=120&h=120&fit=crop',
-                'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=120&h=120&fit=crop',
-              ].map((src, i) => (
-                <div key={i} className="relative group">
-                  <img src={src} alt="" className="w-full aspect-square object-cover rounded-lg" />
-                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 rounded-lg flex items-center justify-center transition-opacity">
-                    <button className="text-white text-xs">刪除</button>
+            {!s1Loaded && (
+              <p className="text-xs text-muted">載入中…</p>
+            )}
+            {s1Loaded && s1Assets.length === 0 && (
+              <p className="text-xs text-muted">尚未上傳任何素材</p>
+            )}
+            {s1Loaded && s1Assets.length > 0 && (
+              <div className="grid grid-cols-4 gap-2">
+                {s1Assets.map(asset => (
+                  <div key={asset.id} className="relative group">
+                    {asset.file_type.startsWith('image/') ? (
+                      <img src={asset.file_url} alt={asset.file_name} className="w-full aspect-square object-cover rounded-lg" loading="lazy" />
+                    ) : (
+                      <div className="w-full aspect-square bg-bg-soft rounded-lg flex flex-col items-center justify-center text-xs text-muted gap-1 p-2">
+                        {asset.file_type.startsWith('video/') ? <Film size={20} /> : <Music size={20} />}
+                        <span className="truncate w-full text-center">{asset.file_name}</span>
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 rounded-lg flex items-center justify-center transition-opacity">
+                      <span className="text-white text-xs truncate px-1">{asset.file_name}</span>
+                    </div>
                   </div>
+                ))}
+                <div
+                  onClick={() => s1FileRef.current?.click()}
+                  className="aspect-square border-2 border-dashed border-line rounded-lg flex items-center justify-center cursor-pointer hover:border-primary transition-colors"
+                >
+                  <Plus size={20} className="text-muted" />
                 </div>
-              ))}
-              <div className="aspect-square border-2 border-dashed border-line rounded-lg flex items-center justify-center cursor-pointer hover:border-primary transition-colors">
-                <Plus size={20} className="text-muted" />
               </div>
-            </div>
+            )}
           </div>
         </div>
       )}
