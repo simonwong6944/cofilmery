@@ -1098,7 +1098,9 @@ export function S1cEpisodes({ context, outline, characters, sponsorAssets = [], 
 }
 
 // ── 步驟進度列 ────────────────────────────────────────────────────────
-export type ArchitectSubStage = 'topic' | 'outline' | 'characters' | 'episodes' | 'done';
+// 修正五六：移除 'topic'（選題方向）與 'characters'（角色深化）子步驟
+// S3 直接由 outline（全劇大綱）→ episodes（分集故事卡）
+export type ArchitectSubStage = 'outline' | 'episodes' | 'done';
 
 interface StageProgressProps {
   current: ArchitectSubStage;
@@ -1111,13 +1113,11 @@ export function StageProgress({ current }: StageProgressProps) {
   const sa = tr.storyArchitect;
 
   const stages: { key: ArchitectSubStage; label: string; icon: React.ReactNode }[] = [
-    { key: 'topic', label: sa.stage.topic, icon: <Sparkles size={13} /> },
     { key: 'outline', label: sa.stage.outline, icon: <BookOpen size={13} /> },
-    { key: 'characters', label: sa.stage.characters, icon: <Users size={13} /> },
     { key: 'episodes', label: sa.stage.episodes, icon: <Film size={13} /> },
   ];
 
-  const order: ArchitectSubStage[] = ['topic', 'outline', 'characters', 'episodes', 'done'];
+  const order: ArchitectSubStage[] = ['outline', 'episodes', 'done'];
   const curIdx = order.indexOf(current);
 
   return (

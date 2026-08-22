@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { AestheticComposer, type AestheticOutput } from '@/components/shared/AestheticComposer';
 import {
-  S1aTopic, S1bOutline, S2Characters, S1cEpisodes,
+  S1bOutline, S1cEpisodes,
   StageProgress, type ArchitectSubStage,
 } from '@/components/shared/StoryArchitect';
-import type { TopicOption, CharacterCard, EpisodeStoryCard, SeriesContext } from '@/adapters/types';
+import type { CharacterCard, EpisodeStoryCard, SeriesContext } from '@/adapters/types';
 import { Layers } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { CreatorSidebar } from '@/components/layout/CreatorSidebar';
@@ -230,105 +230,91 @@ function S0SeriesSetup({ onNext }: { onNext: () => void }) {
 }
 
 // ─────────────────────────────────────────
-// 前置: 策劃案總覽（Plan Overview）
+// 前置: 故事原材料輸入（修正一）
+// 創作者輸入長者口述故事，AI 只做潤飾，不憑空生成
 // ─────────────────────────────────────────
 function PlanOverview({ onNext }: { onNext: () => void }) {
   const { locale } = useLocaleStore();
   const tr = t();
   void locale;
+  const po = tr.creator.drama.planOverview;
+
+  const { storyMaterial, setStoryMaterial } = useProjectStore();
+  const [localMaterial, setLocalMaterial] = useState(storyMaterial);
+
+  const handleConfirm = () => {
+    setStoryMaterial(localMaterial);
+    onNext();
+  };
+
+  const handleSaveDraft = () => {
+    setStoryMaterial(localMaterial);
+  };
+
   return (
     <div className="max-w-2xl">
       <div className="mb-6">
-        <div className="inline-flex items-center gap-2 bg-accent/10 text-accent px-3 py-1 rounded-full text-xs font-semibold mb-3">
-          <Eye size={12} /> 策劃案總覽
+        <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-semibold mb-3">
+          <Mic size={12} /> {po.badge}
         </div>
-        <h2 className="text-2xl font-bold text-primary">確認策劃案，再開始製作</h2>
-        <p className="text-muted text-sm mt-1">以下係根據你的系列設定生成的策劃案，確認後才會開始消耗積分。</p>
+        <h2 className="text-2xl font-bold text-primary">{po.title}</h2>
+        <p className="text-muted text-sm mt-1">{po.subtitle}</p>
       </div>
 
       <div className="space-y-4 mb-6">
-        {/* 一頁總覽 */}
-        <div className="bg-card rounded-xl border border-line p-6 shadow-card">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-bold text-ink">《街市情緣》系列策劃</h3>
-            <span className="text-xs text-muted bg-bg-soft px-2 py-1 rounded">草稿</span>
+        {/* 主輸入區 */}
+        <div className="bg-card rounded-xl border border-line shadow-card overflow-hidden">
+          <div className="p-4 border-b border-line flex items-center justify-between">
+            <label className="text-sm font-semibold text-ink">{po.inputLabel}</label>
+            <span className="text-xs text-muted">
+              {localMaterial.length} {po.charCount}
+            </span>
           </div>
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            {[
-              { label: '題材類型', value: '圓夢類 🌟' },
-              { label: '情感基調', value: '溫暖 😌' },
-              { label: '核心情感需求', value: '🌟 被看見' },
-              { label: '總集數', value: '30 集' },
-              { label: '每集時長', value: '60 秒' },
-              { label: '目標受眾', value: '55–75 歲長者及家庭' },
-            ].map(({ label, value }) => (
-              <div key={label} className="bg-bg-soft rounded-lg p-3">
-                <p className="text-xs text-muted mb-0.5">{label}</p>
-                <p className="font-semibold text-ink">{value}</p>
-              </div>
-            ))}
+          <div className="p-4">
+            <textarea
+              value={localMaterial}
+              onChange={e => setLocalMaterial(e.target.value)}
+              placeholder={po.inputPlaceholder}
+              rows={12}
+              className="w-full border border-line rounded-xl px-4 py-3 bg-bg-soft focus:outline-none focus:border-primary text-sm text-ink leading-relaxed resize-none placeholder:text-muted/60"
+            />
           </div>
-        </div>
-
-        {/* AI 生成的故事核心預覽 */}
-        <div className="bg-card rounded-xl border border-line p-6 shadow-card">
-          <div className="flex items-center gap-2 mb-3">
-            <Sparkles size={16} className="text-accent" />
-            <h3 className="font-bold text-ink">AI 生成的故事核心預覽</h3>
-          </div>
-          <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 text-sm text-ink leading-relaxed">
-            <p className="font-medium mb-2">《街市情緣》— 30集 溫暖圓夢劇</p>
-            <p className="text-muted">陳伯係一位在灣仔街市做咗四十年豬肉佬嘅老師傅。年輕時因為家貧放棄咗夢想做廚師，但佢嘅廚藝秘笈一直藏喺心底。退休前最後一個月，佢遇上咗一班想學廚藝的年輕人，跌跌碰碰之間，陳伯終於喺生命嘅黃昏時分，圓咗年輕時嘅廚師夢……</p>
-          </div>
-          <div className="mt-3 grid grid-cols-3 gap-2 text-xs text-center">
-            <div className="bg-bg-soft rounded-lg p-2">
-              <div className="font-semibold text-primary">開端</div>
-              <div className="text-muted">第1–8集</div>
-            </div>
-            <div className="bg-bg-soft rounded-lg p-2">
-              <div className="font-semibold text-primary">發展＋高潮</div>
-              <div className="text-muted">第9–25集</div>
-            </div>
-            <div className="bg-bg-soft rounded-lg p-2">
-              <div className="font-semibold text-primary">結局</div>
-              <div className="text-muted">第26–30集</div>
+          {/* AI 提示 */}
+          <div className="px-4 pb-4">
+            <div className="bg-accent/5 border border-accent/20 rounded-lg px-4 py-2.5 flex items-start gap-2">
+              <Sparkles size={14} className="text-accent mt-0.5 shrink-0" />
+              <p className="text-xs text-accent/80 leading-relaxed">{po.aiHint}</p>
             </div>
           </div>
         </div>
 
-        {/* 積分估算 */}
-        <div className="bg-card rounded-xl border border-line p-5 shadow-card">
-          <h3 className="font-bold text-ink mb-3">製作積分估算</h3>
-          <div className="space-y-2 text-sm">
-            {[
-              { step: 'S3 故事框架生成', credits: 15 },
-              { step: 'S4 分鏡生成（30集）', credits: 60 },
-              { step: 'S5 關鍵幀生成', credits: 120 },
-              { step: 'S6 影片批量生成', credits: 300 },
-              { step: 'S7 粵語配音', credits: 80 },
-            ].map(({ step, credits }) => (
-              <div key={step} className="flex items-center justify-between">
-                <span className="text-muted">{step}</span>
-                <span className="font-semibold text-ink">{credits} 積分</span>
-              </div>
+        {/* 小提示 */}
+        <div className="bg-amber-50 border-l-4 border-amber-400 rounded-r-xl p-4">
+          <p className="font-semibold text-sm text-amber-900 mb-2">{po.tipTitle}</p>
+          <ul className="space-y-1">
+            {[po.tip1, po.tip2, po.tip3].map((tip, i) => (
+              <li key={i} className="text-xs text-amber-700 flex items-start gap-1.5">
+                <span className="text-amber-500 mt-0.5">•</span>
+                {tip}
+              </li>
             ))}
-            <div className="border-t border-line pt-2 flex items-center justify-between font-bold">
-              <span className="text-ink">預計總消耗</span>
-              <span className="text-accent text-lg">575 積分</span>
-            </div>
-          </div>
+          </ul>
         </div>
       </div>
 
       <div className="flex gap-3">
-        <button className="flex items-center gap-2 border border-line px-5 py-3 rounded-xl text-muted hover:border-primary hover:text-primary transition-colors text-sm">
-          <Save size={15} /> {tr.creator.drama.s9.saveDraft}
+        <button
+          onClick={handleSaveDraft}
+          className="flex items-center gap-2 border border-line px-5 py-3 rounded-xl text-muted hover:border-primary hover:text-primary transition-colors text-sm"
+        >
+          <Save size={15} /> {po.saveDraft}
         </button>
         <button
-          onClick={onNext}
-          className="flex-1 bg-accent text-white py-3 rounded-xl font-semibold hover:bg-accent/90 transition-colors flex items-center justify-center gap-2"
+          onClick={handleConfirm}
+          disabled={!localMaterial.trim()}
+          className="flex-1 bg-primary text-white py-3 rounded-xl font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <Check size={18} /> {tr.creator.drama.s0.confirmBtn}
+          <Check size={18} /> {po.confirmBtn}
         </button>
       </div>
     </div>
@@ -435,33 +421,159 @@ const TIER_COLORS: Record<string, string> = {
 };
 
 // ─────────────────────────────────────────
-// 全劇美學鎖（S3 → S4 之間的唯一權威入口）
+// 全劇美學鎖（修正九：加入參考圖上傳）
 // 故事已定，進入視覺化前為整套劇定調一次視覺風格
-// 之後每集 S4/S5 自動繼承，僅允許局部微調
+// 支援：風格參考圖 / 角色參考圖 / 場景參考圖 + 文字描述並存
 // ─────────────────────────────────────────
+type RefImageItem = { id: string; url: string; caption: string; linkedCharId?: string };
+type RefImageSection = 'style' | 'character' | 'scene';
+
 function SeriesAestheticLock({ onNext }: { onNext: () => void }) {
   const { locale } = useLocaleStore();
   const tr = t();
   void locale;
 
-  const { aestheticLock, setAestheticLock } = useProjectStore();
-  const [open, setOpen] = useState(true); // 預設展開，引導填寫
+  const { aestheticLock, setAestheticLock, characters: storedCharacters } = useProjectStore();
+  const [open, setOpen] = useState(true);
+  const alTr = tr.creator.drama.aestheticLock;
+
+  // 參考圖 state（三類）
+  const [refImages, setRefImages] = useState<Record<RefImageSection, RefImageItem[]>>({
+    style: [], character: [], scene: [],
+  });
+
+  const addRefImage = (section: RefImageSection, url: string) => {
+    const id = `ref-${section}-${Date.now()}`;
+    setRefImages(prev => ({ ...prev, [section]: [...prev[section], { id, url, caption: '' }] }));
+  };
+
+  const removeRefImage = (section: RefImageSection, id: string) => {
+    setRefImages(prev => ({ ...prev, [section]: prev[section].filter(r => r.id !== id) }));
+  };
+
+  const updateCaption = (section: RefImageSection, id: string, caption: string) => {
+    setRefImages(prev => ({
+      ...prev,
+      [section]: prev[section].map(r => r.id === id ? { ...r, caption } : r),
+    }));
+  };
+
+  const linkChar = (section: RefImageSection, id: string, charId: string) => {
+    setRefImages(prev => ({
+      ...prev,
+      [section]: prev[section].map(r => r.id === id ? { ...r, linkedCharId: charId } : r),
+    }));
+  };
+
+  // 模擬「上傳」— 用 placeholder URL（demo 階段）
+  const handleUpload = (section: RefImageSection) => {
+    const DEMO_URLS: Record<RefImageSection, string[]> = {
+      style: [
+        'https://images.unsplash.com/photo-1536599018102-9f803c140fc1?w=300&h=200&fit=crop',
+        'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=300&h=200&fit=crop',
+      ],
+      character: [
+        'https://images.unsplash.com/photo-1546961342-ea5f62d5a27b?w=300&h=200&fit=crop',
+        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=200&fit=crop',
+      ],
+      scene: [
+        'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=300&h=200&fit=crop',
+        'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=300&h=200&fit=crop',
+      ],
+    };
+    const urls = DEMO_URLS[section];
+    const url = urls[refImages[section].length % urls.length];
+    addRefImage(section, url);
+  };
+
+  const RefImageSectionUI = ({
+    sectionKey, title, subtitle,
+  }: { sectionKey: RefImageSection; title: string; subtitle: string }) => {
+    const items = refImages[sectionKey];
+    return (
+      <div className="bg-card rounded-xl border border-line shadow-card overflow-hidden">
+        <div className="px-4 py-3 border-b border-line bg-violet-50/50 flex items-center justify-between">
+          <div>
+            <p className="text-sm font-semibold text-ink">{title}</p>
+            <p className="text-xs text-muted">{subtitle}</p>
+          </div>
+          <button
+            onClick={() => handleUpload(sectionKey)}
+            className="flex items-center gap-1.5 text-xs bg-violet-600 text-white px-3 py-1.5 rounded-lg hover:bg-violet-700 transition-colors"
+          >
+            <Upload size={12} /> {alTr.uploadBtn}
+          </button>
+        </div>
+        <div className="p-4">
+          {items.length === 0 ? (
+            <button
+              onClick={() => handleUpload(sectionKey)}
+              className="w-full border-2 border-dashed border-line rounded-xl p-6 text-center hover:border-violet-300 transition-colors group"
+            >
+              <Upload size={24} className="mx-auto text-muted mb-2 group-hover:text-violet-400 transition-colors" />
+              <p className="text-xs text-muted">{alTr.uploadHint}</p>
+            </button>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              {items.map(item => (
+                <div key={item.id} className="relative group">
+                  <img src={item.url} alt="" className="w-full h-28 object-cover rounded-lg" />
+                  {/* 移除按鈕 */}
+                  <button
+                    onClick={() => removeRefImage(sectionKey, item.id)}
+                    className="absolute top-1.5 right-1.5 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                    title={alTr.removeImg}
+                  >
+                    <X size={10} />
+                  </button>
+                  {/* 說明欄 */}
+                  <input
+                    value={item.caption}
+                    onChange={e => updateCaption(sectionKey, item.id, e.target.value)}
+                    placeholder={alTr.captionPlaceholder}
+                    className="w-full mt-1.5 text-[11px] border border-line rounded px-2 py-1 bg-bg-soft focus:outline-none focus:border-violet-400"
+                  />
+                  {/* 角色關聯（僅 character 區顯示） */}
+                  {sectionKey === 'character' && storedCharacters.length > 0 && (
+                    <select
+                      value={item.linkedCharId ?? ''}
+                      onChange={e => linkChar(sectionKey, item.id, e.target.value)}
+                      className="w-full mt-1 text-[11px] border border-line rounded px-2 py-1 bg-bg-soft focus:outline-none focus:border-violet-400"
+                    >
+                      <option value="">{alTr.linkChar}</option>
+                      {storedCharacters.map(c => (
+                        <option key={c.id} value={c.id}>{c.name_i18n['zh-HK']}</option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+              ))}
+              {/* 加更多 */}
+              <button
+                onClick={() => handleUpload(sectionKey)}
+                className="h-28 border-2 border-dashed border-line rounded-lg flex items-center justify-center hover:border-violet-300 transition-colors"
+              >
+                <Plus size={20} className="text-muted" />
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="max-w-2xl space-y-4">
       {/* 標題 */}
       <div className="mb-2">
         <div className="inline-flex items-center gap-2 bg-violet-100 text-violet-700 px-3 py-1 rounded-full text-xs font-semibold mb-3">
-          <Layers size={12} /> 全劇美學鎖
+          <Layers size={12} /> {alTr.title}
         </div>
-        <h2 className="text-2xl font-bold text-primary">為整套劇定調視覺風格</h2>
-        <p className="text-muted text-sm mt-1">
-          故事框架已定，進入分鏡前，設定一次全劇美學。<br />
-          之後每集 S4 分鏡、S5 關鍵幀都會自動繼承，只允許局部微調，唔會覆寫呢度的設定。
-        </p>
+        <h2 className="text-2xl font-bold text-primary">{alTr.title}</h2>
+        <p className="text-muted text-sm mt-1">{alTr.subtitle}</p>
       </div>
 
-      {/* 已鎖定狀態摘要 */}
+      {/* 已鎖定摘要 */}
       {aestheticLock && !open && (
         <div className="bg-violet-50 border border-violet-300 rounded-xl p-4 flex items-start gap-3">
           <div className="w-8 h-8 bg-violet-500 rounded-lg flex items-center justify-center shrink-0">
@@ -471,28 +583,25 @@ function SeriesAestheticLock({ onNext }: { onNext: () => void }) {
             <p className="text-sm font-bold text-violet-800">{tr.aestheticComposer.seriesLock.locked}</p>
             <p className="text-xs text-violet-600 mt-0.5 line-clamp-2">{aestheticLock.compiledPromptZh}</p>
           </div>
-          <button
-            onClick={() => setOpen(true)}
-            className="text-xs text-violet-600 hover:text-violet-800 border border-violet-300 px-3 py-1.5 rounded-lg transition-colors shrink-0"
-          >
+          <button onClick={() => setOpen(true)} className="text-xs text-violet-600 hover:text-violet-800 border border-violet-300 px-3 py-1.5 rounded-lg transition-colors shrink-0">
             修改
           </button>
         </div>
       )}
 
-      {/* AestheticComposer 展開 */}
-      {open && (
+      {open && (<>
+        {/* ── 參考圖三區（修正九）── */}
+        <RefImageSectionUI sectionKey="style"     title={alTr.styleRefTitle}  subtitle={alTr.styleRefSubtitle}  />
+        <RefImageSectionUI sectionKey="character" title={alTr.charRefTitle}   subtitle={alTr.charRefSubtitle}   />
+        <RefImageSectionUI sectionKey="scene"     title={alTr.sceneRefTitle}  subtitle={alTr.sceneRefSubtitle}  />
+
+        {/* ── 文字風格描述（原 AestheticComposer）── */}
         <div className="bg-card rounded-xl border border-line shadow-card overflow-hidden">
-          <div className="p-4 border-b border-line flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Layers size={16} className="text-violet-600" />
-              <span className="text-sm font-semibold text-ink">{tr.aestheticComposer.common.toolName}</span>
-            </div>
+          <div className="px-4 py-3 border-b border-line flex items-center gap-2">
+            <Layers size={16} className="text-violet-600" />
+            <span className="text-sm font-semibold text-ink">{alTr.textStyleTitle}</span>
             {aestheticLock && (
-              <button
-                onClick={() => setOpen(false)}
-                className="text-xs text-muted hover:text-ink transition-colors"
-              >
+              <button onClick={() => setOpen(false)} className="ml-auto text-xs text-muted hover:text-ink transition-colors">
                 收起
               </button>
             )}
@@ -510,9 +619,9 @@ function SeriesAestheticLock({ onNext }: { onNext: () => void }) {
             />
           </div>
         </div>
-      )}
+      </>)}
 
-      {/* 過場說明 */}
+      {/* 說明 */}
       <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-xs text-blue-800 space-y-1">
         <p className="font-semibold flex items-center gap-1.5"><Info size={13} /> 美學鎖如何運作？</p>
         <p>・S4 分鏡、S5 關鍵幀頂部會顯示「繼承全劇美學：<span className="font-semibold">{aestheticLock?.compiledPromptZh?.slice(0, 20) ?? '未設定'}…</span>」</p>
@@ -523,10 +632,7 @@ function SeriesAestheticLock({ onNext }: { onNext: () => void }) {
       {/* CTA */}
       <div className="flex gap-3">
         {!aestheticLock && (
-          <button
-            onClick={onNext}
-            className="flex items-center gap-2 border border-line px-5 py-3 rounded-xl text-muted hover:border-primary hover:text-primary transition-colors text-sm"
-          >
+          <button onClick={onNext} className="flex items-center gap-2 border border-line px-5 py-3 rounded-xl text-muted hover:border-primary hover:text-primary transition-colors text-sm">
             稍後再設定，先去分鏡
           </button>
         )}
@@ -534,13 +640,11 @@ function SeriesAestheticLock({ onNext }: { onNext: () => void }) {
           onClick={onNext}
           disabled={!aestheticLock}
           className={`flex-1 py-3 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2 ${
-            aestheticLock
-              ? 'bg-violet-600 text-white hover:bg-violet-700'
-              : 'bg-line text-muted cursor-not-allowed'
+            aestheticLock ? 'bg-violet-600 text-white hover:bg-violet-700' : 'bg-line text-muted cursor-not-allowed'
           }`}
         >
           <ChevronRight size={18} />
-          {aestheticLock ? '全劇美學已鎖，進入分鏡' : '請先設定全劇美學'}
+          {aestheticLock ? alTr.confirmBtn : '請先設定全劇美學'}
         </button>
       </div>
     </div>
@@ -1190,149 +1294,290 @@ function CharacterProfileCard({
 }
 
 // ─────────────────────────────────────────
-// S2: 主要角色設定（新版）
-// 靈魂欄位（欲望/弧線/語言）+ 視覺欄位（外型/一致性）
-// 允許「淨係主角」過關；re-entrant 不清空 S3 資料
+// S2: 主要角色設定（修正三四：多角色陣容管理）
+// 頂部角色陣容橫向卡列表，點擊切換展開編輯器
+// 支援新增/編輯/刪除；所有角色存入 store 供 S3/S4 讀取
 // ─────────────────────────────────────────
+
+// 本地角色草稿類型（含姓名、定位等可編輯欄位）
+type CharDraft = {
+  id: string;
+  img: string;
+  name: string;
+  role: string;
+  age: string;
+  bg: string;
+  roleTag: 'lead' | 'support' | 'extra';
+  similarity: string;
+  traits: string[];
+  appearance: AppearanceOptions;
+};
+
+const newCharDraft = (id: string, similarity: string): CharDraft => ({
+  id, img: '', name: '', role: '', age: '', bg: '',
+  roleTag: 'support', similarity,
+  traits: [], appearance: { ...DEFAULT_APPEARANCE },
+});
+
 function S2CharacterSetup({ onNext }: { onNext: () => void }) {
   const { locale } = useLocaleStore();
   const tr = t();
   void locale;
+  const s2tr = tr.creator.drama.s2;
 
   const { characters: storedCharacters, setCharacters: storeSetCharacters } = useProjectStore();
 
-  // 預設兩個角色（若 store 已有則以 store 為準）
-  const DEFAULT_CHARS = [
-    {
-      id: 'char-1',
-      img: 'https://images.unsplash.com/photo-1546961342-ea5f62d5a27b?w=200&h=200&fit=crop',
-      name: '陳伯（陳錦榮）',
-      role: '街市豬肉檔主',
-      age: '68歲',
-      bg: '四十年老街坊，年輕時有廚師夢',
-      similarity: tr.creator.drama.s2.simVeryClose,
-      traits: ['重情義', '傳統', '固執', '沉默寡言', '善解人意'],
-      appearance: {
-        height: '中等身高', build: '壯實', skin: '古銅色',
-        hair: '直髮', hairColor: '全白', hairLength: '短髮',
-        face: '方臉', eyes: '眼神溫和', eyewear: '無眼鏡',
-        facial: '短鬚', posture: '昂首挺胸', style: '廚師圍裙',
-        extraNote: '雙手粗糙有力，慣穿藍色圍裙',
-      } as AppearanceOptions,
-    },
-    {
-      id: 'char-2',
-      img: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop',
-      name: '阿明（李志明）',
-      role: '廚藝班學員',
-      age: '28歲',
-      bg: '熱愛烹飪，新開廚藝班',
-      similarity: tr.creator.drama.s2.simSeventyPct,
-      traits: ['開朗樂觀', '勵志', '勇於嘗試', '好勝', '念舊'],
-      appearance: {
-        height: '高挑', build: '纖細', skin: '白皙',
-        hair: '直髮', hairColor: '黑色', hairLength: '短髮',
-        face: '瓜子臉', eyes: '眼神銳利', eyewear: '細框眼鏡',
-        facial: '無鬚', posture: '輕鬆隨意', style: '廚師圍裙',
-        extraNote: '手腕有小廚刀紋身',
-      } as AppearanceOptions,
-    },
-  ];
+  // 預設兩個角色（若 store 已有則還原自 store）
+  const buildDefaultDrafts = (): CharDraft[] => {
+    if (storedCharacters.length > 0) {
+      return storedCharacters.map(c => ({
+        id: c.id,
+        img: '',
+        name: c.name_i18n['zh-HK'],
+        role: c.identityTag_i18n['zh-HK'],
+        age: '',
+        bg: c.traitsConflict_i18n['zh-HK'],
+        roleTag: 'support' as const,
+        similarity: c.similarityLevel ?? s2tr.simSeventyPct,
+        traits: c.personality ?? [],
+        appearance: (c.appearanceOptions as AppearanceOptions) ?? { ...DEFAULT_APPEARANCE },
+      }));
+    }
+    return [
+      {
+        id: 'char-1',
+        img: 'https://images.unsplash.com/photo-1546961342-ea5f62d5a27b?w=200&h=200&fit=crop',
+        name: '陳伯（陳錦榮）',
+        role: '街市豬肉檔主',
+        age: '68歲',
+        bg: '四十年老街坊，年輕時有廚師夢',
+        roleTag: 'lead',
+        similarity: s2tr.simVeryClose,
+        traits: ['重情義', '傳統', '固執', '沉默寡言', '善解人意'],
+        appearance: {
+          height: '中等身高', build: '壯實', skin: '古銅色',
+          hair: '直髮', hairColor: '全白', hairLength: '短髮',
+          face: '方臉', eyes: '眼神溫和', eyewear: '無眼鏡',
+          facial: '短鬚', posture: '昂首挺胸', style: '廚師圍裙',
+          extraNote: '雙手粗糙有力，慣穿藍色圍裙',
+        },
+      },
+      {
+        id: 'char-2',
+        img: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop',
+        name: '阿明（李志明）',
+        role: '廚藝班學員',
+        age: '28歲',
+        bg: '熱愛烹飪，新開廚藝班',
+        roleTag: 'support',
+        similarity: s2tr.simSeventyPct,
+        traits: ['開朗樂觀', '勵志', '勇於嘗試', '好勝', '念舊'],
+        appearance: {
+          height: '高挑', build: '纖細', skin: '白皙',
+          hair: '直髮', hairColor: '黑色', hairLength: '短髮',
+          face: '瓜子臉', eyes: '眼神銳利', eyewear: '細框眼鏡',
+          facial: '無鬚', posture: '輕鬆隨意', style: '廚師圍裙',
+          extraNote: '手腕有小廚刀紋身',
+        },
+      },
+    ];
+  };
 
-  // 每個角色卡的 traits / appearance / similarity 獨立 state
-  const [cardTraits, setCardTraits] = useState<Record<string, string[]>>(
-    () => Object.fromEntries(DEFAULT_CHARS.map(c => [c.id, c.traits]))
-  );
-  const [cardAppearance, setCardAppearance] = useState<Record<string, AppearanceOptions>>(
-    () => Object.fromEntries(DEFAULT_CHARS.map(c => [c.id, c.appearance]))
-  );
-  const [cardSimilarity, setCardSimilarity] = useState<Record<string, string>>(
-    () => Object.fromEntries(DEFAULT_CHARS.map(c => [c.id, c.similarity]))
-  );
+  const [drafts, setDrafts] = useState<CharDraft[]>(buildDefaultDrafts);
+  const [activeId, setActiveId] = useState<string>(drafts[0]?.id ?? '');
+
+  // 每個角色卡的 traits / appearance / similarity — 由 CharacterProfileCard 回調更新至 drafts
+  const updateDraft = (id: string, patch: Partial<CharDraft>) => {
+    setDrafts(prev => prev.map(d => d.id === id ? { ...d, ...patch } : d));
+  };
+
+  const addCharacter = () => {
+    const id = `char-${Date.now()}`;
+    const newDraft = newCharDraft(id, s2tr.simSeventyPct);
+    setDrafts(prev => [...prev, newDraft]);
+    setActiveId(id);
+  };
+
+  const deleteCharacter = (id: string) => {
+    setDrafts(prev => {
+      const next = prev.filter(d => d.id !== id);
+      if (activeId === id && next.length > 0) setActiveId(next[0].id);
+      return next;
+    });
+  };
 
   const handleSaveAndNext = () => {
-    // 把 CharacterProfileCard 的資料寫回 store
-    const chars: CharacterCard[] = storedCharacters.length > 0
-      ? storedCharacters.map(c => ({
-          ...c,
-          personality: cardTraits[c.id] ?? [],
-          appearanceOptions: cardAppearance[c.id] ?? DEFAULT_APPEARANCE,
-          similarityLevel: cardSimilarity[c.id] ?? '',
-        }))
-      : DEFAULT_CHARS.map(c => ({
-          id: c.id,
-          name_i18n: { 'zh-HK': c.name, en: c.name, 'zh-CN': c.name },
-          identityTag_i18n: { 'zh-HK': c.role, en: c.role, 'zh-CN': c.role },
-          coreDesire_i18n: { 'zh-HK': '', en: '', 'zh-CN': '' },
-          traitsConflict_i18n: { 'zh-HK': '', en: '', 'zh-CN': '' },
-          arc_i18n: { 'zh-HK': '', en: '', 'zh-CN': '' },
-          speechStyle_i18n: { 'zh-HK': '', en: '', 'zh-CN': '' },
-          relations_i18n: { 'zh-HK': '', en: '', 'zh-CN': '' },
-          appearancePrompt_zh: buildAppearanceSummary(c.appearance),
-          personality: cardTraits[c.id] ?? c.traits,
-          appearanceOptions: cardAppearance[c.id] ?? c.appearance,
-          similarityLevel: cardSimilarity[c.id] ?? c.similarity,
-          humanEdited: false,
-        }));
+    const chars: CharacterCard[] = drafts.map(d => ({
+      id: d.id,
+      name_i18n: { 'zh-HK': d.name, en: d.name, 'zh-CN': d.name },
+      identityTag_i18n: { 'zh-HK': d.role, en: d.role, 'zh-CN': d.role },
+      coreDesire_i18n: { 'zh-HK': '', en: '', 'zh-CN': '' },
+      traitsConflict_i18n: { 'zh-HK': d.bg, en: d.bg, 'zh-CN': d.bg },
+      arc_i18n: { 'zh-HK': '', en: '', 'zh-CN': '' },
+      speechStyle_i18n: { 'zh-HK': '', en: '', 'zh-CN': '' },
+      relations_i18n: { 'zh-HK': '', en: '', 'zh-CN': '' },
+      appearancePrompt_zh: buildAppearanceSummary(d.appearance),
+      personality: d.traits,
+      appearanceOptions: d.appearance,
+      similarityLevel: d.similarity,
+      humanEdited: false,
+    }));
     storeSetCharacters(chars);
     onNext();
   };
 
-  const displayChars = DEFAULT_CHARS;
+  const activeDraft = drafts.find(d => d.id === activeId) ?? drafts[0];
+
+  const roleTagColors: Record<string, string> = {
+    lead: 'bg-primary text-white',
+    support: 'bg-blue-100 text-blue-700',
+    extra: 'bg-gray-100 text-gray-600',
+  };
+  const roleTagLabels: Record<string, string> = {
+    lead: s2tr.roleTagLead,
+    support: s2tr.roleTagSupport,
+    extra: s2tr.roleTagExtra,
+  };
 
   return (
     <div className="max-w-2xl space-y-4">
+      {/* 標題 */}
       <div className="mb-2">
         <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-semibold mb-3">
-          <Users size={12} /> S2 主要角色設定
+          <Users size={12} /> S2
         </div>
-        <h2 className="text-2xl font-bold text-primary">{tr.creator.drama.s2.title}</h2>
-        <p className="text-muted text-sm mt-1">先定 1–2 個主角，配角隨時可回頭補充。靈魂欄位餵給故事生成，視覺欄位餵給關鍵幀。</p>
+        <h2 className="text-2xl font-bold text-primary">{s2tr.title}</h2>
+        <p className="text-muted text-sm mt-1">{s2tr.subtitle}</p>
       </div>
 
-      {/* 角色卡列表 — 使用 CharacterProfileCard（含個性特質 + 外型細節） */}
-      {displayChars.map(c => (
-        <div key={c.id}>
+      {/* ── 角色陣容（頂部橫向卡列表）── */}
+      <div className="bg-card rounded-xl border border-line shadow-card p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <p className="text-sm font-semibold text-ink">{s2tr.castTitle}</p>
+            <p className="text-xs text-muted mt-0.5">{s2tr.castSubtitle}</p>
+          </div>
+          <button
+            onClick={addCharacter}
+            className="flex items-center gap-1.5 text-xs bg-primary text-white px-3 py-2 rounded-lg hover:bg-primary/90 transition-colors font-semibold"
+          >
+            <Plus size={13} /> {s2tr.addChar}
+          </button>
+        </div>
+
+        {drafts.length === 0 ? (
+          <div className="text-center py-6 text-muted text-sm border-2 border-dashed border-line rounded-xl">
+            {s2tr.noCharHint}
+          </div>
+        ) : (
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {drafts.map(d => {
+              const isActive = d.id === activeId;
+              return (
+                <button
+                  key={d.id}
+                  onClick={() => setActiveId(d.id)}
+                  className={`flex-shrink-0 flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all w-28 relative group ${
+                    isActive
+                      ? 'border-primary bg-primary/5 shadow-sm'
+                      : 'border-line bg-bg-soft hover:border-primary/40'
+                  }`}
+                >
+                  {/* 頭像 */}
+                  <div className="w-12 h-12 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center shrink-0">
+                    {d.img ? (
+                      <img src={d.img} alt={d.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <Users size={20} className="text-primary/40" />
+                    )}
+                  </div>
+                  {/* 角色名稱 */}
+                  <p className="text-xs font-semibold text-ink text-center leading-tight line-clamp-1 w-full">
+                    {d.name || '未命名'}
+                  </p>
+                  {/* 定位標籤 */}
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${roleTagColors[d.roleTag]}`}>
+                    {roleTagLabels[d.roleTag]}
+                  </span>
+                  {/* 視覺一致性檔次 */}
+                  <span className="text-[9px] text-muted border border-line px-1.5 py-0.5 rounded">
+                    {d.similarity || '—'}
+                  </span>
+                  {/* 刪除按鈕 */}
+                  {drafts.length > 1 && (
+                    <button
+                      onClick={e => { e.stopPropagation(); deleteCharacter(d.id); }}
+                      className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                      title={s2tr.deleteChar}
+                    >
+                      <X size={10} />
+                    </button>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ── 完整角色編輯器（顯示目前選中角色）── */}
+      {activeDraft && (
+        <div>
           <div className="flex items-center gap-2 mb-2">
-            <span className="w-5 h-5 rounded-full bg-primary/10 text-primary text-[10px] font-bold flex items-center justify-center">
-              {c.id === 'char-1' ? '主' : '配'}
+            <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${roleTagColors[activeDraft.roleTag]}`}>
+              {roleTagLabels[activeDraft.roleTag]}
             </span>
-            <span className="text-sm font-semibold text-ink">{c.name}</span>
+            <span className="text-sm font-semibold text-ink">{activeDraft.name || '未命名角色'}</span>
+            {/* 定位切換 */}
+            <div className="ml-auto flex gap-1">
+              {(['lead', 'support', 'extra'] as const).map(rt => (
+                <button
+                  key={rt}
+                  onClick={() => updateDraft(activeDraft.id, { roleTag: rt })}
+                  className={`text-[10px] px-2 py-0.5 rounded-full border transition-all ${
+                    activeDraft.roleTag === rt
+                      ? 'border-primary bg-primary text-white'
+                      : 'border-line text-muted hover:border-primary'
+                  }`}
+                >
+                  {roleTagLabels[rt]}
+                </button>
+              ))}
+            </div>
           </div>
           <CharacterProfileCard
-            img={c.img}
-            name={c.name}
-            role={c.role}
-            age={c.age}
-            bg={c.bg}
-            similarity={cardSimilarity[c.id] ?? c.similarity}
-            setSimilarity={v => setCardSimilarity(prev => ({ ...prev, [c.id]: v }))}
+            img={activeDraft.img}
+            name={activeDraft.name}
+            role={activeDraft.role}
+            age={activeDraft.age}
+            bg={activeDraft.bg}
+            similarity={activeDraft.similarity}
+            setSimilarity={v => updateDraft(activeDraft.id, { similarity: v })}
             mode="drama"
-            initialTraits={cardTraits[c.id]}
-            initialAppearance={cardAppearance[c.id]}
-            onTraitsChange={ts => setCardTraits(prev => ({ ...prev, [c.id]: ts }))}
-            onAppearanceChange={ap => setCardAppearance(prev => ({ ...prev, [c.id]: ap }))}
+            initialTraits={activeDraft.traits}
+            initialAppearance={activeDraft.appearance}
+            onTraitsChange={ts => updateDraft(activeDraft.id, { traits: ts })}
+            onAppearanceChange={ap => updateDraft(activeDraft.id, { appearance: ap })}
           />
         </div>
-      ))}
-
-      {/* 新增角色按鈕 */}
-      <button className="w-full border-2 border-dashed border-line rounded-xl p-3 flex items-center justify-center gap-2 text-muted hover:border-primary hover:text-primary transition-colors text-sm">
-        <Plus size={16} /> 新增角色
-      </button>
+      )}
 
       {/* CTA */}
-      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center justify-between gap-4">
+      <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-center justify-between gap-4">
         <div>
-          <p className="text-sm font-semibold text-amber-800">角色設定完成？</p>
-          <p className="text-xs text-amber-600 mt-0.5">個性特質和外型細節已儲存，S3 故事生成會自動帶入。</p>
+          <p className="text-sm font-semibold text-green-800">{s2tr.confirmBtn}</p>
+          <p className="text-xs text-green-600 mt-0.5">
+            {drafts.length > 0
+              ? `已建立 ${drafts.length} 個角色，個性特質和外型細節將自動帶入 S3 故事生成。`
+              : s2tr.noCharHint}
+          </p>
         </div>
         <button
           onClick={handleSaveAndNext}
-          className="shrink-0 flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors whitespace-nowrap"
+          className="shrink-0 flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors whitespace-nowrap"
         >
           <ChevronRight size={15} />
-          儲存並進入故事框架
+          {s2tr.saveChar}
         </button>
       </div>
     </div>
@@ -1352,10 +1597,11 @@ function S3StoryFramework({ onNext }: { onNext: () => void }) {
   const sa = tr.storyArchitect;
 
   // 從 store 讀取 S2 角色資料（作為生成上下文）及 S1 贊助商已選資產
+  // 修正五六：移除 setSelectedTopic（不再有選題子步驟）
   const {
     characters: storedCharacters,
     selectedSponsorAssets: storedSponsorAssets,
-    setSelectedTopic: storeSetTopic,
+    storyMaterial,
     setOutline: storeSetOutline,
     setStoryCards: storeSetStoryCards,
     setCoCreated,
@@ -1373,9 +1619,8 @@ function S3StoryFramework({ onNext }: { onNext: () => void }) {
     mode: 'drama',
   };
 
-  // 子階段狀態
-  const [subStage, setSubStage] = useState<ArchitectSubStage>('topic');
-  const [selectedTopic, setSelectedTopic] = useState<TopicOption | null>(null);
+  // 子階段狀態（修正五六：直接由 outline 開始，不再有 topic / characters 子步驟）
+  const [subStage, setSubStage] = useState<ArchitectSubStage>('outline');
   const [outline, setOutline] = useState<{ episodeNumber: number; title_i18n: { 'zh-HK': string; en: string; 'zh-CN': string }; oneLine_i18n: { 'zh-HK': string; en: string; 'zh-CN': string } }[]>([]);
   const [storyCards, setStoryCards] = useState<EpisodeStoryCard[]>([]);
 
@@ -1387,7 +1632,7 @@ function S3StoryFramework({ onNext }: { onNext: () => void }) {
           <BookOpen size={12} /> S3 故事框架
         </div>
         <h2 className="text-2xl font-bold text-primary">{tr.creator.drama.s3.title}</h2>
-        <p className="text-muted text-sm mt-1">選題方向 → 全劇大綱 → 逐集故事卡，每步都可接受、重生成或手動編輯。</p>
+        <p className="text-muted text-sm mt-1">{tr.creator.drama.s3.subtitle}</p>
       </div>
 
       {/* 角色上下文提示（若 S2 有角色） */}
@@ -1421,23 +1666,11 @@ function S3StoryFramework({ onNext }: { onNext: () => void }) {
       {/* 進度列 */}
       <StageProgress current={subStage} />
 
-      {/* 3a 選題方向 */}
-      {subStage === 'topic' && (
-        <S1aTopic
-          context={context}
-          onAccept={(topic) => {
-            setSelectedTopic(topic);
-            storeSetTopic(topic);
-            setSubStage('outline');
-          }}
-        />
-      )}
-
-      {/* 3b 全劇大綱 */}
-      {subStage === 'outline' && selectedTopic && (
+      {/* 3b 全劇大綱（修正五六：直接由大綱開始；storyMaterial 作為生成依據） */}
+      {subStage === 'outline' && (
         <S1bOutline
-          context={context}
-          selectedTopic={selectedTopic}
+          context={{ ...context, humanInput: storyMaterial }}
+          selectedTopic={{ id: 'creator-input', title_i18n: { 'zh-HK': '創作者故事原材料', en: 'Creator Story Material', 'zh-CN': '创作者故事原材料' }, logline_i18n: { 'zh-HK': storyMaterial.slice(0, 80), en: storyMaterial.slice(0, 80), 'zh-CN': storyMaterial.slice(0, 80) }, hook_i18n: { 'zh-HK': '', en: '', 'zh-CN': '' } }}
           onAccept={(ol, outlineCoCreateNote) => {
             setOutline(ol);
             storeSetOutline(ol);
@@ -1470,8 +1703,8 @@ function S3StoryFramework({ onNext }: { onNext: () => void }) {
           <div className="w-14 h-14 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-4">
             <Check size={28} className="text-accent" />
           </div>
-          <h3 className="text-lg font-bold text-ink mb-2">故事框架完成！</h3>
-          <p className="text-muted text-sm mb-4">選題方向、全劇大綱及分集故事卡已儲存，可隨時返回修改。</p>
+          <h3 className="text-lg font-bold text-ink mb-2">{tr.storyArchitect.stage.done ?? '故事框架完成！'}</h3>
+          <p className="text-muted text-sm mb-4">{tr.storyArchitect.ep?.doneDesc ?? '全劇大綱及分集故事卡已儲存，可隨時返回修改。'}</p>
 
           {/* Co-create badge */}
           {isCoCreated && (

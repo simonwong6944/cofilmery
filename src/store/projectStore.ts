@@ -14,6 +14,9 @@ interface ProjectState {
   projectId: string;
   projectTitle: string;
 
+  // ── 故事原材料（PlanOverview 創作者輸入）────────────────────
+  storyMaterial: string;
+
   // ── Story Architect 產出 ──────────────────────────────────
   context: SeriesContext | null;
   selectedTopic: TopicOption | null;
@@ -36,6 +39,7 @@ interface ProjectState {
 
   // ── Actions ──────────────────────────────────────────────
   setProjectId: (id: string, title?: string) => void;
+  setStoryMaterial: (material: string) => void;
   setContext: (ctx: SeriesContext) => void;
   setSelectedTopic: (topic: TopicOption) => void;
   setOutline: (outline: ProjectState['outline']) => void;
@@ -50,12 +54,13 @@ interface ProjectState {
 }
 
 const INITIAL: Omit<ProjectState,
-  'setProjectId' | 'setContext' | 'setSelectedTopic' | 'setOutline' |
+  'setProjectId' | 'setStoryMaterial' | 'setContext' | 'setSelectedTopic' | 'setOutline' |
   'setCharacters' | 'setStoryCards' | 'setAestheticLock' | 'setSelectedSponsorAssets' |
   'setCoCreated' | 'setCurrentEpisode' | 'getStoryCard' | 'reset'
 > = {
   projectId: 'demo-project',
   projectTitle: '街市情緣',
+  storyMaterial: '',
   context: null,
   selectedTopic: null,
   outline: [],
@@ -77,6 +82,8 @@ export const useProjectStore = create<ProjectState>()(
         projectId: id,
         ...(title ? { projectTitle: title } : {}),
       }),
+
+      setStoryMaterial: (material) => set({ storyMaterial: material }),
 
       setContext: (ctx) => set({ context: ctx }),
 
@@ -111,6 +118,7 @@ export const useProjectStore = create<ProjectState>()(
       partialize: (state) => ({
         projectId: state.projectId,
         projectTitle: state.projectTitle,
+        storyMaterial: state.storyMaterial,
         context: state.context,
         selectedTopic: state.selectedTopic,
         outline: state.outline,
