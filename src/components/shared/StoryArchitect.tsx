@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { useLocaleStore } from '@/store/localeStore';
 import { useProjectStore } from '@/store/projectStore';
 import { t } from '@/i18n';
-import { openRouterAdapter as aiAdapter } from '@/adapters/mockAdapter';
+import { aiAdapter } from '@/adapters';
 import { CREDIT } from '@/credit-config';
 import type {
   SeriesContext, TopicOption, CharacterCard, EpisodeStoryCard,

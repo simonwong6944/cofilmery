@@ -5,14 +5,21 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:live": "VITE_AI_MODE=live vite",
     "build": "vite build",
+    "build:staging": "VITE_AI_MODE=live vite build",
     "preview": "vite preview",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "deploy": "npm run build && wrangler pages deploy dist --project-name cofilmery",
+    "deploy:staging": "npm run build:staging && wrangler pages deploy dist --project-name cofilmery-staging --config wrangler.staging.jsonc",
     "dev:sandbox": "wrangler pages dev dist --ip 0.0.0.0 --port 3000",
+    "dev:sandbox:staging": "VITE_AI_MODE=live wrangler pages dev dist --ip 0.0.0.0 --port 3000",
     "db:migrate:local": "wrangler d1 migrations apply cofilmery-production --local",
     "db:migrate:prod": "wrangler d1 migrations apply cofilmery-production",
-    "db:seed": "wrangler d1 execute cofilmery-production --local --file=./seed.sql"
+    "db:migrate:staging": "wrangler d1 migrations apply cofilmery-staging --config wrangler.staging.jsonc",
+    "db:migrate:staging:local": "wrangler d1 migrations apply cofilmery-staging --local",
+    "db:seed": "wrangler d1 execute cofilmery-production --local --file=./seed.sql",
+    "secret:staging": "wrangler pages secret put OPENROUTER_API_KEY --project-name cofilmery-staging"
   },
   "dependencies": {
     "react": "^18.3.1",

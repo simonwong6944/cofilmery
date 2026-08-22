@@ -3,7 +3,7 @@ import { Send, Bot, RefreshCw, Check, Edit3, Sliders, Languages, Mic } from 'luc
 import { cn } from '@/lib/utils';
 import { CreditIndicator } from './CreditIndicator';
 import { MOCK_AI_MESSAGES } from '@/lib/mockData';
-import { aiAdapter } from '@/adapters/mockAdapter';
+import { aiAdapter } from '@/adapters';
 import { useLocaleStore } from '@/store/localeStore';
 import { t } from '@/i18n';
 

@@ -14,7 +14,11 @@ import { CreditIndicator } from '@/components/shared/CreditIndicator';
 import { Logo } from '@/components/shared/Logo';
 import { useLocaleStore } from '@/store/localeStore';
 import { useProjectStore } from '@/store/projectStore';
+import { useAuthStore } from '@/store/authStore';
 import { t } from '@/i18n';
+import { saveProjectToD1 } from '@/adapters';
+import { VideoGenPanel } from '@/components/shared/VideoGenPanel';
+import { useTts } from '@/hooks/useTts';
 import {
   AlertTriangle, RefreshCw, Check, Mic, Save, ChevronDown, ChevronRight,
   Sparkles, Image, Film, Music, Edit3, Upload, Zap, Eye, Send,
@@ -29,6 +33,9 @@ function S0SeriesSetup({ onNext }: { onNext: () => void }) {
   const { locale } = useLocaleStore();
   const tr = t();
   void locale;
+  const { setProjectId, setContext, projectId } = useProjectStore();
+  const { user } = useAuthStore();
+  const [seriesName, setSeriesName] = useState('');
   const [episodeCount, setEpisodeCount] = useState(30);
   const [duration, setDuration] = useState('60秒');
   const [genre, setGenre] = useState('');
@@ -68,7 +75,8 @@ function S0SeriesSetup({ onNext }: { onNext: () => void }) {
           <input
             className="w-full border border-line rounded-lg px-3 py-2.5 bg-bg-soft focus:outline-none focus:border-primary text-ink"
             placeholder="例：街市情緣、阿婆的裁縫心事"
-            defaultValue="街市情緣"
+            value={seriesName}
+            onChange={e => setSeriesName(e.target.value)}
           />
         </div>
 
@@ -218,7 +226,29 @@ function S0SeriesSetup({ onNext }: { onNext: () => void }) {
         </div>
 
         <button
-          onClick={onNext}
+          onClick={() => {
+            // 儲存劇集標題 + 系列上下文到 projectStore
+            const title = seriesName.trim() || tr.creator.drama.s0.seriesNameLabel;
+            setProjectId(projectId, title);
+            const ctx: SeriesContext = {
+              seriesTitle: title,
+              genre: genre || 'drama',
+              tone: tone || 'warm',
+              coreNeed: need || 'seen',
+              episodeCount,
+              durationLabel: duration,
+              mode: 'drama',
+            };
+            setContext(ctx);
+            // 非同步存 D1（non-blocking）
+            void saveProjectToD1({
+              projectId,
+              userId: user?.id ?? 'anonymous',
+              title,
+              mode: 'drama',
+            });
+            onNext();
+          }}
           className="w-full bg-primary text-white py-3 rounded-xl font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
         >
           <ChevronRight size={18} />
@@ -1406,6 +1436,9 @@ function S2CharacterSetup({ onNext }: { onNext: () => void }) {
     });
   };
 
+  const { user: authUser } = useAuthStore();
+  const { projectId: pid, projectTitle: ptitle, outline: storedOutline } = useProjectStore();
+
   const handleSaveAndNext = () => {
     const chars: CharacterCard[] = drafts.map(d => ({
       id: d.id,
@@ -1423,6 +1456,14 @@ function S2CharacterSetup({ onNext }: { onNext: () => void }) {
       humanEdited: false,
     }));
     storeSetCharacters(chars);
+    // 非同步存 D1（non-blocking）
+    void saveProjectToD1({
+      projectId: pid,
+      userId: authUser?.id ?? 'anonymous',
+      title: ptitle || '未命名劇集',
+      characters: chars,
+      outline: storedOutline,
+    });
     onNext();
   };
 
@@ -1606,12 +1647,15 @@ function S3StoryFramework({ onNext }: { onNext: () => void }) {
     setStoryCards: storeSetStoryCards,
     setCoCreated,
     isCoCreated, coCreateNote,
+    projectId: projectId3, projectTitle, outline: storedOutline3,
   } = useProjectStore();
+  const { user: authUser3 } = useAuthStore();
 
-  // 系列上下文（之後可從 S0 store 讀取）
-  const context: SeriesContext = {
-    seriesTitle: '街市情緣',
-    genre: 'dream',
+  // 系列上下文：優先從 projectStore 讀取（S0 已設定），否則使用預設值
+  const storedCtx = useProjectStore(s => s.context);
+  const context: SeriesContext = storedCtx ?? {
+    seriesTitle: projectTitle || '新劇集',
+    genre: 'drama',
     tone: 'warm',
     coreNeed: 'seen',
     episodeCount: 30,
@@ -1692,6 +1736,15 @@ function S3StoryFramework({ onNext }: { onNext: () => void }) {
           onAccept={(cards) => {
             setStoryCards(cards);
             storeSetStoryCards(cards);
+            // 非同步存 D1（non-blocking）
+            void saveProjectToD1({
+              projectId: projectId3,
+              userId: authUser3?.id ?? 'anonymous',
+              title: projectTitle || '未命名劇集',
+              characters: storedCharacters,
+              storyCards: cards,
+              outline: storedOutline3,
+            });
             setSubStage('done');
           }}
         />
@@ -2041,7 +2094,28 @@ function S6VideoGen({ onNext }: { onNext: () => void }) {
   const { locale } = useLocaleStore();
   const tr = t();
   void locale;
-  const [gate, setGate] = useState<'params' | 'credit' | 'generating' | 'done'>('params');
+  const { context, characters, storyCards, aestheticLock, projectId: pid6, currentEpisode } = useProjectStore();
+  const { user: u6 } = useAuthStore();
+  const [selectedEp, setSelectedEp] = useState(currentEpisode);
+  const [gate, setGate] = useState<'params' | 'generate'>('params');
+  const [completedVideos, setCompletedVideos] = useState<Record<number, string>>({});
+
+  const card = storyCards.find(c => c.episodeNumber === selectedEp);
+  const durationSec = Math.min(Number((context?.durationLabel ?? '5').replace(/[^0-9]/g, '')) || 5, 10);
+  const episodeNums = storyCards.length > 0 ? storyCards.map(c => c.episodeNumber) : [1, 2, 3];
+
+  const buildPrompt = () => {
+    const parts: string[] = [];
+    if (card) {
+      parts.push(`第${card.episodeNumber}集：${card.title_i18n['zh-HK']}`);
+      if (card.hook_i18n['zh-HK']) parts.push(`故事鈎：${card.hook_i18n['zh-HK']}`);
+      if (card.body_i18n['zh-HK']) parts.push(card.body_i18n['zh-HK'].slice(0, 120));
+    }
+    if (aestheticLock?.style) parts.push(`美學風格：${aestheticLock.style}`);
+    if (characters.length > 0) parts.push(`主角：${characters.slice(0, 2).map(c => c.name_i18n['zh-HK']).join('、')}`);
+    parts.push('粵日常對白，貴州情感，香港老年生活場景，高畫質短劇');
+    return parts.join('。');
+  };
 
   return (
     <div className="max-w-2xl">
@@ -2052,15 +2126,33 @@ function S6VideoGen({ onNext }: { onNext: () => void }) {
 
       {gate === 'params' && (
         <div className="space-y-4">
+          {/* 選集 */}
+          <div className="bg-card rounded-xl border border-line p-5 shadow-card">
+            <h3 className="font-semibold text-ink text-sm mb-3">選擇生成集數</h3>
+            <div className="flex flex-wrap gap-2">
+              {episodeNums.slice(0, 12).map(ep => (
+                <button
+                  key={ep}
+                  onClick={() => setSelectedEp(ep)}
+                  className={`px-3 py-1.5 rounded-lg border text-sm font-medium transition-colors ${
+                    selectedEp === ep ? 'border-primary bg-primary text-white' : 'border-line text-muted hover:border-primary'
+                  }${completedVideos[ep] ? ' ring-2 ring-green-400' : ''}`}
+                >
+                  第{ep}集{completedVideos[ep] ? ' ✓' : ''}
+                </button>
+              ))}
+            </div>
+          </div>
+          {/* 參數摘要 */}
           <div className="bg-card rounded-xl border border-line p-5 shadow-card">
             <h3 className="font-semibold text-ink text-sm mb-4">{tr.creator.drama.s6.paramsTitle}</h3>
             <div className="space-y-3 text-sm">
               {[
-                { label: tr.creator.drama.s6.engineLabel, value: 'Seedance 2.0（最高一致性）' },
-                { label: tr.creator.drama.s6.qualityLabel, value: '1080p Full HD' },
-                { label: tr.creator.drama.s6.batchLabel, value: '第1–30集（共30集）' },
-                { label: tr.creator.drama.s6.durationLabel, value: '60秒' },
-                { label: tr.creator.drama.s6.consistencyLabel, value: '跨集保持（綁定系列 ID）' },
+                { label: tr.creator.drama.s6.engineLabel, value: 'Seedance 2.0' },
+                { label: tr.creator.drama.s6.qualityLabel, value: '720p HD' },
+                { label: '選定集數', value: `第${selectedEp}集` },
+                { label: tr.creator.drama.s6.durationLabel, value: `${durationSec}秒` },
+                { label: '畫面比例', value: '9:16 豎版' },
               ].map(({ label, value }) => (
                 <div key={label} className="flex items-center justify-between">
                   <span className="text-muted">{label}</span>
@@ -2070,89 +2162,39 @@ function S6VideoGen({ onNext }: { onNext: () => void }) {
             </div>
           </div>
           <button
-            onClick={() => setGate('credit')}
-            className="w-full bg-primary text-white py-3 rounded-xl font-semibold hover:bg-primary/90 transition-colors"
-          >
-            {tr.creator.drama.s6.confirmParamsBtn}
-          </button>
-        </div>
-      )}
-
-      {gate === 'credit' && (
-        <div className="space-y-4">
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 text-center">
-            <Zap size={32} className="mx-auto text-amber-500 mb-3" />
-            <p className="font-bold text-ink text-lg mb-1">{tr.creator.drama.s6.creditConfirmTitle}</p>
-            <p className="text-muted text-sm mb-2">{tr.creator.drama.s6.creditConfirmDesc}</p>
-            <p className="text-xs text-muted">{tr.creator.drama.s6.creditBalance}</p>
-          </div>
-          <div className="flex gap-3">
-            <button
-              onClick={() => setGate('params')}
-              className="flex-1 border border-line px-5 py-3 rounded-xl text-muted hover:border-primary transition-colors text-sm"
-            >
-              {tr.creator.drama.s6.backBtn}
-            </button>
-            <button
-              onClick={() => setGate('generating')}
-              className="flex-1 bg-accent text-white py-3 rounded-xl font-semibold hover:bg-accent/90 transition-colors"
-            >
-              {tr.creator.drama.s6.startGenBtn}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {gate === 'generating' && (
-        <div className="bg-card rounded-xl border border-line p-8 shadow-card text-center">
-          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4 animate-pulse">
-            <Film size={28} className="text-primary" />
-          </div>
-          <p className="font-bold text-ink text-lg mb-1">{tr.creator.drama.s6.generating}</p>
-          <p className="text-muted text-sm mb-4">{tr.creator.drama.s6.generatingDesc}</p>
-          <div className="space-y-2 text-sm text-left mb-4">
-            {['第1–5集', '第6–10集', '第11–15集'].map((eps, i) => (
-              <div key={eps} className="flex items-center gap-2">
-                <div className={`w-4 h-4 rounded-full flex items-center justify-center ${i === 0 ? 'bg-green-500' : i === 1 ? 'bg-primary animate-pulse' : 'bg-line'}`}>
-                  {i === 0 && <Check size={10} className="text-white" />}
-                </div>
-                <span className={i < 2 ? 'text-ink' : 'text-muted'}>{eps}</span>
-                {i === 1 && <span className="text-xs text-primary ml-auto">生成中⋯</span>}
-              </div>
-            ))}
-          </div>
-          <button onClick={() => setGate('done')} className="text-xs text-accent hover:underline">
-            {tr.creator.drama.s6.generatingDemo}
-          </button>
-        </div>
-      )}
-
-      {gate === 'done' && (
-        <div className="space-y-4">
-          <div className="bg-green-50 border border-green-200 rounded-xl p-5 text-center">
-            <Check size={28} className="mx-auto text-green-500 mb-2" />
-            <p className="font-bold text-ink">{tr.creator.drama.s6.doneTitle}</p>
-            <p className="text-sm text-muted mt-1">{tr.creator.drama.s6.doneDesc}</p>
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            {[1, 2, 3].map(ep => (
-              <div key={ep} className="bg-card border border-line rounded-lg overflow-hidden">
-                <div className="aspect-video bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
-                  <Film size={20} className="text-primary/50" />
-                </div>
-                <div className="p-2">
-                  <p className="text-xs font-medium text-ink">第{ep}集</p>
-                  <p className="text-xs text-muted">60秒</p>
-                </div>
-              </div>
-            ))}
-          </div>
-          <button
-            onClick={onNext}
+            onClick={() => setGate('generate')}
             className="w-full bg-primary text-white py-3 rounded-xl font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
           >
-            <ChevronRight size={18} /> {tr.creator.drama.s6.confirmBtn}
+            <Film size={16} /> 開始生成第{selectedEp}集
           </button>
+        </div>
+      )}
+
+      {gate === 'generate' && (
+        <div className="space-y-4">
+          <button onClick={() => setGate('params')} className="text-sm text-muted hover:text-primary flex items-center gap-1">
+            ← 返回選集
+          </button>
+          <VideoGenPanel
+            prompt={buildPrompt()}
+            aspectRatio="9:16"
+            duration={durationSec}
+            resolution="720p"
+            userId={u6?.id}
+            episodeId={`${pid6}-ep${selectedEp}`}
+            onComplete={(videoUrl, credits) => {
+              setCompletedVideos(prev => ({ ...prev, [selectedEp]: videoUrl }));
+              void credits;
+            }}
+          />
+          {Object.keys(completedVideos).length > 0 && (
+            <button
+              onClick={onNext}
+              className="w-full bg-primary text-white py-3 rounded-xl font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
+            >
+              <ChevronRight size={18} /> {tr.creator.drama.s6.confirmBtn}
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -2501,10 +2543,8 @@ export default function DramaWorkflow() {
   const goNext = () => navigate(`/creator/drama/${Math.min(routeStep + 1, 11)}`);
 
   // Determine series title for header
-  const seriesTitles: Record<number, string> = {
-    0: tr.creator.modeSelect.dramaTitle,
-  };
-  const headerTitle = seriesTitles[routeStep] ?? '街市情緣';
+  const { projectTitle } = useProjectStore();
+  const headerTitle = routeStep === 0 ? tr.creator.modeSelect.dramaTitle : (projectTitle || tr.creator.modeSelect.dramaTitle);
 
   const stepNavProps = {
     mode: 'drama' as const,

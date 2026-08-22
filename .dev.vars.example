@@ -1,0 +1,3 @@
+# Copy this to .dev.vars (gitignored) for local development
+# NEVER commit the real key
+OPENROUTER_API_KEY=sk-or-v1-YOUR_KEY_HERE

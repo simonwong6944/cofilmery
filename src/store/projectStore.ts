@@ -58,8 +58,8 @@ const INITIAL: Omit<ProjectState,
   'setCharacters' | 'setStoryCards' | 'setAestheticLock' | 'setSelectedSponsorAssets' |
   'setCoCreated' | 'setCurrentEpisode' | 'getStoryCard' | 'reset'
 > = {
-  projectId: 'demo-project',
-  projectTitle: '街市情緣',
+  projectId: crypto.randomUUID(),
+  projectTitle: '',
   storyMaterial: '',
   context: null,
   selectedTopic: null,
