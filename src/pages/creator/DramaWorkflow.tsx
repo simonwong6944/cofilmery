@@ -730,27 +730,307 @@ function S1AssetBank({ onNext }: { onNext: () => void }) {
 // ─────────────────────────────────────────
 // S2: 角色設定
 // ─────────────────────────────────────────
-function S2CharacterSetup({ onNext }: { onNext: () => void }) {
-  const [selectedChar, setSelectedChar] = useState(0);
-  const characters = [
-    {
-      name: '陳伯', role: '主角', age: '72歲', bg: '退休豬肉佬，性格開朗樂觀，愛做菜',
-      similarity: '極似', img: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=80&h=80&fit=crop&crop=face',
-    },
-    {
-      name: '陳太', role: '女主角', age: '68歲', bg: '陳伯老伴，賢惠體貼，支持丈夫圓夢',
-      similarity: '70%', img: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=80&h=80&fit=crop&crop=face',
-    },
-    {
-      name: '阿明', role: '配角', age: '35歲', bg: '街坊年輕人，跟陳伯學廚的學生',
-      similarity: '神韻', img: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&h=80&fit=crop&crop=face',
-    },
-  ];
+// ── Shared: appearance option type ──────────────────────────────────────────
+type AppearanceOptions = {
+  height: string; build: string; skin: string;
+  hair: string; hairColor: string; hairLength: string;
+  face: string; eyes: string; eyewear: string;
+  facial: string; posture: string; style: string;
+};
+
+const DEFAULT_APPEARANCE: AppearanceOptions = {
+  height: '', build: '', skin: '', hair: '', hairColor: '', hairLength: '',
+  face: '', eyes: '', eyewear: '', facial: '', posture: '', style: '',
+};
+
+// ── Shared: CharacterProfileCard ────────────────────────────────────────────
+function CharacterProfileCard({
+  img, name, role, age, bg, similarity, setSimilarity, mode,
+}: {
+  img: string; name: string; role: string; age: string; bg: string;
+  similarity: string; setSimilarity: (v: string) => void;
+  mode: 'drama' | 'legacy';
+}) {
+  const [traits, setTraits] = useState(['開朗樂觀', '勤力', '重情義', '愛說故事', '傳統']);
+  const [newTrait, setNewTrait] = useState('');
+  const [addingTrait, setAddingTrait] = useState(false);
+  const [appearance, setAppearance] = useState<AppearanceOptions>(DEFAULT_APPEARANCE);
+  const [showAppearance, setShowAppearance] = useState(false);
+
+  const removeTrait = (t: string) => setTraits(prev => prev.filter(x => x !== t));
+  const addTrait = () => {
+    const v = newTrait.trim();
+    if (v && !traits.includes(v)) setTraits(prev => [...prev, v]);
+    setNewTrait(''); setAddingTrait(false);
+  };
+
+  const setApp = (k: keyof AppearanceOptions, v: string) =>
+    setAppearance(prev => ({ ...prev, [k]: prev[k] === v ? '' : v }));
 
   const similarityLabels = [
-    { id: '極似', label: '極似', desc: '幾乎一模一樣（AI 強一致性）', color: 'bg-green-500' },
-    { id: '70%', label: '70%', desc: '主要特徵保持，細節有變化', color: 'bg-blue-500' },
-    { id: '神韻', label: '神韻', desc: '捕捉神態氣質，不拘形似', color: 'bg-purple-500' },
+    { id: '極似', label: '極似', desc: 'AI 強鎖定，近乎一模一樣', color: 'bg-green-500', border: 'border-green-500', bg: 'bg-green-50' },
+    { id: '70%',  label: '70%',  desc: '主要特徵保持，細節有變化', color: 'bg-blue-500',  border: 'border-blue-500',  bg: 'bg-blue-50'  },
+    { id: '神韻', label: '神韻', desc: '捕捉神態氣質，不拘形似',   color: 'bg-purple-500',border: 'border-purple-500',bg: 'bg-purple-50'},
+  ];
+
+  const TRAIT_PRESETS = [
+    '開朗樂觀','勤力','重情義','愛說故事','傳統','溫柔體貼','沉默寡言',
+    '幽默風趣','固執','好勝','善解人意','獨立自強','念舊','慷慨','堅毅',
+  ];
+
+  // Appearance option rows
+  const appearanceRows: { label: string; key: keyof AppearanceOptions; opts: string[] }[] = [
+    { label: '身高',   key: 'height',     opts: ['矮小', '中等身高', '高挑', '高大'] },
+    { label: '體型',   key: 'build',      opts: ['瘦削', '纖細', '適中', '微胖', '肥胖', '壯實'] },
+    { label: '膚色',   key: 'skin',       opts: ['白皙', '小麥色', '深色', '古銅色'] },
+    { label: '頭髮款式', key: 'hair',     opts: ['直髮', '捲髮', '波浪髮', '光頭', '微卷'] },
+    { label: '頭髮顏色', key: 'hairColor', opts: ['黑色', '深棕', '灰白', '全白', '染色'] },
+    { label: '頭髮長度', key: 'hairLength', opts: ['極短', '短髮', '中長', '長髮', '超長'] },
+    { label: '臉型',   key: 'face',       opts: ['圓臉', '鵝蛋臉', '方臉', '長臉', '瓜子臉'] },
+    { label: '眼神',   key: 'eyes',       opts: ['眼神溫和', '眼神銳利', '眼神慈祥', '眼神憂鬱'] },
+    { label: '眼鏡',   key: 'eyewear',    opts: ['無眼鏡', '細框眼鏡', '粗框眼鏡', '老花眼鏡', '墨鏡'] },
+    { label: '面部特徵', key: 'facial',   opts: ['無鬚', '短鬚', '山羊鬚', '八字鬚', '滿臉鬚', '酒窩', '皺紋明顯'] },
+    { label: '姿態',   key: 'posture',    opts: ['昂首挺胸', '含胸駝背', '輕鬆隨意', '端莊穩重'] },
+    { label: '衣著風格', key: 'style',    opts: ['傳統唐裝', '工人裝束', '整齊西裝', '休閒便服', '廚師圍裙', '旗袍', '運動服'] },
+  ];
+
+  const accentColor = mode === 'drama' ? 'primary' : 'accent';
+
+  return (
+    <div className="space-y-4">
+      {/* Basic info */}
+      <div className="bg-card rounded-xl border border-line p-5 shadow-card">
+        <div className="flex gap-4 mb-4">
+          <div className="relative flex-shrink-0">
+            <img src={img} alt={name} className="w-20 h-20 rounded-xl object-cover" />
+            <button className="absolute -bottom-1 -right-1 bg-white border border-line rounded-full p-1 hover:bg-bg-soft shadow-sm">
+              <Upload size={10} className="text-muted" />
+            </button>
+          </div>
+          <div className="flex-1 space-y-2">
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-xs text-muted">{mode === 'drama' ? '角色名稱' : '受訪者稱呼'}</label>
+                <input className="w-full border border-line rounded px-2 py-1.5 text-sm bg-bg-soft focus:outline-none focus:border-primary" defaultValue={name} />
+              </div>
+              <div>
+                <label className="text-xs text-muted">{mode === 'drama' ? '角色定位' : '職業 / 身份'}</label>
+                <input className="w-full border border-line rounded px-2 py-1.5 text-sm bg-bg-soft focus:outline-none focus:border-primary" defaultValue={role} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-xs text-muted">年齡</label>
+                <input className="w-full border border-line rounded px-2 py-1.5 text-sm bg-bg-soft focus:outline-none focus:border-primary" defaultValue={age} />
+              </div>
+              <div>
+                <label className="text-xs text-muted">背景簡介</label>
+                <input className="w-full border border-line rounded px-2 py-1.5 text-sm bg-bg-soft focus:outline-none focus:border-primary" defaultValue={bg} />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Upload refs */}
+        <div className="border border-dashed border-line rounded-lg p-3 text-center cursor-pointer hover:border-primary transition-colors">
+          <Upload size={14} className="mx-auto text-muted mb-1" />
+          <p className="text-xs text-muted">上傳參考圖（可多張，用於 AI 生成一致性）</p>
+        </div>
+      </div>
+
+      {/* 性格特質 */}
+      <div className="bg-card rounded-xl border border-line p-5 shadow-card">
+        <div className="flex items-center justify-between mb-3">
+          <label className="text-sm font-semibold text-ink">性格特質</label>
+          <span className="text-xs text-muted">AI 會據此調整說話語氣與行為模式</span>
+        </div>
+
+        {/* Active traits */}
+        <div className="flex flex-wrap gap-2 mb-3">
+          {traits.map(t => (
+            <span
+              key={t}
+              className={`inline-flex items-center gap-1 bg-${accentColor}/10 text-${accentColor} text-xs px-3 py-1 rounded-full font-medium group`}
+            >
+              {t}
+              <button onClick={() => removeTrait(t)} className="opacity-40 hover:opacity-100 transition-opacity ml-0.5">
+                <X size={10} />
+              </button>
+            </span>
+          ))}
+          {!addingTrait && (
+            <button
+              onClick={() => setAddingTrait(true)}
+              className="text-xs text-muted border border-dashed border-line px-3 py-1 rounded-full hover:border-primary hover:text-primary transition-colors flex items-center gap-1"
+            >
+              <Plus size={10} /> 新增特質
+            </button>
+          )}
+        </div>
+
+        {/* Add trait input */}
+        {addingTrait && (
+          <div className="flex gap-2 mb-3">
+            <input
+              autoFocus
+              className="flex-1 border border-primary rounded-lg px-3 py-1.5 text-sm bg-bg-soft focus:outline-none"
+              placeholder="輸入特質..."
+              value={newTrait}
+              onChange={e => setNewTrait(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') addTrait(); if (e.key === 'Escape') setAddingTrait(false); }}
+            />
+            <button onClick={addTrait} className="bg-primary text-white text-xs px-3 py-1.5 rounded-lg">確認</button>
+            <button onClick={() => setAddingTrait(false)} className="text-muted text-xs px-2 py-1.5 rounded-lg hover:bg-bg-soft">取消</button>
+          </div>
+        )}
+
+        {/* Preset suggestions */}
+        <div>
+          <p className="text-xs text-muted mb-1.5">快速加入：</p>
+          <div className="flex flex-wrap gap-1.5">
+            {TRAIT_PRESETS.filter(p => !traits.includes(p)).map(p => (
+              <button
+                key={p}
+                onClick={() => setTraits(prev => [...prev, p])}
+                className="text-[11px] text-muted border border-line px-2.5 py-0.5 rounded-full hover:border-primary hover:text-primary transition-colors"
+              >
+                + {p}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* 外型設定 */}
+      <div className="bg-card rounded-xl border border-line shadow-card overflow-hidden">
+        <button
+          onClick={() => setShowAppearance(v => !v)}
+          className="w-full flex items-center justify-between p-5 hover:bg-bg-soft transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <Users size={16} className="text-primary" />
+            <span className="text-sm font-semibold text-ink">外型細節設定</span>
+            <span className="text-xs text-muted">（高矮肥瘦、頭髮、臉型、衣著等）</span>
+          </div>
+          <div className="flex items-center gap-2">
+            {Object.values(appearance).filter(Boolean).length > 0 && (
+              <span className="bg-primary/10 text-primary text-[10px] px-2 py-0.5 rounded-full font-medium">
+                已設定 {Object.values(appearance).filter(Boolean).length} 項
+              </span>
+            )}
+            <ChevronDown size={16} className={`text-muted transition-transform ${showAppearance ? 'rotate-180' : ''}`} />
+          </div>
+        </button>
+
+        {showAppearance && (
+          <div className="px-5 pb-5 border-t border-line pt-4 space-y-4">
+            {appearanceRows.map(row => (
+              <div key={row.key}>
+                <label className="text-xs font-semibold text-ink mb-1.5 block">{row.label}</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {row.opts.map(opt => (
+                    <button
+                      key={opt}
+                      onClick={() => setApp(row.key, opt)}
+                      className={`text-xs px-3 py-1 rounded-full border transition-all ${
+                        appearance[row.key] === opt
+                          ? 'bg-primary text-white border-primary'
+                          : 'border-line text-muted hover:border-primary hover:text-primary bg-bg-soft'
+                      }`}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+
+            {/* Free text supplement */}
+            <div>
+              <label className="text-xs font-semibold text-ink mb-1.5 block">補充描述（自由填寫）</label>
+              <textarea
+                className="w-full border border-line rounded-lg px-3 py-2 text-xs bg-bg-soft focus:outline-none focus:border-primary resize-none"
+                rows={2}
+                placeholder="例：右耳有一顆痣、慣用右手、走路略帶跛腳..."
+              />
+            </div>
+
+            {/* Preview summary */}
+            {Object.values(appearance).some(Boolean) && (
+              <div className="bg-primary/5 border border-primary/20 rounded-lg p-3">
+                <p className="text-xs text-primary font-semibold mb-1">AI 外型描述預覽：</p>
+                <p className="text-xs text-ink leading-relaxed">
+                  {[
+                    appearance.height, appearance.build,
+                    appearance.skin ? appearance.skin + '膚色' : '',
+                    appearance.hairLength && appearance.hairColor ? `${appearance.hairColor}${appearance.hairLength}${appearance.hair || ''}` : (appearance.hair || ''),
+                    appearance.face, appearance.eyewear !== '無眼鏡' ? appearance.eyewear : '',
+                    appearance.facial !== '無鬚' ? appearance.facial : '',
+                    appearance.eyes, appearance.posture, appearance.style,
+                  ].filter(Boolean).join('，')}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* 身份視覺一致性 */}
+      <div className="bg-card rounded-xl border border-line p-5 shadow-card">
+        <div className="flex items-center justify-between mb-1">
+          <label className="text-sm font-semibold text-ink">身份視覺一致性設定</label>
+        </div>
+        <p className="text-xs text-muted mb-3">控制 AI 在每集生成時，與此角色外型的吻合程度</p>
+        <div className="grid grid-cols-3 gap-2">
+          {similarityLabels.map(s => (
+            <button
+              key={s.id}
+              onClick={() => setSimilarity(s.id)}
+              className={`p-3 rounded-xl border-2 text-left transition-all ${
+                similarity === s.id
+                  ? `${s.border} ${s.bg}`
+                  : 'border-line hover:border-primary/40 bg-bg-soft'
+              }`}
+            >
+              <div className="flex items-center gap-1.5 mb-1">
+                <span className={`w-2.5 h-2.5 rounded-full ${s.color}`} />
+                <span className="font-bold text-sm text-ink">{s.label}</span>
+              </div>
+              <p className="text-[11px] text-muted leading-tight">{s.desc}</p>
+            </button>
+          ))}
+        </div>
+        <div className="mt-3 text-xs text-muted bg-bg-soft rounded-lg p-2.5">
+          {similarity === '極似' && '⚡ AI 將嚴格鎖定臉部特徵與外型，每集高度一致。適合主角。'}
+          {similarity === '70%' && '✦ AI 保持主要特徵（體型、臉型、髮型），允許光線/角度差異。適合配角。'}
+          {similarity === '神韻' && '◈ AI 捕捉角色氣質與神態，不強求形似。適合群眾角色或寫意風格。'}
+          {!similarity && '請選擇一致性程度'}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────
+// S2: 角色設定（Drama mode）
+// ─────────────────────────────────────────
+function S2CharacterSetup({ onNext }: { onNext: () => void }) {
+  const [selectedChar, setSelectedChar] = useState(0);
+  const [similarities, setSimilarities] = useState(['極似', '70%', '神韻']);
+
+  const characters = [
+    {
+      name: '陳伯', role: '主角', age: '72歲', bg: '退休豬肉佬，愛做菜',
+      img: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=80&h=80&fit=crop&crop=face',
+    },
+    {
+      name: '陳太', role: '女主角', age: '68歲', bg: '陳伯老伴，賢惠體貼',
+      img: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=80&h=80&fit=crop&crop=face',
+    },
+    {
+      name: '阿明', role: '配角', age: '35歲', bg: '街坊年輕人，學廚學生',
+      img: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&h=80&fit=crop&crop=face',
+    },
   ];
 
   const char = characters[selectedChar];
@@ -759,19 +1039,19 @@ function S2CharacterSetup({ onNext }: { onNext: () => void }) {
     <div className="max-w-2xl">
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-primary">S2 · 角色設定</h2>
-        <p className="text-muted text-sm mt-1">建立系列角色卡，設定 AI 生成時的外型一致性程度。</p>
+        <p className="text-muted text-sm mt-1">建立系列角色卡，設定性格特質、外型細節與 AI 生成一致性，讓每集角色更真實立體。</p>
       </div>
 
       <div className="space-y-4 mb-6">
-        {/* 角色列表 */}
-        <div className="bg-card rounded-xl border border-line p-5 shadow-card">
+        {/* 角色陣容選擇器 */}
+        <div className="bg-card rounded-xl border border-line p-4 shadow-card">
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-semibold text-ink text-sm">角色陣容</h3>
             <button className="text-accent text-sm hover:underline flex items-center gap-1">
-              <span>+</span> 新增角色
+              <Plus size={13} /> 新增角色
             </button>
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-3 flex-wrap">
             {characters.map((c, i) => (
               <button
                 key={i}
@@ -782,62 +1062,29 @@ function S2CharacterSetup({ onNext }: { onNext: () => void }) {
               >
                 <img src={c.img} alt={c.name} className="w-12 h-12 rounded-full object-cover" />
                 <span className="text-xs font-semibold text-ink">{c.name}</span>
-                <span className="text-xs text-muted">{c.role}</span>
+                <span className="text-[10px] text-muted">{c.role}</span>
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                  similarities[i] === '極似' ? 'bg-green-100 text-green-700' :
+                  similarities[i] === '70%'  ? 'bg-blue-100 text-blue-700'  :
+                                               'bg-purple-100 text-purple-700'
+                }`}>{similarities[i]}</span>
               </button>
             ))}
           </div>
         </div>
 
-        {/* 選中角色詳情 */}
-        <div className="bg-card rounded-xl border border-line p-5 shadow-card">
-          <div className="flex gap-4 mb-4">
-            <img src={char.img} alt={char.name} className="w-20 h-20 rounded-xl object-cover shrink-0" />
-            <div className="flex-1 space-y-2">
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-xs text-muted">角色名稱</label>
-                  <input className="w-full border border-line rounded px-2 py-1.5 text-sm bg-bg-soft focus:outline-none focus:border-primary" defaultValue={char.name} />
-                </div>
-                <div>
-                  <label className="text-xs text-muted">角色定位</label>
-                  <input className="w-full border border-line rounded px-2 py-1.5 text-sm bg-bg-soft focus:outline-none focus:border-primary" defaultValue={char.role} />
-                </div>
-              </div>
-              <div>
-                <label className="text-xs text-muted">年齡 / 背景</label>
-                <input className="w-full border border-line rounded px-2 py-1.5 text-sm bg-bg-soft focus:outline-none focus:border-primary" defaultValue={`${char.age} · ${char.bg}`} />
-              </div>
-            </div>
-          </div>
-
-          {/* 一致性標籤 */}
-          <div>
-            <label className="text-sm font-semibold text-ink mb-2 block">AI 生成一致性設定</label>
-            <div className="grid grid-cols-3 gap-2">
-              {similarityLabels.map(s => (
-                <button
-                  key={s.id}
-                  className={`p-3 rounded-lg border-2 text-left transition-all ${
-                    char.similarity === s.id
-                      ? 'border-primary bg-primary/5'
-                      : 'border-line hover:border-primary/40'
-                  }`}
-                >
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <span className={`w-2 h-2 rounded-full ${s.color}`} />
-                    <span className="font-bold text-sm text-ink">{s.label}</span>
-                  </div>
-                  <p className="text-xs text-muted leading-tight">{s.desc}</p>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-3 border border-dashed border-line rounded-lg p-3 text-center cursor-pointer hover:border-primary transition-colors">
-            <Upload size={16} className="mx-auto text-muted mb-1" />
-            <p className="text-xs text-muted">上傳角色參考圖（可多張）</p>
-          </div>
-        </div>
+        {/* Character profile card */}
+        <CharacterProfileCard
+          key={selectedChar}
+          img={char.img}
+          name={char.name}
+          role={char.role}
+          age={char.age}
+          bg={char.bg}
+          similarity={similarities[selectedChar]}
+          setSimilarity={v => setSimilarities(prev => prev.map((s, i) => i === selectedChar ? v : s))}
+          mode="drama"
+        />
       </div>
 
       <button
