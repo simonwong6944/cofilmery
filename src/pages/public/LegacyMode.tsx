@@ -72,25 +72,8 @@ export default function LegacyMode() {
         </h1>
         <p className="text-xl text-muted mb-12">每集三至十分鐘 · 支援單集或多集系列 · 適用於個人、企業及社會各界</p>
 
-        {/* 4-Step Flow */}
-        <div className="grid md:grid-cols-4 gap-5 mb-14">
-          {[
-            { icon: User,      step: '第一步', title: '立項選定對象', desc: '確定記錄對象，填寫基本資料及取得倫理審查授權' },
-            { icon: FileCheck, step: '第二步', title: '邀請受訪者並取得授權', desc: '提供正式的知情同意書，保障受訪者的隱私及權益' },
-            { icon: Video,     step: '第三步', title: '結構化訪談錄影', desc: '按系統生成的訪談問題，引導受訪者分享珍貴的人生故事' },
-            { icon: Cpu,       step: '第四步', title: '人工智能整理故事線與剪輯', desc: 'AI 自動整理訪談內容，生成章節結構，完成剪輯合成' },
-          ].map(({ icon: Icon, step, title, desc }) => (
-            <div key={step} className="bg-card rounded-xl p-5 shadow-card border-t-4 border-accent">
-              <Icon size={24} className="text-accent mb-3" />
-              <p className="text-xs text-muted mb-1">{step}</p>
-              <h3 className="font-bold text-ink mb-2">{title}</h3>
-              <p className="text-sm text-muted">{desc}</p>
-            </div>
-          ))}
-        </div>
-
         {/* 3 Sub-Modes */}
-        <div className="mb-14">
+        <div className="mb-16">
           <h2 className="text-2xl font-bold text-primary mb-2">三種傳承模式</h2>
           <p className="text-muted mb-6">不論是家人、員工還是社會貢獻者，每個人的故事都值得被好好記錄。</p>
 
@@ -159,6 +142,26 @@ export default function LegacyMode() {
           {!activeMode && (
             <p className="text-center text-sm text-muted mt-4">點擊任一模式了解詳情</p>
           )}
+        </div>
+
+        {/* 4-Step Flow */}
+        <div className="mb-14">
+          <h2 className="text-2xl font-bold text-primary mb-6">制作流程</h2>
+          <div className="grid md:grid-cols-4 gap-5">
+            {[
+              { icon: User,      step: '第一步', title: '立項選定對象', desc: '確定記錄對象，填寫基本資料及取得倫理審查授權' },
+              { icon: FileCheck, step: '第二步', title: '邀請受訪者並取得授權', desc: '提供正式的知情同意書，保障受訪者的隱私及權益' },
+              { icon: Video,     step: '第三步', title: '結構化訪談錄影', desc: '按系統生成的訪談問題，引導受訪者分享珍貴的人生故事' },
+              { icon: Cpu,       step: '第四步', title: '人工智能整理故事線與剪輯', desc: 'AI 自動整理訪談內容，生成章節結構，完成剪輯合成' },
+            ].map(({ icon: Icon, step, title, desc }) => (
+              <div key={step} className="bg-card rounded-xl p-5 shadow-card border-t-4 border-accent">
+                <Icon size={24} className="text-accent mb-3" />
+                <p className="text-xs text-muted mb-1">{step}</p>
+                <h3 className="font-bold text-ink mb-2">{title}</h3>
+                <p className="text-sm text-muted">{desc}</p>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Works Gallery */}

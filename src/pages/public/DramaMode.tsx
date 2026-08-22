@@ -90,25 +90,8 @@ export default function DramaMode() {
         </h1>
         <p className="text-xl text-muted mb-12">一套最多七十集 · 每集十五至六十秒 · 為五十五歲以上觀眾而設</p>
 
-        {/* 4-step flow */}
-        <div className="grid md:grid-cols-4 gap-5 mb-20">
-          {[
-            { icon: MessageSquare, step: '第一步', title: '訪問長者收集素材', desc: '透過結構化訪談，收集長者的生活故事與生命經歷作為創作基礎' },
-            { icon: Cpu,           step: '第二步', title: '人工智能劇本生成', desc: '將素材輸入系統，AI 自動生成符合粵語文化的戲劇性劇本' },
-            { icon: Camera,        step: '第三步', title: '分鏡及畫面自動生成', desc: '根據劇本自動生成分鏡圖及場景畫面，可自行調整細節' },
-            { icon: Mic,           step: '第四步', title: '粵語配音', desc: '為每一集添加真實粵語語音，支援多種聲線選擇' },
-          ].map(({ icon: Icon, step, title, desc }) => (
-            <div key={step} className="bg-card rounded-xl p-5 shadow-card border-t-4 border-primary">
-              <Icon size={24} className="text-primary mb-3" />
-              <p className="text-xs text-muted mb-1">{step}</p>
-              <h3 className="font-bold text-ink mb-2">{title}</h3>
-              <p className="text-sm text-muted">{desc}</p>
-            </div>
-          ))}
-        </div>
-
         {/* ─── Genre Section ─── */}
-        <div className="mb-20">
+        <div className="mb-16">
           <div className="text-center mb-3">
             <span className="inline-block bg-primary/10 text-primary text-xs font-semibold px-3 py-1 rounded-full mb-3">六大題材類型</span>
             <h2 className="text-3xl font-bold text-ink mb-2">選擇最適合的故事題材</h2>
@@ -171,6 +154,26 @@ export default function DramaMode() {
             >
               選好題材，開始創作 <ArrowRight size={16} />
             </Link>
+          </div>
+        </div>
+
+        {/* 4-step flow */}
+        <div className="mb-16">
+          <h2 className="text-2xl font-bold text-primary mb-6">創作流程</h2>
+          <div className="grid md:grid-cols-4 gap-5">
+            {[
+              { icon: MessageSquare, step: '第一步', title: '訪問長者收集素材', desc: '透過結構化訪談，收集長者的生活故事與生命經歷作為創作基礎' },
+              { icon: Cpu,           step: '第二步', title: '人工智能劇本生成', desc: '將素材輸入系統，AI 自動生成符合粵語文化的戲劇性劇本' },
+              { icon: Camera,        step: '第三步', title: '分鏡及畫面自動生成', desc: '根據劇本自動生成分鏡圖及場景畫面，可自行調整細節' },
+              { icon: Mic,           step: '第四步', title: '粵語配音', desc: '為每一集添加真實粵語語音，支援多種聲線選擇' },
+            ].map(({ icon: Icon, step, title, desc }) => (
+              <div key={step} className="bg-card rounded-xl p-5 shadow-card border-t-4 border-primary">
+                <Icon size={24} className="text-primary mb-3" />
+                <p className="text-xs text-muted mb-1">{step}</p>
+                <h3 className="font-bold text-ink mb-2">{title}</h3>
+                <p className="text-sm text-muted">{desc}</p>
+              </div>
+            ))}
           </div>
         </div>
 
