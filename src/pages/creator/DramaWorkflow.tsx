@@ -18,50 +18,45 @@ import {
 // S0: 系列設定
 // ─────────────────────────────────────────
 function S0SeriesSetup({ onNext }: { onNext: () => void }) {
+  const { locale } = useLocaleStore();
+  const tr = t();
+  void locale;
   const [episodeCount, setEpisodeCount] = useState(30);
   const [duration, setDuration] = useState('60秒');
   const [genre, setGenre] = useState('');
   const [tone, setTone] = useState('');
   const [need, setNeed] = useState('');
 
-  const genres = [
-    { id: 'dream', icon: '🌟', label: '圓夢類', desc: '年輕時的未竟心願，晚年實現' },
-    { id: 'love', icon: '💛', label: '愛情回憶類', desc: '錯過的愛情、重逢與和解' },
-    { id: 'family', icon: '👨‍👩‍👧‍👦', label: '家庭溫情類', desc: '兒孫滿堂、跨代連結、親情修復' },
-    { id: 'restart', icon: '🌺', label: '人生重啟類', desc: '55歲後重新出發、找回自我' },
-    { id: 'nostalgia', icon: '🕰️', label: '年代回憶類', desc: '香港60–90年代背景、集體記憶' },
-    { id: 'hero', icon: '🤝', label: '長者英雄類', desc: '熟齡智慧解決問題、被需要' },
-  ];
+  const genreIcons = ['🌟','💛','👨‍👩‍👧‍👦','🌺','🕰️','🤝'];
+  const genres = tr.creator.drama.s0.genres.map((g, i) => ({
+    id: ['dream','love','family','restart','nostalgia','hero'][i],
+    icon: genreIcons[i], label: g.label, desc: g.desc,
+  }));
 
-  const tones = [
-    { id: 'warm', icon: '😌', label: '溫暖', desc: '細水長流，看完有被擁抱的感覺' },
-    { id: 'touching', icon: '🥲', label: '感動', desc: '催淚、觸動、引起共鳴' },
-    { id: 'light', icon: '😊', label: '輕鬆', desc: '生活化、親切、有笑點但不失溫度' },
-    { id: 'nostalgic', icon: '💛', label: '懷舊', desc: '舊日香港氛圍、時代感' },
-    { id: 'inspiring', icon: '🌱', label: '勵志', desc: '唔怕遲、重新出發、仍有可能' },
-    { id: 'healing', icon: '💔', label: '療癒', desc: '遺憾被接納、傷口被理解、和解' },
-  ];
+  const toneIcons = ['😌','🥲','😊','💛','🌱','💔'];
+  const tones = tr.creator.drama.s0.tones.map((t, i) => ({
+    id: ['warm','touching','light','nostalgic','inspiring','healing'][i],
+    icon: toneIcons[i], label: t.label, desc: t.desc,
+  }));
 
-  const needs = [
-    { id: 'seen', label: '🌟 被看見', desc: '長者的價值與貢獻被認可' },
-    { id: 'connected', label: '💛 不孤單', desc: '連結感、有人陪伴、被愛' },
-    { id: 'reconcile', label: '🔄 和解', desc: '與自己、家人、過去和解' },
-    { id: 'possible', label: '✨ 仍有可能', desc: '年紀唔係終點，仍有新故事' },
-  ];
+  const needs = tr.creator.drama.s0.needs.map((n, i) => ({
+    id: ['seen','connected','reconcile','possible'][i],
+    label: n.label, desc: n.desc,
+  }));
 
-  const durations = ['15秒', '30秒', '45秒', '60秒', '3分鐘', '5分鐘'];
+  const durations = tr.creator.drama.s0.durations;
 
   return (
     <div className="max-w-2xl">
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-primary">S0 · 系列設定</h2>
-        <p className="text-muted text-sm mt-1">設定你的短劇系列基本資訊，AI 會根據這些資訊為你量身生成故事框架。</p>
+        <h2 className="text-2xl font-bold text-primary">{tr.creator.drama.s0.title}</h2>
+        <p className="text-muted text-sm mt-1">{tr.creator.drama.s0.subtitle}</p>
       </div>
 
       <div className="space-y-6">
         {/* 劇集名稱 */}
         <div className="bg-card rounded-xl border border-line p-5 shadow-card">
-          <label className="block text-sm font-semibold text-ink mb-2">劇集名稱</label>
+          <label className="block text-sm font-semibold text-ink mb-2">{tr.creator.drama.s0.seriesNameLabel}</label>
           <input
             className="w-full border border-line rounded-lg px-3 py-2.5 bg-bg-soft focus:outline-none focus:border-primary text-ink"
             placeholder="例：街市情緣、阿婆的裁縫心事"
@@ -71,7 +66,7 @@ function S0SeriesSetup({ onNext }: { onNext: () => void }) {
 
         {/* 題材類型 */}
         <div className="bg-card rounded-xl border border-line p-5 shadow-card">
-          <label className="block text-sm font-semibold text-ink mb-3">題材類型</label>
+          <label className="block text-sm font-semibold text-ink mb-3">{tr.creator.drama.s0.genreLabel}</label>
           <div className="grid grid-cols-2 gap-3">
             {genres.map(g => (
               <button
@@ -95,7 +90,7 @@ function S0SeriesSetup({ onNext }: { onNext: () => void }) {
 
         {/* 情感基調 */}
         <div className="bg-card rounded-xl border border-line p-5 shadow-card">
-          <label className="block text-sm font-semibold text-ink mb-3">情感基調</label>
+          <label className="block text-sm font-semibold text-ink mb-3">{tr.creator.drama.s0.toneLabel}</label>
           <div className="grid grid-cols-3 gap-2">
             {tones.map(t => (
               <button
@@ -117,8 +112,8 @@ function S0SeriesSetup({ onNext }: { onNext: () => void }) {
 
         {/* 核心情感需求 */}
         <div className="bg-card rounded-xl border border-line p-5 shadow-card">
-          <label className="block text-sm font-semibold text-ink mb-1">核心情感需求</label>
-          <p className="text-xs text-muted mb-3">呢套劇最想讓觀眾（長者）感受到什麼？</p>
+          <label className="block text-sm font-semibold text-ink mb-1">{tr.creator.drama.s0.needLabel}</label>
+          <p className="text-xs text-muted mb-3">{tr.creator.drama.s0.needSubtitle}</p>
           <div className="grid grid-cols-2 gap-2">
             {needs.map(n => (
               <button
@@ -142,17 +137,17 @@ function S0SeriesSetup({ onNext }: { onNext: () => void }) {
           <div className="grid grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-semibold text-ink mb-2">
-                集數規劃（最多 70 集）
+                {tr.creator.drama.s0.episodeLabel}
               </label>
               <input
                 type="range" min={5} max={70} value={episodeCount}
                 onChange={e => setEpisodeCount(Number(e.target.value))}
                 className="w-full accent-primary"
               />
-              <p className="text-sm text-primary font-semibold mt-1">已選：{episodeCount} 集</p>
+              <p className="text-sm text-primary font-semibold mt-1">{tr.creator.drama.s0.episodeSelected}{episodeCount} {tr.creator.drama.s0.episodeUnit}</p>
             </div>
             <div>
-              <label className="block text-sm font-semibold text-ink mb-2">每集時長</label>
+              <label className="block text-sm font-semibold text-ink mb-2">{tr.creator.drama.s0.durationLabel}</label>
               <div className="grid grid-cols-2 gap-1.5">
                 {durations.map(d => (
                   <button
@@ -174,7 +169,7 @@ function S0SeriesSetup({ onNext }: { onNext: () => void }) {
 
         {/* 目標受眾 */}
         <div className="bg-card rounded-xl border border-line p-5 shadow-card">
-          <label className="block text-sm font-semibold text-ink mb-3">目標受眾</label>
+          <label className="block text-sm font-semibold text-ink mb-3">{tr.creator.drama.s0.audienceLabel}</label>
           <div className="flex flex-wrap gap-2">
             {['55–65 歲', '65–75 歲', '75 歲以上', '家庭觀眾（陪同長者）', '全港市民'].map(a => (
               <label
@@ -191,7 +186,7 @@ function S0SeriesSetup({ onNext }: { onNext: () => void }) {
 
         {/* 品牌/商業背景 */}
         <div className="bg-card rounded-xl border border-line p-5 shadow-card">
-          <label className="block text-sm font-semibold text-ink mb-2">品牌 / 商業背景（選填）</label>
+          <label className="block text-sm font-semibold text-ink mb-2">{tr.creator.drama.s0.brandLabel}</label>
           <textarea
             className="w-full border border-line rounded-lg px-3 py-2.5 bg-bg-soft focus:outline-none focus:border-primary text-sm text-ink resize-none"
             rows={2}
@@ -203,8 +198,8 @@ function S0SeriesSetup({ onNext }: { onNext: () => void }) {
         <div className="bg-amber-50 border-l-4 border-amber-400 rounded-r-xl p-4 flex gap-3">
           <AlertTriangle size={18} className="text-amber-500 shrink-0 mt-0.5" />
           <div>
-            <p className="font-semibold text-sm text-ink">確認前注意</p>
-            <p className="text-sm text-muted mt-0.5">系列設定確認後，AI 將生成策劃案總覽供你審閱，然後才開始消耗積分。</p>
+            <p className="font-semibold text-sm text-ink">{tr.creator.drama.s0.warningTitle}</p>
+            <p className="text-sm text-muted mt-0.5">{tr.creator.drama.s0.warningDesc}</p>
           </div>
         </div>
 
@@ -213,7 +208,7 @@ function S0SeriesSetup({ onNext }: { onNext: () => void }) {
           className="w-full bg-primary text-white py-3 rounded-xl font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
         >
           <ChevronRight size={18} />
-          確認系列設定，查看策劃案總覽
+          {tr.creator.drama.s0.confirmBtn}
         </button>
       </div>
     </div>
@@ -224,6 +219,9 @@ function S0SeriesSetup({ onNext }: { onNext: () => void }) {
 // 前置: 策劃案總覽（Plan Overview）
 // ─────────────────────────────────────────
 function PlanOverview({ onNext }: { onNext: () => void }) {
+  const { locale } = useLocaleStore();
+  const tr = t();
+  void locale;
   return (
     <div className="max-w-2xl">
       <div className="mb-6">
@@ -422,6 +420,9 @@ const TIER_COLORS: Record<string, string> = {
 };
 
 function S1AssetBank({ onNext }: { onNext: () => void }) {
+  const { locale } = useLocaleStore();
+  const tr = t();
+  void locale;
   const [activeTab, setActiveTab] = useState<'own' | 'sponsor'>('own');
   const [sponsorCategory, setSponsorCategory] = useState<SponsorCategory>('car');
   const [expandedBrand, setExpandedBrand] = useState<string | null>('lexus');
@@ -1017,6 +1018,9 @@ function CharacterProfileCard({
 // S2: 角色設定（Drama mode）
 // ─────────────────────────────────────────
 function S2CharacterSetup({ onNext }: { onNext: () => void }) {
+  const { locale } = useLocaleStore();
+  const tr = t();
+  void locale;
   const [selectedChar, setSelectedChar] = useState(0);
   const [similarities, setSimilarities] = useState(['極似', '70%', '神韻']);
 
@@ -1105,6 +1109,9 @@ function S2CharacterSetup({ onNext }: { onNext: () => void }) {
 // S3: 故事框架（3a → 3b → 3c 垂直展開）
 // ─────────────────────────────────────────
 function S3StoryFramework({ onNext }: { onNext: () => void }) {
+  const { locale } = useLocaleStore();
+  const tr = t();
+  void locale;
   const [phase3a, setPhase3a] = useState(true);
   const [phase3b, setPhase3b] = useState(false);
   const [phase3bDone, setPhase3bDone] = useState(false);
@@ -1350,6 +1357,9 @@ function S3StoryFramework({ onNext }: { onNext: () => void }) {
 // S4: 分鏡
 // ─────────────────────────────────────────
 function S4Storyboard({ onNext }: { onNext: () => void }) {
+  const { locale } = useLocaleStore();
+  const tr = t();
+  void locale;
   const panels = [
     { scene: 1, title: '街市清晨開檔', desc: '陳伯熟練地掛起豬肉，街坊陸續到來', cam: '全景→特寫', dur: 8 },
     { scene: 2, title: '最後一天告別', desc: '街坊圍著陳伯，眼帶不捨', cam: '中景，慢推鏡', dur: 10 },
@@ -1431,6 +1441,9 @@ function S4Storyboard({ onNext }: { onNext: () => void }) {
 // S5: 關鍵幀生成
 // ─────────────────────────────────────────
 function S5Keyframes({ onNext }: { onNext: () => void }) {
+  const { locale } = useLocaleStore();
+  const tr = t();
+  void locale;
   const [genMode, setGenMode] = useState<'reference' | 'text'>('reference');
 
   return (
@@ -1531,6 +1544,9 @@ function S5Keyframes({ onNext }: { onNext: () => void }) {
 // S6: 影片批量生成（兩步確認門）
 // ─────────────────────────────────────────
 function S6VideoGen({ onNext }: { onNext: () => void }) {
+  const { locale } = useLocaleStore();
+  const tr = t();
+  void locale;
   const [gate, setGate] = useState<'params' | 'credit' | 'generating' | 'done'>('params');
 
   return (
@@ -1653,6 +1669,9 @@ function S6VideoGen({ onNext }: { onNext: () => void }) {
 // S7: 粵語配音
 // ─────────────────────────────────────────
 function S7Voiceover({ onNext }: { onNext: () => void }) {
+  const { locale } = useLocaleStore();
+  const tr = t();
+  void locale;
   const voices = [
     { id: 'v1', label: '懷舊男聲 · 陳伯（粵語）', desc: '沉穩溫厚，70歲長者質感', active: true },
     { id: 'v2', label: '溫柔女聲 · 陳太（粵語）', desc: '細膩體貼，60歲熟齡女聲', active: false },
@@ -1710,6 +1729,9 @@ function S7Voiceover({ onNext }: { onNext: () => void }) {
 // S8: 平台內剪輯
 // ─────────────────────────────────────────
 function S8PlatformEdit({ onNext }: { onNext: () => void }) {
+  const { locale } = useLocaleStore();
+  const tr = t();
+  void locale;
   return (
     <div className="w-full max-w-3xl">
       <div className="mb-6">
@@ -1787,6 +1809,9 @@ function S8PlatformEdit({ onNext }: { onNext: () => void }) {
 // S9: 審批與發佈
 // ─────────────────────────────────────────
 function S9ReviewPublish({ onNext }: { onNext: () => void }) {
+  const { locale } = useLocaleStore();
+  const tr = t();
+  void locale;
   const [submitted, setSubmitted] = useState(false);
 
   const dims = [

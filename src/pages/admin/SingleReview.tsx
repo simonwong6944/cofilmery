@@ -15,7 +15,7 @@ export default function SingleReview() {
   const [submitted, setSubmitted] = useState(false);
 
   const scores = {
-    content: item.score.safety * 10,
+    content: item.score.content * 10,
     language: item.score.language * 10,
     culture: item.score.culture * 10,
     ethics: item.score.ethics * 10,
@@ -83,7 +83,7 @@ export default function SingleReview() {
                 <h3 className="font-bold text-ink mb-4">五維度 AI 預審評分</h3>
                 <div className="space-y-3">
                   {[
-                    { key: 'content', label: '內容安全', val: item.score.safety },
+                    { key: 'content', label: '內容安全', val: item.score.content },
                     { key: 'language', label: '語言表達', val: item.score.language },
                     { key: 'culture', label: '文化適切', val: item.score.culture },
                     { key: 'ethics', label: '倫理規範', val: item.score.ethics },

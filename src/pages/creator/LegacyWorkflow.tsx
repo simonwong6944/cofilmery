@@ -155,6 +155,9 @@ function S0ProjectSetup({ onNext }: { onNext: () => void }) {
 // S1: 素材庫（Subject Asset Bank）
 // ─────────────────────────────────────────
 function S1AssetBank({ onNext }: { onNext: () => void }) {
+  const { locale } = useLocaleStore();
+  const tr = t();
+  void locale;
   const assetTypes = [
     { icon: Users, label: '受訪者近照（用於人物設定）', count: 1, color: 'text-blue-500', accept: 'JPG/PNG' },
     { icon: Camera, label: '舊照片 / 文物影像', count: 3, color: 'text-amber-500', accept: 'JPG/PNG' },
@@ -464,6 +467,9 @@ function LegacyCharacterCard({
 // S2: 人物設定（Subject Setup）
 // ─────────────────────────────────────────
 function S2SubjectSetup({ onNext }: { onNext: () => void }) {
+  const { locale } = useLocaleStore();
+  const tr = t();
+  void locale;
   const [similarity, setSimilarity] = useState('極似');
   const [showRelated, setShowRelated] = useState(false);
 
@@ -518,6 +524,9 @@ function S2SubjectSetup({ onNext }: { onNext: () => void }) {
 // S3: 訪談引導（Interview Guidance）
 // ─────────────────────────────────────────
 function S3InterviewGuide({ onNext }: { onNext: () => void }) {
+  const { locale } = useLocaleStore();
+  const tr = t();
+  void locale;
   const questions = [
     { q: '您在街市工作了多少年？是什麼緣故開始這份工作的？', followup: '當時家庭環境是怎樣的？有沒有其他選擇？' },
     { q: '您最記得的街市景象是什麼？能詳細描述一下嗎？', followup: '那個畫面為什麼會令您印象這麼深刻？' },
@@ -597,6 +606,9 @@ function S3InterviewGuide({ onNext }: { onNext: () => void }) {
 // S4: 錄製（Recording）
 // ─────────────────────────────────────────
 function S4Recording({ onNext }: { onNext: () => void }) {
+  const { locale } = useLocaleStore();
+  const tr = t();
+  void locale;
   const [uploaded, setUploaded] = useState(false);
 
   return (
@@ -672,6 +684,9 @@ function S4Recording({ onNext }: { onNext: () => void }) {
 // S5: AI轉錄＋強制校對
 // ─────────────────────────────────────────
 function S5Transcription({ onNext }: { onNext: () => void }) {
+  const { locale } = useLocaleStore();
+  const tr = t();
+  void locale;
   const [proofread, setProofread] = useState(false);
 
   const transcript = [
@@ -754,6 +769,9 @@ function S5Transcription({ onNext }: { onNext: () => void }) {
 // S6: 執故事線
 // ─────────────────────────────────────────
 function S6StoryLine({ onNext }: { onNext: () => void }) {
+  const { locale } = useLocaleStore();
+  const tr = t();
+  void locale;
   const storyline = [
     { time: '00:00', title: '開場：街市清晨', desc: '用陳伯描述朝早五點入貨的畫面切入，帶出街市的人情味', type: '場景導入' },
     { time: '01:30', title: '入行的緣起', desc: '父親帶入行、十八歲學徒，展示時代背景', type: '人生轉折' },
@@ -814,6 +832,9 @@ function S6StoryLine({ onNext }: { onNext: () => void }) {
 // S7: 字幕配樂
 // ─────────────────────────────────────────
 function S7SubtitleMusic({ onNext }: { onNext: () => void }) {
+  const { locale } = useLocaleStore();
+  const tr = t();
+  void locale;
   return (
     <div className="max-w-2xl">
       <div className="mb-6">
@@ -882,6 +903,9 @@ function S7SubtitleMusic({ onNext }: { onNext: () => void }) {
 // S8: 平台內剪輯
 // ─────────────────────────────────────────
 function S8PlatformEdit({ onNext }: { onNext: () => void }) {
+  const { locale } = useLocaleStore();
+  const tr = t();
+  void locale;
   return (
     <div className="w-full max-w-3xl">
       <div className="mb-6">
@@ -953,6 +977,9 @@ function S8PlatformEdit({ onNext }: { onNext: () => void }) {
 // S9: 授權發佈
 // ─────────────────────────────────────────
 function S9AuthorizePublish({ onNext }: { onNext: () => void }) {
+  const { locale } = useLocaleStore();
+  const tr = t();
+  void locale;
   const [consents, setConsents] = useState([false, false, false]);
   const allConsented = consents.every(Boolean);
 

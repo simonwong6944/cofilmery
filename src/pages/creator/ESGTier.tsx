@@ -30,7 +30,7 @@ export default function ESGTier() {
         <main className="flex-1 overflow-y-auto p-6">
           <div className="max-w-3xl mx-auto">
             <div className="card-base p-6 mb-6 text-center border-t-4 border-t-accent">
-              <TierBadge tier="certified" size="lg" />
+              <TierBadge tier="certified" />
               <h2 className="text-2xl font-bold text-ink mt-3">{tr.creator.esgTier.tierLabels.certified}</h2>
               <p className="text-muted mt-1">ESG {tr.creator.esgTier.metrics.esg}：320 / 500（{tr.creator.esgTier.tierLabels.senior}）</p>
               <div className="mt-4 max-w-sm mx-auto h-3 bg-line rounded-full">

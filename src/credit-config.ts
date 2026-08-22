@@ -7,6 +7,11 @@ export const CREDIT = {
   pointToHKD: 0.196,              // 1 point = HK$0.196
   productionBudgetHKD: 5000,      // production tier budget in HKD
   productionBudgetPoints: 5000,   // production tier budget in points
+  aiScript: 50,                   // points per AI script generation
+  aiVoice: 10,                    // points per minute of TTS voiceover
+  aiImage: 5,                     // points per AI image frame
+  aiStoryboard: 20,               // points per AI storyboard scene
+  aiEdit: 15,                     // points per minute of AI edit
 } as const;
 
 /** Convert points to HKD string, e.g. creditToHKD(2450) → "HK$480" */

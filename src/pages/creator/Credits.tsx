@@ -187,13 +187,13 @@ export default function Credits() {
                         {tr.creator.creditsMgmt.buyMostPopular}
                       </div>
                     )}
-                    <div className="text-2xl font-bold text-ink mb-1">{tier.name}</div>
+                    <div className="text-2xl font-bold text-ink mb-1">{tier.nameKey.split('.').pop()?.toUpperCase() ?? tier.id}</div>
                     <div className="text-3xl font-bold text-primary mb-1">
-                      HK${tier.priceHKD}
+                      {tier.priceHKD != null ? `HK$${tier.priceHKD}` : '自訂'}
                     </div>
-                    <div className="text-muted text-sm mb-3">{tier.points} 積分</div>
-                    {tier.bonusPoints > 0 && (
-                      <div className="text-xs text-green-600 mb-3">+{tier.bonusPoints} 贈送積分</div>
+                    <div className="text-muted text-sm mb-3">{tier.productionCredits < 0 ? '無限' : tier.productionCredits} 積分</div>
+                    {tier.practiceCredits > 0 && (
+                      <div className="text-xs text-green-600 mb-3">+{tier.practiceCredits} 練習積分</div>
                     )}
                     <button className={`w-full py-2 rounded-lg text-sm font-semibold transition-colors ${
                       i === 1 ? 'bg-accent text-white hover:bg-accent/90' : 'border border-primary text-primary hover:bg-primary hover:text-white'
