@@ -1407,4 +1407,69 @@ export const en = {
       noRealPersonNotice: 'Thumbnails should be style references and must not use recognisable real people',
     },
   },
+
+  // ── Story Architect ─────────────────────────────────────────────────
+  storyArchitect: {
+    stage: {
+      topic: 'Story Direction',
+      outline: 'Series Outline',
+      characters: 'Character Depth',
+      episodes: 'Episode Stories',
+    },
+    action: {
+      accept: 'Accept & Continue',
+      regenerate: 'Regenerate',
+      edit: 'Edit Manually',
+      expand: 'Expand Episode',
+      deepen: 'Add Depth',
+      save: 'Save',
+      cancel: 'Cancel',
+    },
+    topic: {
+      pickPrompt: 'Pick the direction you most want to tell',
+      logline: 'Logline',
+      hook: 'Why It Draws You In',
+    },
+    outline: {
+      title: 'Series Outline',
+      episodeLabel: 'Episode {n}',
+      confirmPrompt: 'Confirm the overall direction',
+    },
+    char: {
+      sectionTitle: 'Character Setup',
+      name: 'Character Name',
+      identityTag: 'Identity Tag',
+      coreDesire: 'Core Desire',
+      coreDesirePrompt: 'What does this character want most?',
+      traitsConflict: 'Traits & Flaw',
+      arc: 'Character Arc',
+      speechStyle: 'Speech Style',
+      relations: 'Relationships',
+      appearance: 'Appearance',
+      addCharacter: 'Add Character',
+    },
+    ep: {
+      title: 'Episode Title',
+      coreEmotion: 'Core Emotion',
+      hook: 'Opening Hook',
+      body: 'Story',
+      turningPoint: 'Turning Point',
+      linkPrevNext: 'Links & Setups',
+      characters: 'Characters in Scene',
+    },
+    coCreate: {
+      confirmStory: 'Is this the story you want to tell?',
+      addYours: 'Anything only you know that you\'d like to add?',
+      badge: 'Co-Created',
+      voiceInput: 'Use Voice Input',
+    },
+    legacy: {
+      pendingElder: '(pending elder\'s input)',
+      noFabricationNote: 'In Legacy mode, AI only polishes the real details you provide; it will not invent names, years, or events.',
+    },
+    credit: {
+      cost: 'Costs {n} credits',
+      free: 'Free',
+    },
+  },
 };

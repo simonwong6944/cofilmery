@@ -1437,4 +1437,69 @@ export const zhCN = {
       noRealPersonNotice: '缩图以风格示意为主，不得使用可辨识的真实人物肖像',
     },
   },
+
+  // ── Story Architect 故事骨架与角色深化引擎 ──────────────────────────
+  storyArchitect: {
+    stage: {
+      topic: '选题方向',
+      outline: '全剧大纲',
+      characters: '角色深化',
+      episodes: '分集故事',
+    },
+    action: {
+      accept: '接受并继续',
+      regenerate: '重新生成',
+      edit: '手动编辑',
+      expand: '展开这一集',
+      deepen: '深入设定',
+      save: '保存',
+      cancel: '取消',
+    },
+    topic: {
+      pickPrompt: '选一个你最想拍的方向',
+      logline: '一句话故事',
+      hook: '吸引之处',
+    },
+    outline: {
+      title: '全剧大纲',
+      episodeLabel: '第 {n} 集',
+      confirmPrompt: '确认整体走向',
+    },
+    char: {
+      sectionTitle: '角色设定',
+      name: '角色名称',
+      identityTag: '身份标签',
+      coreDesire: '核心欲望',
+      coreDesirePrompt: '这个角色最想要的是什么？',
+      traitsConflict: '性格与弱点',
+      arc: '人物弧线',
+      speechStyle: '语言风格',
+      relations: '角色关系',
+      appearance: '外貌描述',
+      addCharacter: '新增角色',
+    },
+    ep: {
+      title: '本集标题',
+      coreEmotion: '本集情感',
+      hook: '开场钩子',
+      body: '故事内容',
+      turningPoint: '情绪转折',
+      linkPrevNext: '承接与伏笔',
+      characters: '出场角色',
+    },
+    coCreate: {
+      confirmStory: '这是你想讲的故事吗？',
+      addYours: '有什么只有你才知道、想加入的？',
+      badge: '共创作品',
+      voiceInput: '用语音输入',
+    },
+    legacy: {
+      pendingElder: '（待长者补充）',
+      noFabricationNote: '传承模式只会润饰你提供的真实资料，不会虚构人名、年份或事件。',
+    },
+    credit: {
+      cost: '消耗 {n} 积分',
+      free: '免费',
+    },
+  },
 };

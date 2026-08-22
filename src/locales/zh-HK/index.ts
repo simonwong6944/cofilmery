@@ -1700,6 +1700,71 @@ export const zhHK = {
       noRealPersonNotice: '縮圖以風格示意為主，不得使用可辨識的真實人物肖像',
     },
   },
+
+  // ── Story Architect 故事骨架與角色深化引擎 ──────────────────────────
+  storyArchitect: {
+    stage: {
+      topic: '選題方向',
+      outline: '全劇大綱',
+      characters: '角色深化',
+      episodes: '分集故事',
+    },
+    action: {
+      accept: '接受並繼續',
+      regenerate: '重新生成',
+      edit: '手動編輯',
+      expand: '展開這一集',
+      deepen: '深入設定',
+      save: '儲存',
+      cancel: '取消',
+    },
+    topic: {
+      pickPrompt: '揀一個你最想拍嘅方向',
+      logline: '一句話故事',
+      hook: '吸引之處',
+    },
+    outline: {
+      title: '全劇大綱',
+      episodeLabel: '第 {n} 集',
+      confirmPrompt: '確認整體走向',
+    },
+    char: {
+      sectionTitle: '角色設定',
+      name: '角色名稱',
+      identityTag: '身份標籤',
+      coreDesire: '核心欲望',
+      coreDesirePrompt: '呢個角色最想要嘅係咩？',
+      traitsConflict: '性格與弱點',
+      arc: '人物弧線',
+      speechStyle: '語言風格',
+      relations: '角色關係',
+      appearance: '外貌描述',
+      addCharacter: '新增角色',
+    },
+    ep: {
+      title: '本集標題',
+      coreEmotion: '本集情感',
+      hook: '開場鉤子',
+      body: '故事內容',
+      turningPoint: '情緒轉折',
+      linkPrevNext: '承接與伏筆',
+      characters: '出場角色',
+    },
+    coCreate: {
+      confirmStory: '呢個係你想講嘅故事嗎？',
+      addYours: '有咩只有你先知、想加入嘅？',
+      badge: '共創作品',
+      voiceInput: '用語音輸入',
+    },
+    legacy: {
+      pendingElder: '（待長者補充）',
+      noFabricationNote: '傳承模式只會潤飾你提供嘅真實資料，唔會虛構人名、年份或事件。',
+    },
+    credit: {
+      cost: '消耗 {n} 積分',
+      free: '免費',
+    },
+  },
 };
 
 export type Locale = typeof zhHK;

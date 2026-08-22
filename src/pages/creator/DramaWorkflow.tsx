@@ -1,5 +1,10 @@
 import { useState } from 'react';
 import { AestheticComposer, type AestheticOutput } from '@/components/shared/AestheticComposer';
+import {
+  S1aTopic, S1bOutline, S2Characters, S1cEpisodes,
+  StageProgress, LegacyModeNotice, type ArchitectSubStage,
+} from '@/components/shared/StoryArchitect';
+import type { TopicOption, CharacterCard, EpisodeStoryCard, SeriesContext } from '@/adapters/types';
 import { Layers } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { CreatorSidebar } from '@/components/layout/CreatorSidebar';
@@ -252,6 +257,130 @@ function S0SeriesSetup({ onNext }: { onNext: () => void }) {
           {tr.creator.drama.s0.confirmBtn}
         </button>
       </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────
+// 前置: 故事骨架與角色深化引擎（Story Architect）
+// 插入點：S0 完成後 → PlanOverview 之前
+// ─────────────────────────────────────────
+function StoryArchitectFlow({ onNext }: { onNext: () => void }) {
+  const { locale } = useLocaleStore();
+  const tr = t();
+  void locale;
+  const sa = tr.storyArchitect;
+
+  // 子階段狀態
+  const [subStage, setSubStage] = useState<ArchitectSubStage>('topic');
+  const [selectedTopic, setSelectedTopic] = useState<TopicOption | null>(null);
+  const [outline, setOutline] = useState<{ episodeNumber: number; title_i18n: { 'zh-HK': string; en: string; 'zh-CN': string }; oneLine_i18n: { 'zh-HK': string; en: string; 'zh-CN': string } }[]>([]);
+  const [characters, setCharacters] = useState<CharacterCard[]>([]);
+  const [_storyCards, setStoryCards] = useState<EpisodeStoryCard[]>([]);
+
+  // 從 S0 取得的系列資訊（在真實實作中應從 store/context 取得）
+  const context: SeriesContext = {
+    seriesTitle: '街市情緣',
+    genre: 'dream',
+    tone: 'warm',
+    coreNeed: 'seen',
+    episodeCount: 30,
+    durationLabel: '60秒',
+    mode: 'drama',
+  };
+
+  return (
+    <div className="max-w-2xl space-y-4">
+      {/* 標題 */}
+      <div className="mb-2">
+        <div className="inline-flex items-center gap-2 bg-violet-100 text-violet-700 px-3 py-1 rounded-full text-xs font-semibold mb-3">
+          <BookOpen size={12} /> 故事骨架工場
+        </div>
+        <h2 className="text-2xl font-bold text-primary">AI 起草，人來定奪</h2>
+        <p className="text-muted text-sm mt-1">逐層確認故事方向，每一步你都可以接受、重生成或親手修改。</p>
+      </div>
+
+      {/* 進度列 */}
+      <StageProgress current={subStage} />
+
+      {/* 傳承模式安全提示 */}
+      {context.mode === 'legacy' && <LegacyModeNotice />}
+
+      {/* S1a 選題方向 */}
+      {subStage === 'topic' && (
+        <S1aTopic
+          context={context}
+          onAccept={(topic) => {
+            setSelectedTopic(topic);
+            setSubStage('outline');
+          }}
+        />
+      )}
+
+      {/* S1b 全劇大綱 */}
+      {subStage === 'outline' && selectedTopic && (
+        <S1bOutline
+          context={context}
+          selectedTopic={selectedTopic}
+          onAccept={(ol, _coCreateNote) => {
+            setOutline(ol);
+            setSubStage('characters');
+          }}
+        />
+      )}
+
+      {/* S2 角色深化 */}
+      {subStage === 'characters' && (
+        <S2Characters
+          context={context}
+          onAccept={(chars) => {
+            setCharacters(chars);
+            setSubStage('episodes');
+          }}
+        />
+      )}
+
+      {/* S1c 逐集故事卡 */}
+      {subStage === 'episodes' && (
+        <S1cEpisodes
+          context={context}
+          outline={outline}
+          characters={characters}
+          onAccept={(cards) => {
+            setStoryCards(cards);
+            setSubStage('done');
+          }}
+        />
+      )}
+
+      {/* 完成 → 前往策劃案總覽 */}
+      {subStage === 'done' && (
+        <div className="bg-card rounded-xl border border-line shadow-card p-6 text-center">
+          <div className="w-14 h-14 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Check size={28} className="text-accent" />
+          </div>
+          <h3 className="text-lg font-bold text-ink mb-2">故事骨架完成！</h3>
+          <p className="text-muted text-sm mb-4">你的選題方向、全劇大綱、角色卡及部分分集故事卡已儲存，可在後續步驟隨時調整。</p>
+          <button
+            onClick={onNext}
+            className="flex items-center gap-2 bg-accent text-white px-6 py-3 rounded-xl font-semibold hover:bg-accent/90 transition-colors mx-auto"
+          >
+            <Check size={18} /> {sa.action.accept}
+          </button>
+        </div>
+      )}
+
+      {/* 跳過按鈕（長者友善：不強迫，可跳過直去策劃案）*/}
+      {subStage !== 'done' && (
+        <div className="text-center">
+          <button
+            onClick={onNext}
+            className="text-xs text-muted hover:text-primary transition-colors underline underline-offset-2"
+          >
+            跳過故事骨架，直接前往策劃案總覽
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -2004,26 +2133,42 @@ function S9ReviewPublish({ onNext }: { onNext: () => void }) {
 
 // ─────────────────────────────────────────
 // Main Component
-// Plan Overview is step index 10 (injected between S0 and S1)
+// Route index map:
+//   0  = S0SeriesSetup
+//   1  = StoryArchitectFlow  (故事骨架，隱藏於導覽列)
+//   2  = PlanOverview        (策劃案總覽，隱藏於導覽列)
+//   3  = S1AssetBank
+//   4  = S2CharacterSetup
+//   5  = S3StoryFramework
+//   6  = S4Storyboard
+//   7  = S5Keyframes
+//   8  = S6VideoGen
+//   9  = S7Voiceover
+//   10 = S8PlatformEdit
+//   11 = S9ReviewPublish
 // ─────────────────────────────────────────
 const STEPS = [
-  S0SeriesSetup,   // 0
-  PlanOverview,    // 1 (前置策劃案)
-  S1AssetBank,     // 2
-  S2CharacterSetup,// 3
-  S3StoryFramework,// 4
-  S4Storyboard,    // 5
-  S5Keyframes,     // 6
-  S6VideoGen,      // 7
-  S7Voiceover,     // 8
-  S8PlatformEdit,  // 9
-  S9ReviewPublish, // 10
+  S0SeriesSetup,       // 0
+  StoryArchitectFlow,  // 1 (故事骨架，新增)
+  PlanOverview,        // 2 (策劃案總覽)
+  S1AssetBank,         // 3
+  S2CharacterSetup,    // 4
+  S3StoryFramework,    // 5
+  S4Storyboard,        // 6
+  S5Keyframes,         // 7
+  S6VideoGen,          // 8
+  S7Voiceover,         // 9
+  S8PlatformEdit,      // 10
+  S9ReviewPublish,     // 11
 ];
 
-// StepNavigation only shows S0-S9 (10 steps), Plan Overview is hidden from nav
-// We offset by 1 after Plan Overview (index 1) for nav display
+// StepNavigation shows S0-S9 (10 visible steps)
+// Hidden steps (StoryArchitect=1, PlanOverview=2) are offset from nav
 function navStepToRouteStep(navStep: number): number {
-  return navStep >= 1 ? navStep + 1 : navStep;
+  // navStep 0 → route 0 (S0)
+  // navStep 1 → route 3 (S1AssetBank, skip architect+plan)
+  // navStep n≥1 → route n+2
+  return navStep >= 1 ? navStep + 2 : navStep;
 }
 
 export default function DramaWorkflow() {
@@ -2033,13 +2178,14 @@ export default function DramaWorkflow() {
   const tr = t();
   void locale;
 
-  const routeStep = Math.min(parseInt(step ?? '0', 10), 10);
+  const routeStep = Math.min(parseInt(step ?? '0', 10), 11);
   const StepComponent = STEPS[routeStep];
 
-  // Nav step: hide Plan Overview (route 1) from nav count
-  const navStep = routeStep > 1 ? routeStep - 1 : routeStep;
+  // Nav step: hide StoryArchitect (1) and PlanOverview (2) from nav count
+  // route 0 → nav 0; route 1,2 → nav 0 (hidden); route 3+ → nav (route-2)
+  const navStep = routeStep > 2 ? routeStep - 2 : 0;
 
-  const goNext = () => navigate(`/creator/drama/${Math.min(routeStep + 1, 10)}`);
+  const goNext = () => navigate(`/creator/drama/${Math.min(routeStep + 1, 11)}`);
 
   // Determine series title for header
   const seriesTitles: Record<number, string> = {
