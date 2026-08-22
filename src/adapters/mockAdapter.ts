@@ -285,25 +285,56 @@ Mr Chan pauses, gestures at his butcher stall, says nothing more. But that eveni
 };
 
 /** OpenRouter adapter — STUBBED, wires in real calls when API key provided */
+/** OpenRouter adapter — 透過後端 /api/architect/generate 呼叫（保護 API key） */
 export const openRouterAdapter: AIAdapter = {
   async generateText(req: AITextRequest): Promise<AITextResponse> {
-    // TODO: wire real OpenRouter API
+    // TODO: wire real OpenRouter API via backend function
     return mockAdapter.generateText(req);
   },
   async generateScript(req: AIScriptRequest): Promise<AIScriptResponse> {
     return mockAdapter.generateScript(req);
   },
   async generateArchitect(req: ArchitectRequest): Promise<ArchitectResponse> {
-    // TODO: wire real OpenRouter API with ARCHITECT_MODELS.default
-    // System prompt: zh-HK, 黃金法則, legacy 禁編造
-    return mockAdapter.generateArchitect(req);
+    try {
+      const res = await fetch('/api/architect/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          stage: req.stage,
+          context: req.context,
+          selectedTopic: req.selectedTopic,
+          characters: req.characters,
+          targetEpisode: req.targetEpisode,
+          humanInput: req.humanInput,
+          useModel: 'default',
+        }),
+      });
+
+      const data = await res.json() as ArchitectResponse & { error?: string; fallback?: boolean };
+
+      // 後端返回 fallback 或錯誤時，降級到 mockAdapter
+      if (!res.ok || data.fallback || data.error) {
+        console.warn('[openRouterAdapter] Falling back to mock:', data.error);
+        return mockAdapter.generateArchitect(req);
+      }
+
+      return data;
+    } catch (e) {
+      console.warn('[openRouterAdapter] Network error, falling back to mock:', e);
+      return mockAdapter.generateArchitect(req);
+    }
   },
   async generateVoice(req: AIVoiceRequest): Promise<AIVoiceResponse> {
     // TODO: wire real Seedance Cantonese voice API
     return mockAdapter.generateVoice(req);
   },
   async getStatus() {
-    return { healthy: true, provider: 'openrouter-stub', latencyMs: 120 };
+    try {
+      const res = await fetch('/api/architect/generate', { method: 'OPTIONS' });
+      return { healthy: res.ok, provider: 'openrouter', latencyMs: 0 };
+    } catch {
+      return { healthy: false, provider: 'openrouter', latencyMs: 0 };
+    }
   },
 };
 

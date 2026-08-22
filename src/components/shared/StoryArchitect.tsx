@@ -1,12 +1,13 @@
 /**
  * StoryArchitect — 故事骨架與角色深化引擎
- * Phase 1：走 mockAdapter，四子階段 UI
+ * Phase 2：openRouterAdapter 接真 API（降級到 mock），積分接線，architect_actions 記錄
  * 原則：AI 起草，人來定奪（三動作列：接受/重新生成/手動編輯）
  */
 import { useState } from 'react';
 import { useLocaleStore } from '@/store/localeStore';
 import { t } from '@/i18n';
-import { aiAdapter } from '@/adapters/mockAdapter';
+import { openRouterAdapter as aiAdapter } from '@/adapters/mockAdapter';
+import { CREDIT } from '@/credit-config';
 import type {
   SeriesContext, TopicOption, CharacterCard, EpisodeStoryCard,
   ArchitectResponse,
@@ -16,6 +17,28 @@ import {
   Sparkles, Users, BookOpen, Film, Plus, X, Save,
   Mic, Star, AlertCircle, Loader2,
 } from 'lucide-react';
+
+// ── 記錄 architect_actions 至後端 D1（fire-and-forget）────────────────
+async function recordAction(params: {
+  project_id: string;
+  stage: string;
+  action: 'generate' | 'regenerate' | 'accept' | 'edit';
+  actor: 'ai' | 'human';
+  episode_id?: string;
+}) {
+  try {
+    await fetch('/api/architect/action', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: crypto.randomUUID(), ...params }),
+    });
+  } catch {
+    // fire-and-forget：記錄失敗不影響 UX
+  }
+}
+
+// 預設 project_id（真實實作從 store/route 取得）
+const DEFAULT_PROJECT_ID = 'demo-project';
 
 // ── 共用三動作列 ──────────────────────────────────────────────────────
 interface ActionBarProps {
@@ -86,20 +109,29 @@ export function S1aTopic({ context, onAccept }: S1aTopicProps) {
   const [editTitle, setEditTitle] = useState('');
   const [editLogline, setEditLogline] = useState('');
 
-  const generate = async () => {
+  const generate = async (isRegenerate = false) => {
     setLoading(true);
     try {
       const res: ArchitectResponse = await aiAdapter.generateArchitect({ stage: 'topic', context });
       setTopics(res.topics ?? []);
       if (res.topics && res.topics.length > 0) setSelected(res.topics[0].id);
+      // 記錄 AI 生成動作
+      void recordAction({
+        project_id: DEFAULT_PROJECT_ID,
+        stage: 'topic',
+        action: isRegenerate ? 'regenerate' : 'generate',
+        actor: 'ai',
+      });
     } finally {
       setLoading(false);
     }
   };
 
   const handleAccept = () => {
-    const t = topics.find(t => t.id === selected);
-    if (t) onAccept(t);
+    const topic = topics.find(t => t.id === selected);
+    if (!topic) return;
+    void recordAction({ project_id: DEFAULT_PROJECT_ID, stage: 'topic', action: 'accept', actor: 'human' });
+    onAccept(topic);
   };
 
   const handleEdit = () => {
@@ -110,6 +142,7 @@ export function S1aTopic({ context, onAccept }: S1aTopicProps) {
       setEditTitle(topics[idx].title_i18n[loc]);
       setEditLogline(topics[idx].logline_i18n[loc]);
     }
+    void recordAction({ project_id: DEFAULT_PROJECT_ID, stage: 'topic', action: 'edit', actor: 'human' });
   };
 
   const saveEdit = () => {
@@ -137,10 +170,10 @@ export function S1aTopic({ context, onAccept }: S1aTopicProps) {
       {topics.length > 0 && (
         <ActionBar
           onAccept={handleAccept}
-          onRegenerate={generate}
+          onRegenerate={() => generate(true)}
           onEdit={handleEdit}
           loading={loading}
-          creditCost={2}
+          creditCost={CREDIT.architectTopic}
         />
       )}
 
@@ -156,7 +189,7 @@ export function S1aTopic({ context, onAccept }: S1aTopicProps) {
               className="flex items-center gap-2 bg-accent text-white px-6 py-3 rounded-xl font-semibold hover:bg-accent/90 transition-colors mx-auto disabled:opacity-50"
             >
               {loading ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
-              {loading ? '生成中…' : 'AI 生成選題方向（2 積分）'}
+              {loading ? '生成中…' : `AI 生成選題方向（${CREDIT.architectTopic} 積分）`}
             </button>
           </div>
         ) : editMode && editIdx !== null ? (
@@ -247,11 +280,15 @@ export function S1bOutline({ context, selectedTopic, onAccept }: S1bOutlineProps
   const [editVal, setEditVal] = useState('');
   const [coCreateNote, setCoCreateNote] = useState('');
 
-  const generate = async () => {
+  const generate = async (isRegenerate = false) => {
     setLoading(true);
     try {
       const res = await aiAdapter.generateArchitect({ stage: 'outline', context, selectedTopic });
       setOutline((res.outline ?? []) as OutlineItem[]);
+      void recordAction({
+        project_id: DEFAULT_PROJECT_ID, stage: 'outline',
+        action: isRegenerate ? 'regenerate' : 'generate', actor: 'ai',
+      });
     } finally {
       setLoading(false);
     }
@@ -277,11 +314,17 @@ export function S1bOutline({ context, selectedTopic, onAccept }: S1bOutlineProps
 
       {outline.length > 0 && (
         <ActionBar
-          onAccept={() => onAccept(outline, coCreateNote)}
-          onRegenerate={generate}
-          onEdit={() => setEditIdx(0)}
+          onAccept={() => {
+            void recordAction({ project_id: DEFAULT_PROJECT_ID, stage: 'outline', action: 'accept', actor: 'human' });
+            onAccept(outline, coCreateNote);
+          }}
+          onRegenerate={() => generate(true)}
+          onEdit={() => {
+            setEditIdx(0);
+            void recordAction({ project_id: DEFAULT_PROJECT_ID, stage: 'outline', action: 'edit', actor: 'human' });
+          }}
           loading={loading}
-          creditCost={3}
+          creditCost={CREDIT.architectOutline}
         />
       )}
 
@@ -296,7 +339,7 @@ export function S1bOutline({ context, selectedTopic, onAccept }: S1bOutlineProps
               className="flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-xl font-semibold hover:bg-primary/90 transition-colors mx-auto disabled:opacity-50"
             >
               {loading ? <Loader2 size={16} className="animate-spin" /> : <BookOpen size={16} />}
-              {loading ? '生成中…' : 'AI 生成全劇大綱（3 積分）'}
+              {loading ? '生成中…' : `AI 生成全劇大綱（${CREDIT.architectOutline} 積分）`}
             </button>
           </div>
         ) : (
@@ -386,11 +429,15 @@ export function S2Characters({ context, onAccept }: S2CharactersProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [desireInputs, setDesireInputs] = useState<Record<string, string>>({});
 
-  const generate = async (humanInput?: string) => {
+  const generate = async (humanInput?: string, isRegenerate = false) => {
     setLoading(true);
     try {
       const res = await aiAdapter.generateArchitect({ stage: 'characters', context, humanInput });
       setCharacters(res.characters ?? []);
+      void recordAction({
+        project_id: DEFAULT_PROJECT_ID, stage: 'characters',
+        action: isRegenerate ? 'regenerate' : 'generate', actor: 'ai',
+      });
     } finally {
       setLoading(false);
     }
@@ -447,11 +494,17 @@ export function S2Characters({ context, onAccept }: S2CharactersProps) {
 
       {characters.length > 0 && (
         <ActionBar
-          onAccept={() => onAccept(characters)}
-          onRegenerate={() => generate()}
-          onEdit={() => setEditingId(characters[0]?.id ?? null)}
+          onAccept={() => {
+            void recordAction({ project_id: DEFAULT_PROJECT_ID, stage: 'characters', action: 'accept', actor: 'human' });
+            onAccept(characters);
+          }}
+          onRegenerate={() => generate(undefined, true)}
+          onEdit={() => {
+            setEditingId(characters[0]?.id ?? null);
+            void recordAction({ project_id: DEFAULT_PROJECT_ID, stage: 'characters', action: 'edit', actor: 'human' });
+          }}
           loading={loading}
-          creditCost={3}
+          creditCost={CREDIT.architectCharacters}
         />
       )}
 
@@ -476,11 +529,11 @@ export function S2Characters({ context, onAccept }: S2CharactersProps) {
               <button
                 onClick={() => generate(desireInputs['main'])}
                 disabled={loading}
-                className="flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-green-700 transition-colors mx-auto disabled:opacity-50"
-              >
-                {loading ? <Loader2 size={16} className="animate-spin" /> : <Users size={16} />}
-                {loading ? '生成中…' : 'AI 生成角色卡（3 積分）'}
-              </button>
+            className="flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-green-700 transition-colors mx-auto disabled:opacity-50"
+            >
+              {loading ? <Loader2 size={16} className="animate-spin" /> : <Users size={16} />}
+              {loading ? '生成中…' : `AI 生成角色卡（${CREDIT.architectCharacters} 積分）`}
+            </button>
             </div>
           </div>
         ) : (
@@ -616,6 +669,7 @@ export function S1cEpisodes({ context, outline, characters, onAccept }: S1cEpiso
       if (res.storyCard) {
         setCards(prev => ({ ...prev, [epNum]: res.storyCard! }));
         setExpanded(prev => { const s = new Set(prev); s.add(epNum); return s; });
+        void recordAction({ project_id: DEFAULT_PROJECT_ID, stage: 'episodes', action: 'generate', actor: 'ai' });
       }
     } finally {
       setLoading(prev => ({ ...prev, [epNum]: false }));
@@ -628,7 +682,10 @@ export function S1cEpisodes({ context, outline, characters, onAccept }: S1cEpiso
       const res = await aiAdapter.generateArchitect({
         stage: 'episodes', context, characters, targetEpisode: epNum,
       });
-      if (res.storyCard) setCards(prev => ({ ...prev, [epNum]: res.storyCard! }));
+      if (res.storyCard) {
+        setCards(prev => ({ ...prev, [epNum]: res.storyCard! }));
+        void recordAction({ project_id: DEFAULT_PROJECT_ID, stage: 'episodes', action: 'regenerate', actor: 'ai' });
+      }
     } finally {
       setLoading(prev => ({ ...prev, [epNum]: false }));
     }
@@ -641,6 +698,7 @@ export function S1cEpisodes({ context, outline, characters, onAccept }: S1cEpiso
       humanEdited: true,
     }}));
     setEditing(null);
+    void recordAction({ project_id: DEFAULT_PROJECT_ID, stage: 'episodes', action: 'edit', actor: 'human' });
   };
 
   const acceptedCards = Object.values(cards);
@@ -714,7 +772,7 @@ export function S1cEpisodes({ context, outline, characters, onAccept }: S1cEpiso
                       className="flex items-center gap-1.5 text-xs border border-line px-3 py-1.5 rounded-lg text-muted hover:border-violet-400 hover:text-violet-700 transition-colors disabled:opacity-50"
                     >
                       {isLoad ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />}
-                      {sa.action.regenerate}（2 積分）
+                      {sa.action.regenerate}（{CREDIT.architectEpisode} 積分）
                     </button>
                     <button
                       onClick={() => { setEditing(ep.episodeNumber); setEditBody(card.body_i18n[loc]); }}

@@ -12,6 +12,13 @@ export const CREDIT = {
   aiImage: 5,                     // points per AI image frame
   aiStoryboard: 20,               // points per AI storyboard scene
   aiEdit: 15,                     // points per minute of AI edit
+  // ── Story Architect（文字階段，成本極低，鼓勵嘗試）──────────────────
+  architectTopic: 2,              // 選題方向生成（練習池優先）
+  architectOutline: 3,            // 全劇大綱生成（練習池優先）
+  architectCharacters: 3,         // 角色卡生成（每次，練習池優先）
+  architectEpisode: 2,            // 單集故事卡展開/重生成（練習池優先）
+  architectAccept: 0,             // 手動編輯 / 接受 — 免費
+  architectEdit: 0,               // 手動編輯 — 免費
 } as const;
 
 /** Convert points to HKD string, e.g. creditToHKD(2450) → "HK$480" */
