@@ -13,11 +13,12 @@ interface LogoProps {
 
 // Logo image sizes — icon-only height when withWordmark=false,
 // full-logo height when withWordmark=true (the image already contains wordmark)
+// New CoFilmery logo is wide-aspect (~4:1), so heights are tuned accordingly
 const sizes = {
-  sm: { fullH: 32, iconH: 28 },
-  md: { fullH: 44, iconH: 38 },
-  lg: { fullH: 64, iconH: 54 },
-  xl: { fullH: 96, iconH: 80 },
+  sm: { fullH: 28, iconH: 28 },
+  md: { fullH: 36, iconH: 36 },
+  lg: { fullH: 52, iconH: 52 },
+  xl: { fullH: 72, iconH: 72 },
 };
 
 // Official CoFilmery logo image (contains both icon + wordmark)
@@ -63,7 +64,7 @@ export function Logo({
     );
   }
 
-  // Icon-only mode
+  // Icon-only mode — crop left ~25% of wide logo to show just the C+aperture icon
   return (
     <div
       className={cn('flex items-center leading-none overflow-hidden', wrapperClass, className)}
@@ -76,9 +77,12 @@ export function Logo({
         style={{
           height: s.iconH,
           width: 'auto',
-          objectFit: 'cover',
+          objectFit: 'none',
           objectPosition: 'left center',
-          maxWidth: `${s.iconH * 1.05}px`,
+          // New logo is ~4:1 wide; icon occupies left ~25%, so render full natural width
+          // and let overflow:hidden clip to the square container
+          minWidth: `${s.iconH * 4}px`,
+          maxWidth: `${s.iconH * 4}px`,
         }}
         draggable={false}
       />
