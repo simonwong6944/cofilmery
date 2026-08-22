@@ -98,15 +98,26 @@ export default function Enterprise() {
       <PublicNav />
       <div className="max-w-5xl mx-auto px-6 py-16">
 
-        {/* Hero */}
-        <p className="text-accent font-semibold mb-2 text-sm tracking-wide">ESG 合作 · 企業客戶</p>
-        <h1 className="text-4xl font-bold text-ink mb-4 leading-tight">
-          透過 CoFilmery 實踐<br />
-          <span className="text-primary">企業 ESG 使命與品牌社會責任</span>
-        </h1>
-        <p className="text-lg text-muted mb-12 max-w-2xl">
-          四種贊助模式，涵蓋人才培育、文化傳承、社區投資與品牌融合，每一個合作都是一個可量化、可披露的 ESG 貢獻。
-        </p>
+        {/* Hero with photo */}
+        <div className="relative rounded-2xl overflow-hidden mb-12 shadow-card-hover -mx-0">
+          <img
+            src="/images/enterprise/esg-meeting.jpg"
+            alt="企業ESG合作"
+            className="w-full h-64 object-cover object-center"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/90 to-primary/50 flex items-center">
+            <div className="px-10">
+              <p className="text-accent font-semibold mb-2 text-sm tracking-wide">ESG 合作 · 企業客戶</p>
+              <h1 className="text-4xl font-bold text-white mb-3 leading-tight">
+                透過 CoFilmery 實踐<br />
+                企業 ESG 使命與品牌社會責任
+              </h1>
+              <p className="text-white/80 text-base max-w-xl">
+                四種贊助模式，涵蓋人才培育、文化傳承、社區投資與品牌融合。
+              </p>
+            </div>
+          </div>
+        </div>
 
         {/* 4 Sponsor Mode Cards */}
         <div className="mb-14">

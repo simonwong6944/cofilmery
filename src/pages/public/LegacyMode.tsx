@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { PublicNav } from '@/components/layout/PublicNav';
 import { MOCK_LEGACY_SERIES } from '@/lib/mockData';
 import { ModeBadge } from '@/components/shared/ModeBadge';
-import { User, FileCheck, Video, Cpu, ArrowRight, Eye, Building2, Globe, ChevronDown, ChevronUp } from 'lucide-react';
+import { User, FileCheck, Video, Cpu, ArrowRight, Eye, ChevronDown, ChevronUp } from 'lucide-react';
 
 const SUB_MODES = [
   {
@@ -62,15 +62,34 @@ export default function LegacyMode() {
   return (
     <div className="min-h-screen bg-bg-soft">
       <PublicNav />
-      <div className="max-w-6xl mx-auto px-6 py-16">
 
-        {/* Hero */}
-        <div className="mb-3"><ModeBadge mode="legacy" /></div>
-        <h1 className="text-5xl font-bold text-ink mb-4 leading-tight">
-          運用人工智能技術記錄真實人生<br />
-          <span className="text-accent">為每一個人留下值得被記住的故事</span>
-        </h1>
-        <p className="text-xl text-muted mb-12">每集三至十分鐘 · 支援單集或多集系列 · 適用於個人、企業及社會各界</p>
+      {/* ── Hero with background image ── */}
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-0">
+          <img
+            src="/images/legacy/interview-scene.jpg"
+            alt="採訪長者"
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-accent/90 via-accent/75 to-transparent" />
+        </div>
+        <div className="relative max-w-6xl mx-auto px-6 py-20">
+          <div className="mb-4"><ModeBadge mode="legacy" /></div>
+          <h1 className="text-5xl font-bold text-white mb-4 leading-tight">
+            運用人工智能技術記錄真實人生<br />
+            <span className="text-white/90">為每一個人留下值得被記住的故事</span>
+          </h1>
+          <p className="text-xl text-white/80 mb-8 max-w-2xl">每集三至十分鐘 · 支援單集或多集系列 · 適用於個人、企業及社會各界</p>
+          <Link
+            to="/creator/new"
+            className="inline-flex items-center gap-2 bg-white text-accent font-semibold px-8 py-3 rounded-xl hover:bg-white/90 transition-colors"
+          >
+            開始記錄故事 <ArrowRight size={16} />
+          </Link>
+        </div>
+      </div>
+
+      <div className="max-w-6xl mx-auto px-6 py-16">
 
         {/* 3 Sub-Modes */}
         <div className="mb-16">
@@ -161,6 +180,22 @@ export default function LegacyMode() {
                 <p className="text-sm text-muted">{desc}</p>
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* Photo strip — interview moment */}
+        <div className="relative rounded-2xl overflow-hidden mb-12 shadow-card-hover">
+          <img
+            src="/images/legacy/interview-scene.jpg"
+            alt="訪談長者"
+            className="w-full h-56 object-cover object-center"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-accent/85 to-transparent flex items-center">
+            <div className="px-8">
+              <p className="text-white/70 font-semibold text-sm mb-1">傳承模式</p>
+              <h3 className="text-2xl font-bold text-white mb-2">每一個訪問，都是一段珍貴的相遇</h3>
+              <p className="text-white/80 text-sm max-w-md">透過結構化訪談，讓長者娓娓道來他們的人生旅程——那些從未說出口的故事，將由你親手留住。</p>
+            </div>
           </div>
         </div>
 

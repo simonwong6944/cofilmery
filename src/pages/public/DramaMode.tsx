@@ -80,15 +80,34 @@ export default function DramaMode() {
   return (
     <div className="min-h-screen bg-bg-soft">
       <PublicNav />
-      <div className="max-w-6xl mx-auto px-6 py-16">
 
-        {/* Hero */}
-        <div className="mb-3"><ModeBadge mode="drama" /></div>
-        <h1 className="text-5xl font-bold text-ink mb-4 leading-tight">
-          以長者提供之生活素材作為創作基礎<br />
-          <span className="text-primary">人工智能助您完成一套粵語短劇</span>
-        </h1>
-        <p className="text-xl text-muted mb-12">一套最多七十集 · 每集十五至六十秒 · 為五十五歲以上觀眾而設</p>
+      {/* ── Hero with background image ── */}
+      <div className="relative overflow-hidden bg-ink">
+        <div className="absolute inset-0">
+          <img
+            src="/images/drama/creative-team.jpg"
+            alt="創作者團隊"
+            className="w-full h-full object-cover opacity-30"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-ink/90 via-ink/70 to-transparent" />
+        </div>
+        <div className="relative max-w-6xl mx-auto px-6 py-20">
+          <div className="mb-4"><ModeBadge mode="drama" /></div>
+          <h1 className="text-5xl font-bold text-white mb-4 leading-tight">
+            以長者提供之生活素材作為創作基礎<br />
+            <span className="text-accent">人工智能助您完成一套粵語短劇</span>
+          </h1>
+          <p className="text-xl text-white/75 mb-8 max-w-2xl">一套最多七十集 · 每集十五至六十秒 · 為五十五歲以上觀眾而設</p>
+          <Link
+            to="/creator/new"
+            className="inline-flex items-center gap-2 bg-accent text-white font-semibold px-8 py-3 rounded-xl hover:bg-accent/90 transition-colors"
+          >
+            立即開始創作 <ArrowRight size={16} />
+          </Link>
+        </div>
+      </div>
+
+      <div className="max-w-6xl mx-auto px-6 py-16">
 
         {/* ─── Genre Section ─── */}
         <div className="mb-16">
@@ -174,6 +193,22 @@ export default function DramaMode() {
                 <p className="text-sm text-muted">{desc}</p>
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* Era nostalgia visual strip */}
+        <div className="relative rounded-2xl overflow-hidden mb-12 shadow-card-hover">
+          <img
+            src="/images/drama/hk-nostalgia.jpg"
+            alt="香港年代回憶"
+            className="w-full h-56 object-cover object-center"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-ink/80 to-transparent flex items-center">
+            <div className="px-8">
+              <p className="text-accent font-semibold text-sm mb-1">年代回憶類</p>
+              <h3 className="text-2xl font-bold text-white mb-2">六十至九十年代香港的集體記憶</h3>
+              <p className="text-white/80 text-sm max-w-md">由長者親歷者視角出發，重現那個年代的人情味與生活方式，讓年輕一代了解香港的歷史根脈。</p>
+            </div>
           </div>
         </div>
 

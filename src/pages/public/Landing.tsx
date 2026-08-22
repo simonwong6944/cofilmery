@@ -10,66 +10,106 @@ export default function Landing() {
     <div className="min-h-screen bg-bg-soft">
       <PublicNav />
 
-      {/* Hero */}
-      <section className="max-w-7xl mx-auto px-6 pt-20 pb-16 text-center">
-        <div className="inline-flex items-center gap-2 bg-accent/10 text-accent px-4 py-1.5 rounded-full text-sm font-medium mb-6">
-          <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
-          CoEldery 85 生態系統原生功能
+      {/* Hero — full-bleed with photo background */}
+      <section className="relative overflow-hidden">
+        {/* Background image */}
+        <div className="absolute inset-0">
+          <img
+            src="/images/landing/elder-watching-film.jpg"
+            alt="長者觀看短片"
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-bg-soft/95 via-bg-soft/80 to-bg-soft" />
         </div>
-        <h1 className="text-5xl md:text-6xl font-bold text-ink leading-tight mb-5">
-          看見每一段人生故事<br />
-          <span className="text-primary">延續每一份值得傳承的回憶</span>
-        </h1>
-        <p className="text-xl text-muted mb-10 max-w-2xl mx-auto">
-          一個創作平台 · 兩種創作方向 · 同一套粵語影像技術
-        </p>
 
-        {/* Two Mode Cards */}
-        <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto mb-14">
-          <div className="bg-primary rounded-2xl p-8 text-left text-white shadow-card-hover">
-            <div className="flex items-center gap-2 mb-4">
-              <Film size={22} />
-              <span className="font-bold text-xl">戲劇模式</span>
-            </div>
-            <p className="text-white/90 font-medium mb-2">以長者提供之生活素材作為創作基礎</p>
-            <p className="text-white/70 text-sm mb-6">創作虛構粵語短劇 · 最多七十集 · 每集十五至六十秒</p>
-            <Link to="/drama-mode" className="inline-flex items-center gap-2 bg-white text-primary font-semibold px-5 py-2.5 rounded-lg hover:bg-white/90 transition-colors text-sm">
-              了解更多 <ArrowRight size={14} />
-            </Link>
+        <div className="relative max-w-7xl mx-auto px-6 pt-20 pb-16 text-center">
+          <div className="inline-flex items-center gap-2 bg-accent/10 text-accent px-4 py-1.5 rounded-full text-sm font-medium mb-6">
+            <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
+            CoEldery 85 生態系統原生功能
           </div>
-          <div className="bg-accent rounded-2xl p-8 text-left text-white shadow-card-hover">
-            <div className="flex items-center gap-2 mb-4">
-              <BookOpen size={22} />
-              <span className="font-bold text-xl">傳承模式</span>
+          <h1 className="text-5xl md:text-6xl font-bold text-ink leading-tight mb-5">
+            看見每一段人生故事<br />
+            <span className="text-primary">延續每一份值得傳承的回憶</span>
+          </h1>
+          <p className="text-xl text-muted mb-10 max-w-2xl mx-auto">
+            一個創作平台 · 兩種創作方向 · 同一套粵語影像技術
+          </p>
+
+          {/* Two Mode Cards */}
+          <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto mb-14">
+            <div className="bg-primary rounded-2xl p-8 text-left text-white shadow-card-hover">
+              <div className="flex items-center gap-2 mb-4">
+                <Film size={22} />
+                <span className="font-bold text-xl">戲劇模式</span>
+              </div>
+              <p className="text-white/90 font-medium mb-2">以長者提供之生活素材作為創作基礎</p>
+              <p className="text-white/70 text-sm mb-6">創作虛構粵語短劇 · 最多七十集 · 每集十五至六十秒</p>
+              <Link to="/drama-mode" className="inline-flex items-center gap-2 bg-white text-primary font-semibold px-5 py-2.5 rounded-lg hover:bg-white/90 transition-colors text-sm">
+                了解更多 <ArrowRight size={14} />
+              </Link>
             </div>
-            <p className="text-white/90 font-medium mb-2">運用人工智能記錄真實人生故事</p>
-            <p className="text-white/70 text-sm mb-6">每集三至十分鐘 · 為家人留下珍貴的人生紀錄</p>
-            <Link to="/legacy-mode" className="inline-flex items-center gap-2 bg-white text-accent font-semibold px-5 py-2.5 rounded-lg hover:bg-white/90 transition-colors text-sm">
-              了解更多 <ArrowRight size={14} />
-            </Link>
+            <div className="bg-accent rounded-2xl p-8 text-left text-white shadow-card-hover">
+              <div className="flex items-center gap-2 mb-4">
+                <BookOpen size={22} />
+                <span className="font-bold text-xl">傳承模式</span>
+              </div>
+              <p className="text-white/90 font-medium mb-2">運用人工智能記錄真實人生故事</p>
+              <p className="text-white/70 text-sm mb-6">每集三至十分鐘 · 為家人留下珍貴的人生紀錄</p>
+              <Link to="/legacy-mode" className="inline-flex items-center gap-2 bg-white text-accent font-semibold px-5 py-2.5 rounded-lg hover:bg-white/90 transition-colors text-sm">
+                了解更多 <ArrowRight size={14} />
+              </Link>
+            </div>
+          </div>
+
+          {/* Stats */}
+          <div className="flex flex-wrap justify-center gap-12 mb-12">
+            {[
+              { icon: BookMarked, label: '已記錄', value: '二千八百四十七', unit: '個生命故事' },
+              { icon: Users,      label: '支援',   value: '三千二百位',    unit: '年輕創作者' },
+              { icon: Eye,        label: '覆蓋',   value: '二百九十六萬', unit: '五十五歲以上觀眾' },
+            ].map(({ icon: Icon, label, value, unit }) => (
+              <div key={label} className="flex flex-col items-center gap-1">
+                <Icon size={24} className="text-accent mb-1" />
+                <span className="text-sm text-muted">{label}</span>
+                <span className="text-2xl font-bold text-primary">{value}</span>
+                <span className="text-sm text-muted">{unit}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Creator Banner */}
+          <div className="bg-primary/5 border border-primary/20 rounded-xl py-4 px-6 text-sm text-primary font-medium">
+            創作者招募中 · 現正接受十八至三十歲創作者申請 ·{' '}
+            <Link to="/recruit" className="underline hover:no-underline">立即加入</Link>
           </div>
         </div>
+      </section>
 
-        {/* Stats */}
-        <div className="flex flex-wrap justify-center gap-12 mb-12">
-          {[
-            { icon: BookMarked, label: '已記錄', value: '二千八百四十七', unit: '個生命故事' },
-            { icon: Users,      label: '支援',   value: '三千二百位',    unit: '年輕創作者' },
-            { icon: Eye,        label: '覆蓋',   value: '二百九十六萬', unit: '五十五歲以上觀眾' },
-          ].map(({ icon: Icon, label, value, unit }) => (
-            <div key={label} className="flex flex-col items-center gap-1">
-              <Icon size={24} className="text-accent mb-1" />
-              <span className="text-sm text-muted">{label}</span>
-              <span className="text-2xl font-bold text-primary">{value}</span>
-              <span className="text-sm text-muted">{unit}</span>
-            </div>
-          ))}
+      {/* ── Platform Mission Visual Strip ── */}
+      <section className="relative overflow-hidden bg-primary">
+        <div className="absolute inset-0 opacity-15">
+          <img
+            src="/images/recruit/bridge-hands.jpg"
+            alt="跨代連結"
+            className="w-full h-full object-cover"
+          />
         </div>
-
-        {/* Creator Banner */}
-        <div className="bg-primary/5 border border-primary/20 rounded-xl py-4 px-6 text-sm text-primary font-medium">
-          創作者招募中 · 現正接受十八至三十歲創作者申請 ·{' '}
-          <Link to="/recruit" className="underline hover:no-underline">立即加入</Link>
+        <div className="relative max-w-7xl mx-auto px-6 py-12 grid md:grid-cols-3 gap-8 text-white">
+          <div className="text-center">
+            <div className="text-4xl mb-3">🎬</div>
+            <h3 className="font-bold text-lg mb-2">以故事連結兩代人</h3>
+            <p className="text-white/70 text-sm leading-relaxed">年輕創作者以長者的人生素材創作，每一集都承載真實的生命重量。</p>
+          </div>
+          <div className="text-center border-x border-white/20">
+            <div className="text-4xl mb-3">🤖</div>
+            <h3 className="font-bold text-lg mb-2">AI 降低創作門檻</h3>
+            <p className="text-white/70 text-sm leading-relaxed">毋須器材、演員、後期技術。AI 全程輔助，讓才華不再受資源限制。</p>
+          </div>
+          <div className="text-center">
+            <div className="text-4xl mb-3">💛</div>
+            <h3 className="font-bold text-lg mb-2">為長者保留珍貴記憶</h3>
+            <p className="text-white/70 text-sm leading-relaxed">超過 55 萬香港長者，他們的故事值得被好好記錄、被後代珍藏。</p>
+          </div>
         </div>
       </section>
 
@@ -129,7 +169,7 @@ export default function Landing() {
               </div>
               <div>
                 <p className="font-semibold mb-3">企業</p>
-                {['ESG 合作', '企業傳承', '贊助式傳承', '聯絡我們'].map(l => (
+                {['ESG 合作', '企業傳承', '品牌贊助', '聯絡我們'].map(l => (
                   <p key={l} className="text-white/60 hover:text-white cursor-pointer mb-1.5">{l}</p>
                 ))}
               </div>

@@ -1,27 +1,36 @@
 import { useState } from 'react';
 import { PublicNav } from '@/components/layout/PublicNav';
 import { TierBadge } from '@/components/shared/TierBadge';
-import { CheckCircle, ArrowRight, Sparkles, TrendingUp, Users, Award, ChevronDown, ChevronUp } from 'lucide-react';
+import { CheckCircle, ArrowRight, Sparkles, TrendingUp, Users, Award, ChevronDown, ChevronUp, Heart, Lightbulb, Briefcase } from 'lucide-react';
 
 const PAIN_POINTS = [
   {
+    icon: Heart,
     problem: '有熱情，但無出口',
     desc: '對影像創作充滿興趣，卻找不到一個值得投入、有意義的創作題材——大量時間花在無止境的流量競逐，換來的只是空洞的數字。',
+    color: 'bg-rose-50 border-rose-200',
+    iconColor: 'text-rose-500',
   },
   {
+    icon: Lightbulb,
     problem: '有創意，但無工具',
     desc: '傳統短片製作門檻極高：器材、場地、演員、後期剪接……光靠個人很難產出專業水準的成品，更遑論持續創作。',
+    color: 'bg-amber-50 border-amber-200',
+    iconColor: 'text-amber-500',
   },
   {
+    icon: Briefcase,
     problem: '有付出，但無回報',
     desc: '即使辛苦創作，大多數創作者都缺乏一個正式、可持續、能夠成長的收入渠道——只有平台賺走了大部份的廣告收益。',
+    color: 'bg-blue-50 border-blue-200',
+    iconColor: 'text-blue-500',
   },
 ];
 
 const VALUE_PROPS = [
   {
     icon: Sparkles,
-    img: '/images/recruit/creator-desk.jpg',
+    img: '/images/recruit/ai-vs-traditional.jpg',
     title: 'AI 工具，降低門檻至零',
     subtitle: '毋須器材、場地、演員',
     body: '透過 CoFilmery 的 AI 影像生成系統，你只需要一個故事想法——AI 自動生成劇本、角色形象、分鏡畫面及粵語配音。由構思到完成一集，最快一個工作天。這是年輕創作者第一次能夠以個人之力產出專業水準短片的時代。',
@@ -106,8 +115,11 @@ export default function Recruit() {
             在 AI 浪潮中<br />
             找到你的位置與意義
           </h1>
-          <p className="text-white/80 text-xl max-w-2xl mb-8 leading-relaxed">
+          <p className="text-white/80 text-xl max-w-2xl mb-4 leading-relaxed">
             CoFilmery 不只是一個創作工具——它是一條讓你在短視頻時代真正發光發熱的路：<strong className="text-white">有報酬、有意義、有履歷</strong>，同時用你的創作連結兩代人。
+          </p>
+          <p className="text-white/65 text-base max-w-2xl mb-8 leading-relaxed">
+            這一代年輕人成長於短片文化，對影像創作有天然的熟悉與興趣。CoFilmery 一次過解決三個核心困境：工具、題材、回報——讓你的才華在一個值得的地方落地生根。
           </p>
           <div className="flex flex-wrap items-center gap-3 mb-10">
             {(['trainee', 'certified', 'senior', 'contracted'] as const).map((t, i) => (
@@ -146,22 +158,28 @@ export default function Recruit() {
             這一代年輕人成長於短視頻文化，對影像創作有天然的熱情與直覺——但現實往往讓人洩氣。
           </p>
           <div className="grid md:grid-cols-3 gap-5">
-            {PAIN_POINTS.map((p, i) => (
-              <div key={i} className="bg-card border border-line rounded-xl p-5 shadow-card">
-                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold text-sm mb-3">
-                  {i + 1}
+            {PAIN_POINTS.map((p, i) => {
+              const Icon = p.icon;
+              return (
+                <div key={i} className={`border rounded-2xl p-6 shadow-card ${p.color}`}>
+                  <div className={`w-10 h-10 rounded-xl bg-white flex items-center justify-center mb-4 shadow-sm`}>
+                    <Icon size={20} className={p.iconColor} />
+                  </div>
+                  <h3 className="font-bold text-ink mb-2 text-lg">{p.problem}</h3>
+                  <p className="text-sm text-muted leading-relaxed">{p.desc}</p>
                 </div>
-                <h3 className="font-bold text-ink mb-2">{p.problem}</h3>
-                <p className="text-sm text-muted leading-relaxed">{p.desc}</p>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
 
         {/* ── Solution: 3 Value Props with Images ── */}
         <section>
           <p className="text-accent font-semibold text-sm mb-2">CoFilmery 的答案</p>
-          <h2 className="text-3xl font-bold text-ink mb-10">一個平台，同時解決三個問題</h2>
+          <h2 className="text-3xl font-bold text-ink mb-3">一個平台，同時解決三個問題</h2>
+          <p className="text-muted mb-10 max-w-2xl">
+            CoFilmery 不是又一個內容平台。它是一套完整的創作生態，讓年輕人在 AI 時代找到屬於自己的位置——有工具、有意義、有成長。
+          </p>
 
           <div className="space-y-16">
             {VALUE_PROPS.map((vp, i) => {
@@ -197,6 +215,52 @@ export default function Recruit() {
           </div>
         </section>
 
+        {/* ── Creator Sharing Image Section ── */}
+        <section className="relative rounded-2xl overflow-hidden shadow-card-hover">
+          <img
+            src="/images/recruit/creator-sharing.jpg"
+            alt="創作者與長者分享作品"
+            className="w-full h-80 object-cover object-center"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/85 to-transparent flex items-center">
+            <div className="px-10 max-w-xl">
+              <p className="text-accent font-semibold text-sm mb-2">創作的意義</p>
+              <h2 className="text-3xl font-bold text-white mb-3">你的作品，是有人在等待的</h2>
+              <p className="text-white/85 leading-relaxed">
+                當你把作品給一位長者看——看見他們眼神中的感動、記憶被喚起的瞬間——你會明白，這不只是一份工作，而是一種連結兩代人的禮物。
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* ── Bridge: Social Mission ── */}
+        <section>
+          <div className="grid md:grid-cols-2 gap-10 items-center">
+            <div>
+              <p className="text-accent font-semibold text-sm mb-2">更大的社會意義</p>
+              <h2 className="text-3xl font-bold text-ink mb-5">你是連結兩代人的橋樑</h2>
+              <div className="space-y-4 text-muted leading-relaxed">
+                <p>
+                  香港有超過 <strong className="text-primary">55 萬名 65 歲以上長者</strong>，他們的故事從未被好好記錄，他們對影像娛樂的需求從未被認真對待。他們需要的不是爆款內容，而是真實貼近自己生命的故事。
+                </p>
+                <p>
+                  另一方面，年輕創作者在這個時代最缺乏的，不是才華，而是一個<strong className="text-primary">值得用才華去做的理由</strong>。CoFilmery 把這兩個需求連接起來——讓你的創作，成為真實有意義的事。
+                </p>
+                <p>
+                  這個設計令 CoFilmery 不只是一個工具，而是一個讓年輕人才服務長者社群的<strong className="text-primary">跨代橋樑</strong>，也是香港數碼創意產業在 AI 時代的一次真正的社會實驗。
+                </p>
+              </div>
+            </div>
+            <div className="rounded-2xl overflow-hidden shadow-card-hover">
+              <img
+                src="/images/recruit/bridge-hands.jpg"
+                alt="跨代連結"
+                className="w-full h-72 object-cover"
+              />
+            </div>
+          </div>
+        </section>
+
         {/* ── Social Mission Divider ── */}
         <section className="relative rounded-2xl overflow-hidden">
           <img
@@ -206,10 +270,10 @@ export default function Recruit() {
           />
           <div className="absolute inset-0 bg-gradient-to-r from-primary/90 to-primary/50 flex items-center">
             <div className="px-10 max-w-2xl">
-              <p className="text-accent font-semibold text-sm mb-2">更大的社會意義</p>
-              <h2 className="text-3xl font-bold text-white mb-3">你的創作，是有人在等待的</h2>
+              <p className="text-accent font-semibold text-sm mb-2">CoFilmery 的使命</p>
+              <h2 className="text-3xl font-bold text-white mb-3">在 AI 浪潮中，不讓任何一代人被落下</h2>
               <p className="text-white/85 text-lg leading-relaxed">
-                香港有超過 55 萬名 65 歲以上長者，他們的故事從未被好好記錄，他們的娛樂需求從未被認真對待。你創作的每一集，都在回應一個真實的人、真實的需要。這不是流量競逐——這是一種連結。
+                長者不應因不懂科技而被遺忘，年輕人不應因平台算法而看不見未來。CoFilmery 用一個創作生態，同時回應兩代人的需要。
               </p>
             </div>
           </div>
