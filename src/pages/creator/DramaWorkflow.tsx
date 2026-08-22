@@ -2487,6 +2487,8 @@ export default function DramaWorkflow() {
   const tr = t();
   void locale;
 
+  const [mobilePanel, setMobilePanel] = useState<'steps' | 'ai' | null>(null);
+
   const routeStep = Math.min(parseInt(step ?? '0', 10), 11);
   const StepComponent = STEPS[routeStep];
 
@@ -2504,11 +2506,24 @@ export default function DramaWorkflow() {
   };
   const headerTitle = seriesTitles[routeStep] ?? '街市情緣';
 
+  const stepNavProps = {
+    mode: 'drama' as const,
+    currentStep: navStep,
+    isPlanOverview,
+    isAestheticLock,
+    onStepClick: (s: number) => { navigate(`/creator/drama/${navStepToRouteStep(s)}`); setMobilePanel(null); },
+    onPlanOverviewClick: () => { navigate('/creator/drama/1'); setMobilePanel(null); },
+    onAestheticLockClick: () => { navigate('/creator/drama/5'); setMobilePanel(null); },
+  };
+
   return (
     <div className="flex h-screen bg-bg-soft overflow-hidden">
+      {/* Desktop sidebar — hidden on mobile, CreatorSidebar handles its own mobile top bar */}
       <CreatorSidebar />
-      <div className="flex flex-col flex-1 overflow-hidden">
-        <header className="bg-card border-b border-line px-6 py-3 flex items-center gap-4 shrink-0">
+
+      <div className="flex flex-col flex-1 overflow-hidden md:ml-0">
+        {/* Header — desktop only (mobile uses CreatorSidebar's top bar) */}
+        <header className="hidden md:flex bg-card border-b border-line px-6 py-3 items-center gap-4 shrink-0">
           <Logo size="sm" withWordmark />
           <span className="text-primary font-bold">{tr.creator.modeSelect.dramaTitle}</span>
           <span className="text-muted text-sm">· {headerTitle}</span>
@@ -2517,29 +2532,83 @@ export default function DramaWorkflow() {
             <span className="text-xs text-muted">{tr.creator.credits} 842</span>
           </div>
         </header>
+
+        {/* Mobile: spacer for fixed top bar from CreatorSidebar */}
+        <div className="md:hidden h-12 shrink-0" />
+
         <div className="flex flex-1 overflow-hidden">
-          {/* Step nav */}
-          <div className="w-48 shrink-0 bg-card border-r border-line overflow-y-auto">
-            <StepNavigation
-              mode="drama"
-              currentStep={navStep}
-              isPlanOverview={isPlanOverview}
-              isAestheticLock={isAestheticLock}
-              onStepClick={s => navigate(`/creator/drama/${navStepToRouteStep(s)}`)}
-              onPlanOverviewClick={() => navigate('/creator/drama/1')}
-              onAestheticLockClick={() => navigate('/creator/drama/5')}
-            />
+          {/* Step nav — desktop only */}
+          <div className="hidden md:block w-48 shrink-0 bg-card border-r border-line overflow-y-auto">
+            <StepNavigation {...stepNavProps} />
           </div>
+
           {/* Canvas */}
-          <main className="flex-1 overflow-y-auto p-8">
+          <main className="flex-1 overflow-y-auto p-4 md:p-8 pb-20 md:pb-8">
             <StepComponent onNext={goNext} />
           </main>
-          {/* AI Assistant */}
-          <aside className="w-72 shrink-0 overflow-hidden">
+
+          {/* AI Assistant — desktop only */}
+          <aside className="hidden md:block w-72 shrink-0 overflow-hidden">
             <AIAssistantPanel />
           </aside>
         </div>
       </div>
+
+      {/* Mobile bottom toolbar */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-card border-t border-line flex items-stretch h-14 safe-area-pb">
+        <button
+          onClick={() => setMobilePanel(v => v === 'steps' ? null : 'steps')}
+          className={`flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors ${mobilePanel === 'steps' ? 'text-primary' : 'text-muted'}`}
+        >
+          <Layers size={20} />
+          <span>步驟</span>
+        </button>
+        <button
+          onClick={goNext}
+          className="flex-none mx-3 my-2 bg-primary text-white rounded-xl px-6 text-sm font-semibold flex items-center gap-1.5 hover:bg-primary/90 transition-colors"
+        >
+          下一步
+        </button>
+        <button
+          onClick={() => setMobilePanel(v => v === 'ai' ? null : 'ai')}
+          className={`flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors ${mobilePanel === 'ai' ? 'text-primary' : 'text-muted'}`}
+        >
+          <Sparkles size={20} />
+          <span>AI助理</span>
+        </button>
+      </div>
+
+      {/* Mobile step nav sheet */}
+      {mobilePanel === 'steps' && (
+        <div className="md:hidden fixed inset-0 z-50 flex flex-col justify-end">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setMobilePanel(null)} />
+          <div className="relative bg-card rounded-t-2xl shadow-xl max-h-[70vh] overflow-y-auto">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-line">
+              <span className="font-semibold text-ink text-sm">選擇步驟</span>
+              <button onClick={() => setMobilePanel(null)} className="text-muted hover:text-ink p-1">
+                <X size={18} />
+              </button>
+            </div>
+            <StepNavigation {...stepNavProps} />
+          </div>
+        </div>
+      )}
+
+      {/* Mobile AI assistant sheet */}
+      {mobilePanel === 'ai' && (
+        <div className="md:hidden fixed inset-0 z-50 flex flex-col justify-end">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setMobilePanel(null)} />
+          <div className="relative bg-card rounded-t-2xl shadow-xl max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-line">
+              <span className="font-semibold text-ink text-sm">AI 創作助理</span>
+              <button onClick={() => setMobilePanel(null)} className="text-muted hover:text-ink p-1">
+                <X size={18} />
+              </button>
+            </div>
+            <AIAssistantPanel />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
