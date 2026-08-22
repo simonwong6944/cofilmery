@@ -1,20 +1,26 @@
 import { useState } from 'react';
-import { Plus, Wand2, GripVertical, Trash2, ChevronRight } from 'lucide-react';
+import { Plus, Wand2, Trash2, ChevronRight } from 'lucide-react';
 import { CreatorSidebar } from '@/components/layout/CreatorSidebar';
 import { Logo } from '@/components/shared/Logo';
 import { AIAssistantPanel } from '@/components/shared/AIAssistantPanel';
 import { CreditIndicator } from '@/components/shared/CreditIndicator';
+import { useLocaleStore } from '@/store/localeStore';
+import { t } from '@/i18n';
 
 const PANELS = [
-  { id: 1, scene: '場景一', location: '街市攤位', time: '清晨', desc: '阿婷早起整理菜攤，陽光灑落街市。', angle: '中景 · 靜態' },
-  { id: 2, scene: '場景一', location: '街市攤位', time: '清晨', desc: '婆婆走近攤位，與阿婷打招呼。', angle: '近景 · 推鏡' },
-  { id: 3, scene: '場景一', location: '街市攤位', time: '清晨', desc: '阿婷遞上菜心，婆婆仔細查看。', angle: '特寫 · 靜態' },
-  { id: 4, scene: '場景二', location: '街市走廊', time: '上午', desc: '阿婷望著人流，陷入回憶。', angle: '中遠景 · 淡出' },
-  { id: 5, scene: '場景三', location: '涼茶舖', time: '中午', desc: '阿婷與茶舖老闆閒聊。', angle: '雙人近景 · 靜態' },
-  { id: 6, scene: '場景三', location: '涼茶舖', time: '中午', desc: '老闆遞上一碗廿四味，冒著熱氣。', angle: '特寫 · 慢推' },
+  { id: 1, scene: '場景一', location: '街市攤位', time: '清晨', desc: '阿婷早起整理菜攤，陽光灑落街市。',     angle: '中景 · 靜態' },
+  { id: 2, scene: '場景一', location: '街市攤位', time: '清晨', desc: '婆婆走近攤位，與阿婷打招呼。',         angle: '近景 · 推鏡' },
+  { id: 3, scene: '場景一', location: '街市攤位', time: '清晨', desc: '阿婷遞上菜心，婆婆仔細查看。',         angle: '特寫 · 靜態' },
+  { id: 4, scene: '場景二', location: '街市走廊', time: '上午', desc: '阿婷望著人流，陷入回憶。',             angle: '中遠景 · 淡出' },
+  { id: 5, scene: '場景三', location: '涼茶舖',   time: '中午', desc: '阿婷與茶舖老闆閒聊。',               angle: '雙人近景 · 靜態' },
+  { id: 6, scene: '場景三', location: '涼茶舖',   time: '中午', desc: '老闆遞上一碗廿四味，冒著熱氣。',     angle: '特寫 · 慢推' },
 ];
 
 export default function Storyboard() {
+  const { locale } = useLocaleStore();
+  const tr = t();
+  void locale;
+
   const [panels, setPanels] = useState(PANELS);
   const [selected, setSelected] = useState<number | null>(null);
 
@@ -25,18 +31,18 @@ export default function Storyboard() {
         <header className="bg-card border-b border-line px-6 py-3 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-4">
             <Logo size="sm" withWordmark />
-            <span className="text-primary font-bold">分鏡板</span>
+            <span className="text-primary font-bold">{tr.creator.storyboard.title}</span>
             <span className="text-muted text-sm">· 街市情緣 · 第 1 集</span>
           </div>
           <div className="flex items-center gap-3">
-            <CreditIndicator cost={4} label="AI 生成分鏡" />
+            <CreditIndicator cost={4} label={tr.creator.storyboard.costLabel} />
             <button className="flex items-center gap-2 bg-accent/10 text-accent px-3 py-1.5 rounded-lg text-sm hover:bg-accent/20 transition-colors">
               <Wand2 className="w-3.5 h-3.5" />
-              AI 生成
+              {tr.creator.storyboard.aiGenerate}
             </button>
             <button className="flex items-center gap-2 bg-primary text-white px-4 py-1.5 rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors">
               <Plus className="w-4 h-4" />
-              新增格子
+              {tr.creator.storyboard.addPanel}
             </button>
           </div>
         </header>
@@ -84,7 +90,7 @@ export default function Storyboard() {
               {/* Add Panel */}
               <button className="card-base border-2 border-dashed border-line flex flex-col items-center justify-center h-52 hover:border-primary hover:bg-primary/3 transition-colors text-muted hover:text-primary">
                 <Plus className="w-8 h-8 mb-2" />
-                <span className="text-sm">新增分鏡格</span>
+                <span className="text-sm">{tr.creator.storyboard.addPanelBtn}</span>
               </button>
             </div>
           </main>
@@ -93,34 +99,34 @@ export default function Storyboard() {
           <aside className="w-72 shrink-0 bg-card border-l border-line overflow-y-auto">
             {selected ? (
               <div className="p-4">
-                <h3 className="font-bold text-ink mb-4">格子詳情</h3>
+                <h3 className="font-bold text-ink mb-4">{tr.creator.storyboard.panelDetail}</h3>
                 {panels.filter(p => p.id === selected).map(panel => (
                   <div key={panel.id} className="space-y-4">
                     <div>
-                      <label className="form-label">場景描述</label>
+                      <label className="form-label">{tr.creator.storyboard.descLabel}</label>
                       <textarea className="form-input resize-none" rows={3} defaultValue={panel.desc} />
                     </div>
                     <div>
-                      <label className="form-label">鏡頭語言</label>
+                      <label className="form-label">{tr.creator.storyboard.angleLabel}</label>
                       <input className="form-input" defaultValue={panel.angle} />
                     </div>
                     <div>
-                      <label className="form-label">地點</label>
+                      <label className="form-label">{tr.creator.storyboard.locationLabel}</label>
                       <input className="form-input" defaultValue={panel.location} />
                     </div>
                     <div>
-                      <label className="form-label">時間</label>
+                      <label className="form-label">{tr.creator.storyboard.timeLabel}</label>
                       <input className="form-input" defaultValue={panel.time} />
                     </div>
                     <button className="w-full bg-primary text-white py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors">
-                      更新格子
+                      {tr.creator.storyboard.updateBtn}
                     </button>
                   </div>
                 ))}
               </div>
             ) : (
               <div className="p-4 text-center text-muted mt-20">
-                <p className="text-sm">點擊格子查看詳情</p>
+                <p className="text-sm">{tr.creator.storyboard.noSelection}</p>
               </div>
             )}
           </aside>

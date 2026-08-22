@@ -1,19 +1,25 @@
 import { cn } from '@/lib/utils';
 import type { ProjectStatus } from '@/types';
+import { useLocaleStore } from '@/store/localeStore';
+import { t } from '@/i18n';
 
-const STATUS_CONFIG: Record<ProjectStatus, { label: string; color: string }> = {
-  draft:     { label: '草稿',  color: 'bg-gray-100 text-gray-600' },
-  reviewing: { label: '送審中', color: 'bg-yellow-100 text-yellow-800' },
-  published: { label: '已發佈', color: 'bg-green-100 text-green-800' },
-  revision:  { label: '退修中', color: 'bg-red-100 text-red-700' },
-  approved:  { label: '已批准', color: 'bg-blue-100 text-blue-800' },
+const STATUS_COLOR: Record<ProjectStatus, string> = {
+  draft:     'bg-gray-100 text-gray-600',
+  reviewing: 'bg-yellow-100 text-yellow-800',
+  published: 'bg-green-100 text-green-800',
+  revision:  'bg-red-100 text-red-700',
+  approved:  'bg-blue-100 text-blue-800',
 };
 
 export function StatusBadge({ status, className }: { status: ProjectStatus; className?: string }) {
-  const config = STATUS_CONFIG[status];
+  const { locale } = useLocaleStore();
+  const tr = t();
+  void locale;
+
+  const label = tr.creator.status[status] ?? status;
   return (
-    <span className={cn('inline-block px-2 py-0.5 rounded text-xs font-medium', config.color, className)}>
-      {config.label}
+    <span className={cn('inline-block px-2 py-0.5 rounded text-xs font-medium', STATUS_COLOR[status], className)}>
+      {label}
     </span>
   );
 }

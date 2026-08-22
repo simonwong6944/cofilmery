@@ -1,33 +1,7 @@
 import { cn } from '@/lib/utils';
 import { Check } from 'lucide-react';
-
-// Drama Mode: S0-S9 correct labels (with Plan Overview as special pre-step)
-const DRAMA_STEPS = [
-  '系列設定',   // S0
-  '資產庫',     // S1
-  '角色設定',   // S2
-  '故事框架',   // S3 (3a大綱→3b框架→3c分集)
-  '分鏡',       // S4
-  '關鍵幀',     // S5
-  '影片生成',   // S6
-  '粵語配音',   // S7
-  '平台剪輯',   // S8
-  '審批發佈',   // S9
-];
-
-// Legacy Mode: S0-S9 correct labels
-const LEGACY_STEPS = [
-  '專案設定',       // S0
-  '素材庫',         // S1
-  '人物設定',       // S2
-  '訪談引導',       // S3
-  '錄製',           // S4
-  'AI轉錄校對',     // S5
-  '執故事線',       // S6
-  '字幕配樂',       // S7
-  '平台剪輯',       // S8
-  '授權發佈',       // S9
-];
+import { useLocaleStore } from '@/store/localeStore';
+import { t } from '@/i18n';
 
 interface StepNavigationProps {
   mode: 'drama' | 'legacy';
@@ -37,7 +11,38 @@ interface StepNavigationProps {
 }
 
 export function StepNavigation({ mode, currentStep, onStepClick, className }: StepNavigationProps) {
-  const steps = mode === 'drama' ? DRAMA_STEPS : LEGACY_STEPS;
+  const { locale } = useLocaleStore();
+  const tr = t();
+  void locale;
+
+  const dramaSteps = [
+    tr.creator.dramaSteps.s0,
+    tr.creator.dramaSteps.s1,
+    tr.creator.dramaSteps.s2,
+    tr.creator.dramaSteps.s3,
+    tr.creator.dramaSteps.s4,
+    tr.creator.dramaSteps.s5,
+    tr.creator.dramaSteps.s6,
+    tr.creator.dramaSteps.s7,
+    tr.creator.dramaSteps.s8,
+    tr.creator.dramaSteps.s9,
+  ];
+
+  const legacySteps = [
+    tr.creator.legacySteps.s0,
+    tr.creator.legacySteps.s1,
+    tr.creator.legacySteps.s2,
+    tr.creator.legacySteps.s3,
+    tr.creator.legacySteps.s4,
+    tr.creator.legacySteps.s5,
+    tr.creator.legacySteps.s6,
+    tr.creator.legacySteps.s7,
+    tr.creator.legacySteps.s8,
+    tr.creator.legacySteps.s9,
+  ];
+
+  const steps = mode === 'drama' ? dramaSteps : legacySteps;
+
   return (
     <nav className={cn('flex flex-col gap-1 py-4', className)}>
       {steps.map((label, i) => {

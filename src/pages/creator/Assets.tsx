@@ -2,14 +2,8 @@ import { useState } from 'react';
 import { Upload, Image, Music, Video, Mic, Search, Grid, List, Trash2, Download } from 'lucide-react';
 import { CreatorSidebar } from '@/components/layout/CreatorSidebar';
 import { Logo } from '@/components/shared/Logo';
-
-const ASSET_TYPES = [
-  { id: 'all', label: '全部', icon: Grid },
-  { id: 'image', label: '圖片', icon: Image },
-  { id: 'audio', label: '音訊', icon: Music },
-  { id: 'video', label: '影片', icon: Video },
-  { id: 'voice', label: '配音', icon: Mic },
-];
+import { useLocaleStore } from '@/store/localeStore';
+import { t } from '@/i18n';
 
 const MOCK_ASSETS = [
   { id: 1, type: 'image', name: '街市場景_01.jpg', size: '2.3 MB', date: '2025-01-10' },
@@ -35,9 +29,21 @@ const typeColor: Record<string, string> = {
 };
 
 export default function Assets() {
+  const { locale } = useLocaleStore();
+  const tr = t();
+  void locale;
+
   const [activeType, setActiveType] = useState('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [search, setSearch] = useState('');
+
+  const ASSET_TYPES = [
+    { id: 'all',   label: tr.creator.assets.typeAll,   icon: Grid },
+    { id: 'image', label: tr.creator.assets.typeImage, icon: Image },
+    { id: 'audio', label: tr.creator.assets.typeAudio, icon: Music },
+    { id: 'video', label: tr.creator.assets.typeVideo, icon: Video },
+    { id: 'voice', label: tr.creator.assets.typeVoice, icon: Mic },
+  ];
 
   const filtered = MOCK_ASSETS.filter(a => {
     if (activeType !== 'all' && a.type !== activeType) return false;
@@ -52,11 +58,11 @@ export default function Assets() {
         <header className="bg-card border-b border-line px-6 py-3 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-4">
             <Logo size="sm" withWordmark />
-            <span className="text-primary font-bold">素材庫</span>
+            <span className="text-primary font-bold">{tr.creator.assets.title}</span>
           </div>
           <button className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors">
             <Upload className="w-4 h-4" />
-            上傳素材
+            {tr.creator.assets.upload}
           </button>
         </header>
 
@@ -65,7 +71,7 @@ export default function Assets() {
           <div className="flex items-center gap-3 mb-5">
             <div className="relative flex-1 max-w-xs">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
-              <input className="form-input pl-9 py-2" placeholder="搜尋素材..." value={search} onChange={e => setSearch(e.target.value)} />
+              <input className="form-input pl-9 py-2" placeholder={tr.creator.assets.searchPlaceholder} value={search} onChange={e => setSearch(e.target.value)} />
             </div>
             <div className="flex items-center gap-1 border border-line rounded-lg p-1">
               <button onClick={() => setViewMode('grid')} className={`p-1.5 rounded ${viewMode === 'grid' ? 'bg-primary text-white' : 'text-muted'}`}>
@@ -79,16 +85,16 @@ export default function Assets() {
 
           {/* Type Tabs */}
           <div className="flex gap-2 mb-6 flex-wrap">
-            {ASSET_TYPES.map(t => (
+            {ASSET_TYPES.map(tp => (
               <button
-                key={t.id}
-                onClick={() => setActiveType(t.id)}
+                key={tp.id}
+                onClick={() => setActiveType(tp.id)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  activeType === t.id ? 'bg-primary text-white' : 'bg-card border border-line text-muted hover:text-ink'
+                  activeType === tp.id ? 'bg-primary text-white' : 'bg-card border border-line text-muted hover:text-ink'
                 }`}
               >
-                <t.icon className="w-4 h-4" />
-                {t.label}
+                <tp.icon className="w-4 h-4" />
+                {tp.label}
               </button>
             ))}
           </div>
@@ -96,8 +102,8 @@ export default function Assets() {
           {/* Upload Zone */}
           <div className="border-2 border-dashed border-line rounded-xl p-8 text-center mb-6 hover:border-primary transition-colors cursor-pointer">
             <Upload className="w-8 h-8 mx-auto text-muted mb-2" />
-            <p className="text-sm text-muted">拖放檔案到此處，或點擊上傳</p>
-            <p className="text-xs text-muted mt-1">支援 JPG/PNG/MP3/MP4，最大 500MB</p>
+            <p className="text-sm text-muted">{tr.creator.assets.dropZoneText}</p>
+            <p className="text-xs text-muted mt-1">{tr.creator.assets.dropZoneHint}</p>
           </div>
 
           {/* Assets Grid/List */}
@@ -114,7 +120,7 @@ export default function Assets() {
                     <p className="text-sm font-medium text-ink truncate mb-1">{asset.name}</p>
                     <p className="text-xs text-muted">{asset.size}</p>
                     <div className="mt-3 pt-3 border-t border-line flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button className="flex-1 text-xs text-primary hover:underline">使用</button>
+                      <button className="flex-1 text-xs text-primary hover:underline">{tr.creator.assets.useBtn}</button>
                       <button className="text-xs text-muted hover:text-red-500">
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -128,10 +134,10 @@ export default function Assets() {
               <table className="w-full text-sm">
                 <thead className="bg-bg-soft border-b border-line">
                   <tr>
-                    <th className="text-left px-4 py-3 text-muted font-medium">名稱</th>
-                    <th className="text-left px-4 py-3 text-muted font-medium">類型</th>
-                    <th className="text-left px-4 py-3 text-muted font-medium">大小</th>
-                    <th className="text-left px-4 py-3 text-muted font-medium">日期</th>
+                    <th className="text-left px-4 py-3 text-muted font-medium">{tr.creator.assets.colName}</th>
+                    <th className="text-left px-4 py-3 text-muted font-medium">{tr.creator.assets.colType}</th>
+                    <th className="text-left px-4 py-3 text-muted font-medium">{tr.creator.assets.colSize}</th>
+                    <th className="text-left px-4 py-3 text-muted font-medium">{tr.creator.assets.colDate}</th>
                     <th className="px-4 py-3"></th>
                   </tr>
                 </thead>

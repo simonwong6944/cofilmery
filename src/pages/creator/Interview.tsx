@@ -3,8 +3,10 @@ import { Mic, MicOff, Video, VideoOff, Volume2, FileText, CheckCircle, Clock, Wa
 import { CreatorSidebar } from '@/components/layout/CreatorSidebar';
 import { Logo } from '@/components/shared/Logo';
 import { CreditIndicator } from '@/components/shared/CreditIndicator';
+import { useLocaleStore } from '@/store/localeStore';
+import { t } from '@/i18n';
 
-const QUESTIONS = [
+const QUESTIONS_ZH = [
   { id: 1, text: '您是如何與這門手藝結緣的？', asked: true },
   { id: 2, text: '在這幾十年中，最令您印象深刻的事是什麼？', asked: true },
   { id: 3, text: '您認為這門手藝對香港有何重要性？', asked: false },
@@ -13,11 +15,15 @@ const QUESTIONS = [
 ];
 
 export default function Interview() {
+  const { locale } = useLocaleStore();
+  const tr = t();
+  void locale;
+
   const [isRecording, setIsRecording] = useState(false);
   const [hasVideo, setHasVideo] = useState(true);
   const [currentQuestion, setCurrentQuestion] = useState(2);
-  const [questions, setQuestions] = useState(QUESTIONS);
-  const [elapsed, setElapsed] = useState('12:34');
+  const [questions, setQuestions] = useState(QUESTIONS_ZH);
+  const [elapsed] = useState('12:34');
 
   const markAsked = (id: number) => {
     setQuestions(q => q.map(q2 => q2.id === id ? { ...q2, asked: true } : q2));
@@ -30,17 +36,17 @@ export default function Interview() {
         <header className="bg-card border-b border-line px-6 py-3 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-4">
             <Logo size="sm" withWordmark />
-            <span className="text-amber-600 font-bold">採訪錄製</span>
+            <span className="text-amber-600 font-bold">{tr.creator.interview.title}</span>
             <span className="text-muted text-sm">· 陳伯的街市歲月</span>
           </div>
           <div className="flex items-center gap-3">
             {isRecording && (
               <div className="flex items-center gap-2 text-red-500 text-sm font-medium animate-pulse">
                 <div className="w-2 h-2 rounded-full bg-red-500"></div>
-                {elapsed} 錄製中
+                {elapsed} {tr.creator.interview.recordingLabel}
               </div>
             )}
-            <CreditIndicator cost={5} label="AI謄錄" />
+            <CreditIndicator cost={5} label={tr.creator.interview.aiTranscribe} />
           </div>
         </header>
 
@@ -55,12 +61,12 @@ export default function Interview() {
                       {hasVideo ? (
                         <div className="text-center text-white/20">
                           <Video className="w-16 h-16 mx-auto mb-2" />
-                          <p className="text-sm">攝影機畫面</p>
+                          <p className="text-sm">{tr.creator.interview.cameraOn}</p>
                         </div>
                       ) : (
                         <div className="text-center text-white/20">
                           <VideoOff className="w-16 h-16 mx-auto mb-2" />
-                          <p className="text-sm">攝影機已關閉</p>
+                          <p className="text-sm">{tr.creator.interview.cameraOff}</p>
                         </div>
                       )}
                       {isRecording && (
@@ -94,11 +100,11 @@ export default function Interview() {
                   <div className="flex gap-3">
                     <button className="flex-1 flex items-center justify-center gap-2 border border-line px-4 py-2.5 rounded-lg text-sm text-muted hover:border-primary hover:text-primary transition-colors">
                       <FileText className="w-4 h-4" />
-                      查看問題清單
+                      {tr.creator.interview.viewQuestions}
                     </button>
                     <button className="flex-1 flex items-center justify-center gap-2 bg-amber-500 text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-amber-600 transition-colors">
                       <Wand2 className="w-4 h-4" />
-                      開始 AI 謄錄
+                      {tr.creator.interview.startTranscribe}
                     </button>
                   </div>
                 </div>
@@ -106,7 +112,7 @@ export default function Interview() {
                 {/* Question List */}
                 <div>
                   <div className="card-base p-4">
-                    <h3 className="font-bold text-ink mb-3 text-sm">採訪問題</h3>
+                    <h3 className="font-bold text-ink mb-3 text-sm">{tr.creator.interview.questionList}</h3>
                     <div className="space-y-3">
                       {questions.map((q, i) => (
                         <div
@@ -133,7 +139,7 @@ export default function Interview() {
                               onClick={e => { e.stopPropagation(); markAsked(q.id); }}
                               className="mt-2 text-xs text-amber-600 hover:underline w-full text-right"
                             >
-                              標記已問
+                              {tr.creator.interview.markAsked}
                             </button>
                           )}
                         </div>
@@ -141,7 +147,7 @@ export default function Interview() {
                     </div>
                     <div className="mt-3 pt-3 border-t border-line text-xs text-muted flex items-center gap-1">
                       <Clock className="w-3.5 h-3.5" />
-                      已問 {questions.filter(q => q.asked).length} / {questions.length} 個問題
+                      {tr.creator.interview.progressLabel} {questions.filter(q => q.asked).length} {tr.creator.interview.progressSep} {questions.length} {tr.creator.interview.progressSuffix}
                     </div>
                   </div>
                 </div>
