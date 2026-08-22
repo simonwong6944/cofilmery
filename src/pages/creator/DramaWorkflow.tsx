@@ -8,7 +8,8 @@ import { Logo } from '@/components/shared/Logo';
 import {
   AlertTriangle, RefreshCw, Check, Mic, Save, ChevronDown, ChevronRight,
   Sparkles, Image, Film, Music, Edit3, Upload, Zap, Eye, Send,
-  Heart, Clock, Star, Users, BookOpen, Camera
+  Heart, Clock, Star, Users, BookOpen, Camera, Car, UtensilsCrossed,
+  ShoppingBag, MapPin, Gift, Plus, X, Info, Tag, Building2, Package
 } from 'lucide-react';
 
 // ─────────────────────────────────────────
@@ -321,78 +322,407 @@ function PlanOverview({ onNext }: { onNext: () => void }) {
 }
 
 // ─────────────────────────────────────────
+// ─────────────────────────────────────────
 // S1: 資產庫（Asset Bank，綁定 series_id）
 // ─────────────────────────────────────────
+
+// Sponsor brand library data (mock)
+const SPONSOR_BRANDS = {
+  car: [
+    {
+      id: 'lexus', name: 'Lexus', tier: '白金贊助', logo: '🚗',
+      tagline: '追求卓越，感受每一刻',
+      assets: [
+        { id: 'lx-1', name: 'Lexus LX 600（黑）', type: '行政 SUV', img: 'https://images.unsplash.com/photo-1625047509168-a7026f36de04?w=200&h=140&fit=crop', tag: '場景：夜晚接送' },
+        { id: 'lx-2', name: 'Lexus ES 350（珍珠白）', type: '房車', img: 'https://images.unsplash.com/photo-1617788138017-80ad40651399?w=200&h=140&fit=crop', tag: '場景：日常駕駛' },
+        { id: 'lx-3', name: 'Lexus RX 500h（深藍）', type: '油電SUV', img: 'https://images.unsplash.com/photo-1669215420018-e8f5e27a8a8a?w=200&h=140&fit=crop', tag: '場景：郊遊出行' },
+      ],
+    },
+    {
+      id: 'bmw', name: 'BMW', tier: '金牌贊助', logo: '🚙',
+      tagline: '駕駛的樂趣',
+      assets: [
+        { id: 'bm-1', name: 'BMW 5 Series（暗夜藍）', type: '行政房車', img: 'https://images.unsplash.com/photo-1555215695-3004980ad54e?w=200&h=140&fit=crop', tag: '場景：商務出行' },
+        { id: 'bm-2', name: 'BMW X5（礦石白）', type: '豪華SUV', img: 'https://images.unsplash.com/photo-1617654112368-307921291f42?w=200&h=140&fit=crop', tag: '場景：家庭旅遊' },
+      ],
+    },
+    {
+      id: 'toyota', name: 'Toyota', tier: '銀牌贊助', logo: '🚐',
+      tagline: '永遠向前',
+      assets: [
+        { id: 'ty-1', name: 'Toyota Alphard（珍珠白）', type: '豪華廂型車', img: 'https://images.unsplash.com/photo-1609521263047-f8f205293f24?w=200&h=140&fit=crop', tag: '場景：長者接送' },
+      ],
+    },
+  ],
+  restaurant: [
+    {
+      id: 'maxims', name: '美心集團', tier: '白金贊助', logo: '🍽️',
+      tagline: '香港人的家鄉味道',
+      assets: [
+        { id: 'mx-1', name: '美心皇宮中菜廳（銅鑼灣）', type: '中菜廳', img: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=200&h=140&fit=crop', tag: '場景：家庭飯局' },
+        { id: 'mx-2', name: '翠園餐廳（尖沙咀）', type: '粵式點心', img: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=200&h=140&fit=crop', tag: '場景：週末飲茶' },
+        { id: 'mx-3', name: '美心 MX 快餐廳', type: '快餐', img: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=200&h=140&fit=crop', tag: '場景：街坊日常' },
+      ],
+    },
+    {
+      id: 'fortress-hill', name: '香港酒店集團', tier: '金牌贊助', logo: '🏨',
+      tagline: '',
+      assets: [
+        { id: 'fh-1', name: '半島酒店大堂餐廳', type: '高級西餐', img: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=200&h=140&fit=crop', tag: '場景：重要約會' },
+      ],
+    },
+  ],
+  product: [
+    {
+      id: 'mannings', name: '萬寧 Mannings', tier: '白金贊助', logo: '💊',
+      tagline: '守護每一天的健康',
+      assets: [
+        { id: 'mn-1', name: '萬寧保健品系列', type: '保健產品', img: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=140&fit=crop', tag: '道具：長者關節保健' },
+        { id: 'mn-2', name: '萬寧護膚品系列', type: '護膚品', img: 'https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=200&h=140&fit=crop', tag: '道具：日常護理' },
+      ],
+    },
+    {
+      id: 'pricerite', name: '結志街 / 老字號', tier: '銀牌贊助', logo: '🧧',
+      tagline: '香港老字號，歲月留情',
+      assets: [
+        { id: 'pr-1', name: '旗袍 / 長衫（60年代）', type: '服裝道具', img: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200&h=140&fit=crop', tag: '服裝：懷舊年代劇' },
+        { id: 'pr-2', name: '舊式搪瓷茶杯組', type: '年代道具', img: 'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=200&h=140&fit=crop', tag: '道具：60–70年代' },
+      ],
+    },
+  ],
+  location: [
+    {
+      id: 'hk-tourism', name: '香港旅遊發展局', tier: '白金贊助', logo: '🏙️',
+      tagline: '探索香港，發現更多',
+      assets: [
+        { id: 'hk-1', name: '維多利亞港日景', type: '戶外場景', img: 'https://images.unsplash.com/photo-1536599018102-9f803c140fc1?w=200&h=140&fit=crop', tag: '場景：城市背景' },
+        { id: 'hk-2', name: '大澳漁村', type: '特色場景', img: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=200&h=140&fit=crop', tag: '場景：懷舊漁村' },
+        { id: 'hk-3', name: '中環舊街市建築', type: '歷史場景', img: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=200&h=140&fit=crop', tag: '場景：年代背景' },
+      ],
+    },
+    {
+      id: 'kwun-tong', name: '觀塘工廈文創區', tier: '銀牌贊助', logo: '🏭',
+      tagline: '',
+      assets: [
+        { id: 'kt-1', name: '工廈藝術工作室', type: '室內場景', img: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=200&h=140&fit=crop', tag: '場景：藝術創作' },
+      ],
+    },
+  ],
+};
+
+type SponsorCategory = keyof typeof SPONSOR_BRANDS;
+type SelectedSponsorAsset = { brandId: string; assetId: string; category: SponsorCategory; name: string; img: string; tag: string };
+
+const TIER_COLORS: Record<string, string> = {
+  '白金贊助': 'bg-slate-100 text-slate-700 border-slate-300',
+  '金牌贊助': 'bg-amber-50 text-amber-700 border-amber-300',
+  '銀牌贊助': 'bg-gray-100 text-gray-600 border-gray-300',
+};
+
 function S1AssetBank({ onNext }: { onNext: () => void }) {
-  const assetTypes = [
-    { icon: Users, label: '角色參考圖', count: 0, color: 'text-blue-500', accept: 'JPG/PNG' },
-    { icon: Image, label: '場景參考圖', count: 2, color: 'text-green-500', accept: 'JPG/PNG' },
-    { icon: Camera, label: '道具 / 服裝', count: 0, color: 'text-purple-500', accept: 'JPG/PNG' },
-    { icon: Music, label: '背景音樂', count: 1, color: 'text-amber-500', accept: 'MP3/WAV' },
+  const [activeTab, setActiveTab] = useState<'own' | 'sponsor'>('own');
+  const [sponsorCategory, setSponsorCategory] = useState<SponsorCategory>('car');
+  const [expandedBrand, setExpandedBrand] = useState<string | null>('lexus');
+  const [selectedSponsorAssets, setSelectedSponsorAssets] = useState<SelectedSponsorAsset[]>([]);
+  const [showSponsorInfo, setShowSponsorInfo] = useState(false);
+
+  const sponsorCategories: { id: SponsorCategory; icon: React.ElementType; label: string; desc: string; color: string }[] = [
+    { id: 'car',        icon: Car,             label: '汽車品牌',   desc: '豪華車 / 日系 / 商務',   color: 'text-blue-500' },
+    { id: 'restaurant', icon: UtensilsCrossed,  label: '餐廳 / 食肆', desc: '中菜 / 酒店 / 快餐',    color: 'text-orange-500' },
+    { id: 'product',    icon: ShoppingBag,      label: '產品 / 服裝', desc: '保健 / 護膚 / 年代服飾', color: 'text-purple-500' },
+    { id: 'location',   icon: MapPin,           label: '場景 / 地點', desc: '香港地標 / 特色場所',   color: 'text-green-500' },
   ];
+
+  const ownAssetTypes = [
+    { icon: Users,  label: '角色參考圖', color: 'text-blue-500',   accept: 'JPG / PNG', count: 0 },
+    { icon: Image,  label: '場景參考圖', color: 'text-green-500',  accept: 'JPG / PNG', count: 2 },
+    { icon: Camera, label: '道具 / 服裝', color: 'text-purple-500', accept: 'JPG / PNG', count: 0 },
+    { icon: Music,  label: '背景音樂',   color: 'text-amber-500',  accept: 'MP3 / WAV', count: 1 },
+  ];
+
+  const toggleAsset = (cat: SponsorCategory, brand: { id: string; name: string }, asset: { id: string; name: string; img: string; tag: string }) => {
+    setSelectedSponsorAssets(prev => {
+      const exists = prev.find(a => a.assetId === asset.id);
+      if (exists) return prev.filter(a => a.assetId !== asset.id);
+      return [...prev, { brandId: brand.id, assetId: asset.id, category: cat, name: asset.name, img: asset.img, tag: asset.tag }];
+    });
+  };
+
+  const isSelected = (assetId: string) => selectedSponsorAssets.some(a => a.assetId === assetId);
+
+  const brands = SPONSOR_BRANDS[sponsorCategory];
+  const totalSelected = selectedSponsorAssets.length;
 
   return (
     <div className="max-w-2xl">
+      {/* Header */}
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-primary">S1 · 資產庫</h2>
-        <p className="text-muted text-sm mt-1">上傳系列視覺素材，確保所有集數角色和場景保持一致。</p>
-        <div className="inline-flex items-center gap-1.5 mt-2 bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-medium">
-          <Zap size={11} /> 綁定系列 ID：DRAMA-2026-001
+        <p className="text-muted text-sm mt-1">上傳自有素材，或從贊助商品牌庫選用道具、場景、車輛、產品，豐富劇集視覺並帶來贊助收益。</p>
+        <div className="flex items-center gap-2 mt-2 flex-wrap">
+          <div className="inline-flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-medium">
+            <Zap size={11} /> 綁定系列 ID：DRAMA-2026-001
+          </div>
+          {totalSelected > 0 && (
+            <div className="inline-flex items-center gap-1.5 bg-accent/10 text-accent px-3 py-1 rounded-full text-xs font-medium">
+              <Tag size={11} /> 已選 {totalSelected} 個贊助商資產
+            </div>
+          )}
         </div>
       </div>
 
-      <div className="space-y-4 mb-6">
-        {assetTypes.map((type, i) => (
-          <div key={i} className="bg-card rounded-xl border border-line p-5 shadow-card">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <type.icon size={18} className={type.color} />
-                <span className="font-semibold text-sm text-ink">{type.label}</span>
-                {type.count > 0 && (
-                  <span className="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full">
-                    {type.count} 個已上傳
-                  </span>
-                )}
-              </div>
-              <span className="text-xs text-muted">{type.accept}</span>
-            </div>
-            <div className="border-2 border-dashed border-line rounded-lg p-4 text-center hover:border-primary transition-colors cursor-pointer">
-              <Upload size={20} className="mx-auto text-muted mb-1" />
-              <p className="text-xs text-muted">點擊上傳或拖放</p>
-            </div>
-          </div>
-        ))}
+      {/* Tab switcher */}
+      <div className="flex rounded-xl border border-line overflow-hidden mb-5 bg-bg-soft">
+        <button
+          onClick={() => setActiveTab('own')}
+          className={`flex-1 py-2.5 text-sm font-semibold transition-colors flex items-center justify-center gap-2 ${
+            activeTab === 'own'
+              ? 'bg-primary text-white'
+              : 'text-muted hover:text-ink'
+          }`}
+        >
+          <Upload size={15} /> 自有素材上傳
+        </button>
+        <button
+          onClick={() => setActiveTab('sponsor')}
+          className={`flex-1 py-2.5 text-sm font-semibold transition-colors flex items-center justify-center gap-2 ${
+            activeTab === 'sponsor'
+              ? 'bg-accent text-white'
+              : 'text-muted hover:text-ink'
+          }`}
+        >
+          <Gift size={15} /> 贊助商品牌資產庫
+          {totalSelected > 0 && (
+            <span className="bg-white/25 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">
+              {totalSelected}
+            </span>
+          )}
+        </button>
+      </div>
 
-        {/* 已上傳素材預覽 */}
-        <div className="bg-card rounded-xl border border-line p-5 shadow-card">
-          <h3 className="font-semibold text-ink text-sm mb-3">已上傳素材</h3>
-          <div className="grid grid-cols-4 gap-2">
-            {[
-              'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=120&h=120&fit=crop',
-              'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=120&h=120&fit=crop',
-              'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=120&h=120&fit=crop',
-            ].map((src, i) => (
-              <div key={i} className="relative group">
-                <img src={src} alt="" className="w-full aspect-square object-cover rounded-lg" />
-                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 rounded-lg flex items-center justify-center transition-opacity">
-                  <button className="text-white text-xs">刪除</button>
+      {/* ── TAB: 自有素材 ── */}
+      {activeTab === 'own' && (
+        <div className="space-y-4">
+          {ownAssetTypes.map((type, i) => (
+            <div key={i} className="bg-card rounded-xl border border-line p-5 shadow-card">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <type.icon size={18} className={type.color} />
+                  <span className="font-semibold text-sm text-ink">{type.label}</span>
+                  {type.count > 0 && (
+                    <span className="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full">
+                      {type.count} 個已上傳
+                    </span>
+                  )}
                 </div>
+                <span className="text-xs text-muted">{type.accept}</span>
               </div>
-            ))}
-            <div className="aspect-square border-2 border-dashed border-line rounded-lg flex items-center justify-center cursor-pointer hover:border-primary transition-colors">
-              <span className="text-muted text-2xl">+</span>
+              <div className="border-2 border-dashed border-line rounded-lg p-4 text-center hover:border-primary transition-colors cursor-pointer">
+                <Upload size={20} className="mx-auto text-muted mb-1" />
+                <p className="text-xs text-muted">點擊上傳或拖放</p>
+              </div>
+            </div>
+          ))}
+
+          {/* Preview grid */}
+          <div className="bg-card rounded-xl border border-line p-5 shadow-card">
+            <h3 className="font-semibold text-ink text-sm mb-3">已上傳素材預覽</h3>
+            <div className="grid grid-cols-4 gap-2">
+              {[
+                'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=120&h=120&fit=crop',
+                'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=120&h=120&fit=crop',
+                'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=120&h=120&fit=crop',
+              ].map((src, i) => (
+                <div key={i} className="relative group">
+                  <img src={src} alt="" className="w-full aspect-square object-cover rounded-lg" />
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 rounded-lg flex items-center justify-center transition-opacity">
+                    <button className="text-white text-xs">刪除</button>
+                  </div>
+                </div>
+              ))}
+              <div className="aspect-square border-2 border-dashed border-line rounded-lg flex items-center justify-center cursor-pointer hover:border-primary transition-colors">
+                <Plus size={20} className="text-muted" />
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
-      <button
-        onClick={onNext}
-        className="w-full bg-primary text-white py-3 rounded-xl font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
-      >
-        <ChevronRight size={18} />
-        資產庫確認，進入角色設定
-      </button>
+      {/* ── TAB: 贊助商品牌資產庫 ── */}
+      {activeTab === 'sponsor' && (
+        <div className="space-y-4">
+
+          {/* Info banner */}
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-3">
+            <Gift size={18} className="text-accent flex-shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-amber-800">贊助商品牌資產庫</p>
+              <p className="text-xs text-amber-700 mt-0.5">從認證贊助商品牌庫選用道具、汽車、場景，AI 生成時自動植入品牌視覺，創作者可獲得額外贊助積分或收益分成。</p>
+            </div>
+            <button onClick={() => setShowSponsorInfo(v => !v)} className="flex-shrink-0 text-amber-500 hover:text-amber-700">
+              <Info size={15} />
+            </button>
+          </div>
+
+          {showSponsorInfo && (
+            <div className="bg-card border border-line rounded-xl p-4 text-xs text-muted space-y-1.5">
+              <p className="font-semibold text-ink text-sm">如何運作？</p>
+              <p>① 創作者在資產庫選擇贊助商品牌的汽車 / 場景 / 產品</p>
+              <p>② AI 生成分鏡 / 關鍵幀時自動將品牌資產融入畫面</p>
+              <p>③ 品牌方按曝光集數支付贊助費，分成給創作者（平台收 30%）</p>
+              <p>④ 白金贊助商享有優先曝光，創作者可額外獲得品牌積分</p>
+            </div>
+          )}
+
+          {/* Category selector */}
+          <div className="grid grid-cols-4 gap-2">
+            {sponsorCategories.map(cat => (
+              <button
+                key={cat.id}
+                onClick={() => { setSponsorCategory(cat.id); setExpandedBrand(null); }}
+                className={`p-3 rounded-xl border-2 text-center transition-all ${
+                  sponsorCategory === cat.id
+                    ? 'border-accent bg-accent/5'
+                    : 'border-line hover:border-accent/40 bg-card'
+                }`}
+              >
+                <cat.icon size={20} className={`mx-auto mb-1 ${sponsorCategory === cat.id ? 'text-accent' : cat.color}`} />
+                <p className="text-xs font-semibold text-ink leading-tight">{cat.label}</p>
+                <p className="text-[10px] text-muted mt-0.5 leading-tight hidden sm:block">{cat.desc}</p>
+              </button>
+            ))}
+          </div>
+
+          {/* Brand list */}
+          <div className="space-y-3">
+            {brands.map(brand => {
+              const isExpanded = expandedBrand === brand.id;
+              const brandSelectedCount = selectedSponsorAssets.filter(a => a.brandId === brand.id).length;
+              return (
+                <div key={brand.id} className="bg-card rounded-xl border border-line shadow-card overflow-hidden">
+                  {/* Brand header */}
+                  <button
+                    onClick={() => setExpandedBrand(isExpanded ? null : brand.id)}
+                    className="w-full flex items-center gap-3 p-4 hover:bg-bg-soft transition-colors text-left"
+                  >
+                    <span className="text-2xl flex-shrink-0">{brand.logo}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-bold text-ink text-sm">{brand.name}</span>
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${TIER_COLORS[brand.tier]}`}>
+                          {brand.tier}
+                        </span>
+                        {brandSelectedCount > 0 && (
+                          <span className="bg-accent/10 text-accent text-[10px] font-semibold px-2 py-0.5 rounded-full">
+                            已選 {brandSelectedCount} 項
+                          </span>
+                        )}
+                      </div>
+                      {brand.tagline && <p className="text-xs text-muted mt-0.5 truncate">{brand.tagline}</p>}
+                    </div>
+                    <ChevronDown
+                      size={16}
+                      className={`flex-shrink-0 text-muted transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                    />
+                  </button>
+
+                  {/* Asset grid */}
+                  {isExpanded && (
+                    <div className="px-4 pb-4 border-t border-line pt-3">
+                      <p className="text-xs text-muted mb-3 flex items-center gap-1">
+                        <Package size={11} /> 點擊圖片選用，可多選
+                      </p>
+                      <div className="grid grid-cols-3 gap-3">
+                        {brand.assets.map(asset => {
+                          const selected = isSelected(asset.id);
+                          return (
+                            <button
+                              key={asset.id}
+                              onClick={() => toggleAsset(sponsorCategory, brand, asset)}
+                              className={`rounded-xl overflow-hidden border-2 transition-all text-left ${
+                                selected
+                                  ? 'border-accent ring-2 ring-accent/20'
+                                  : 'border-line hover:border-accent/40'
+                              }`}
+                            >
+                              <div className="relative">
+                                <img src={asset.img} alt={asset.name} className="w-full h-24 object-cover" />
+                                {selected && (
+                                  <div className="absolute inset-0 bg-accent/20 flex items-center justify-center">
+                                    <div className="bg-accent text-white rounded-full p-1">
+                                      <Check size={14} />
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                              <div className="p-2">
+                                <p className="text-xs font-semibold text-ink leading-tight line-clamp-2">{asset.name}</p>
+                                <p className="text-[10px] text-muted mt-0.5">{asset.type}</p>
+                                <span className="inline-block mt-1 bg-primary/8 text-primary text-[10px] px-1.5 py-0.5 rounded leading-tight">
+                                  {asset.tag}
+                                </span>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Selected summary */}
+          {totalSelected > 0 && (
+            <div className="bg-card border border-line rounded-xl p-4">
+              <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                <Check size={14} className="text-accent" />
+                已選贊助商資產（{totalSelected} 項）
+              </h4>
+              <div className="space-y-2">
+                {selectedSponsorAssets.map(asset => (
+                  <div key={asset.assetId} className="flex items-center gap-3 bg-bg-soft rounded-lg p-2">
+                    <img src={asset.img} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-ink truncate">{asset.name}</p>
+                      <p className="text-[10px] text-muted">{asset.tag}</p>
+                    </div>
+                    <button
+                      onClick={() => setSelectedSponsorAssets(prev => prev.filter(a => a.assetId !== asset.assetId))}
+                      className="flex-shrink-0 text-muted hover:text-red-500 transition-colors"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-3 p-3 bg-amber-50 rounded-lg border border-amber-100">
+                <p className="text-xs text-amber-700 flex items-center gap-1.5">
+                  <Zap size={11} />
+                  AI 生成分鏡 / 關鍵幀時將自動植入以上 {totalSelected} 個品牌資產，每集曝光可獲品牌贊助積分。
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* CTA */}
+      <div className="mt-6">
+        <button
+          onClick={onNext}
+          className="w-full bg-primary text-white py-3 rounded-xl font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
+        >
+          <ChevronRight size={18} />
+          資產庫確認，進入角色設定
+        </button>
+        {totalSelected > 0 && (
+          <p className="text-center text-xs text-muted mt-2">
+            已為此系列綁定 {totalSelected} 個贊助商資產，將用於 S4 分鏡生成
+          </p>
+        )}
+      </div>
     </div>
   );
 }
