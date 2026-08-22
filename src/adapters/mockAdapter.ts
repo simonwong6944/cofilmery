@@ -167,6 +167,15 @@ export const mockAdapter: AIAdapter = {
           },
           appearancePrompt_zh: '七十歲男性，短白髮，皮膚黝黑，雙手粗糙有力，慣穿藍色圍裙，眼神溫柔但帶威嚴',
           appearancePrompt_en: 'Male, 70s, short white hair, tanned skin, weathered strong hands, usually wears blue apron, gentle but authoritative eyes',
+          personality: ['重情義', '傳統', '固執', '沉默寡言', '善解人意'],
+          appearanceOptions: {
+            height: '中等身高', build: '壯實', skin: '古銅色',
+            hair: '直髮', hairColor: '全白', hairLength: '短髮',
+            face: '方臉', eyes: '眼神溫和', eyewear: '無眼鏡',
+            facial: '短鬚', posture: '昂首挺胸', style: '廚師圍裙',
+            extraNote: '雙手粗糙有力，慣穿藍色圍裙',
+          },
+          similarityLevel: '極似',
           humanEdited: false,
         },
         {
@@ -204,6 +213,15 @@ export const mockAdapter: AIAdapter = {
           },
           appearancePrompt_zh: '二十五歲男性，身形修長，白色廚師服，戴黑框眼鏡，表情充滿熱情，手腕有小廚刀紋身',
           appearancePrompt_en: 'Male, 25, slim build, white chef uniform, black-rimmed glasses, expressive enthusiastic face, small chef knife tattoo on wrist',
+          personality: ['開朗樂觀', '勵志', '勇於嘗試', '好勝', '念舊'],
+          appearanceOptions: {
+            height: '高挑', build: '纖細', skin: '白皙',
+            hair: '直髮', hairColor: '黑色', hairLength: '短髮',
+            face: '瓜子臉', eyes: '眼神銳利', eyewear: '細框眼鏡',
+            facial: '無鬚', posture: '輕鬆隨意', style: '廚師圍裙',
+            extraNote: '手腕有小廚刀紋身',
+          },
+          similarityLevel: '70%',
           humanEdited: false,
         },
       ];

@@ -79,6 +79,33 @@ export interface TopicOption {
   hook_i18n: I18nText;
 }
 
+// S1 資產庫：贊助商已選資產（存 projectStore，供 S3 元素選擇器讀取）
+export interface SelectedSponsorAsset {
+  brandId: string;
+  assetId: string;
+  category: string;
+  name: string;
+  img: string;
+  tag: string;
+}
+
+// 角色外型選項（存角色層，供 S4/S5 視覺一致性讀取）
+export interface CharacterAppearanceOptions {
+  height: string;
+  build: string;
+  skin: string;
+  hair: string;
+  hairColor: string;
+  hairLength: string;
+  face: string;
+  eyes: string;
+  eyewear: string;
+  facial: string;
+  posture: string;
+  style: string;
+  extraNote: string; // 補充描述（自由填寫）
+}
+
 // 角色卡（存 project 層，整劇共用）
 export interface CharacterCard {
   id: string;
@@ -89,8 +116,13 @@ export interface CharacterCard {
   arc_i18n: I18nText;
   speechStyle_i18n: I18nText;
   relations_i18n: I18nText;
+  // 靈魂欄位 → 用於故事生成
   appearancePrompt_zh: string;
   appearancePrompt_en: string;
+  // 視覺欄位 → 用於 S4/S5 關鍵幀
+  personality: string[];           // 性格特質標籤
+  appearanceOptions: CharacterAppearanceOptions; // 外型細節
+  similarityLevel: string;         // 極似 / 70% / 神韻
   humanEdited: boolean;
 }
 

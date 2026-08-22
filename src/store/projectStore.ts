@@ -6,7 +6,7 @@
  */
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { CharacterCard, EpisodeStoryCard, SeriesContext, TopicOption } from '@/adapters/types';
+import type { CharacterCard, EpisodeStoryCard, SeriesContext, TopicOption, SelectedSponsorAsset } from '@/adapters/types';
 import type { AestheticOutput } from '@/components/shared/AestheticComposer';
 
 interface ProjectState {
@@ -24,6 +24,9 @@ interface ProjectState {
   // ── 全劇美學鎖（S3→S4 之間設定，全劇繼承）────────────────
   aestheticLock: AestheticOutput | null;
 
+  // ── S1 資產庫已選贊助商資產（供 S3 元素選擇器讀取）──────
+  selectedSponsorAssets: SelectedSponsorAsset[];
+
   // ── Co-create 標記 ─────────────────────────────────────────
   isCoCreated: boolean;
   coCreateNote: string;
@@ -39,6 +42,7 @@ interface ProjectState {
   setCharacters: (chars: CharacterCard[]) => void;
   setStoryCards: (cards: EpisodeStoryCard[]) => void;
   setAestheticLock: (lock: AestheticOutput | null) => void;
+  setSelectedSponsorAssets: (assets: SelectedSponsorAsset[]) => void;
   setCoCreated: (flag: boolean, note?: string) => void;
   setCurrentEpisode: (ep: number) => void;
   getStoryCard: (episodeNumber: number) => EpisodeStoryCard | null;
@@ -47,8 +51,8 @@ interface ProjectState {
 
 const INITIAL: Omit<ProjectState,
   'setProjectId' | 'setContext' | 'setSelectedTopic' | 'setOutline' |
-  'setCharacters' | 'setStoryCards' | 'setAestheticLock' | 'setCoCreated' |
-  'setCurrentEpisode' | 'getStoryCard' | 'reset'
+  'setCharacters' | 'setStoryCards' | 'setAestheticLock' | 'setSelectedSponsorAssets' |
+  'setCoCreated' | 'setCurrentEpisode' | 'getStoryCard' | 'reset'
 > = {
   projectId: 'demo-project',
   projectTitle: '街市情緣',
@@ -58,6 +62,7 @@ const INITIAL: Omit<ProjectState,
   characters: [],
   storyCards: [],
   aestheticLock: null,
+  selectedSponsorAssets: [],
   isCoCreated: false,
   coCreateNote: '',
   currentEpisode: 1,
@@ -85,6 +90,8 @@ export const useProjectStore = create<ProjectState>()(
 
       setAestheticLock: (lock) => set({ aestheticLock: lock }),
 
+      setSelectedSponsorAssets: (assets) => set({ selectedSponsorAssets: assets }),
+
       setCoCreated: (flag, note) => set({
         isCoCreated: flag,
         ...(note !== undefined ? { coCreateNote: note } : {}),
@@ -110,6 +117,7 @@ export const useProjectStore = create<ProjectState>()(
         characters: state.characters,
         storyCards: state.storyCards,
         aestheticLock: state.aestheticLock,
+        selectedSponsorAssets: state.selectedSponsorAssets,
         isCoCreated: state.isCoCreated,
         coCreateNote: state.coCreateNote,
         currentEpisode: state.currentEpisode,

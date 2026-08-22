@@ -425,7 +425,8 @@ const SPONSOR_BRANDS = {
 };
 
 type SponsorCategory = keyof typeof SPONSOR_BRANDS;
-type SelectedSponsorAsset = { brandId: string; assetId: string; category: SponsorCategory; name: string; img: string; tag: string };
+// category 用 string（而非 SponsorCategory）以兼容 projectStore 的 SelectedSponsorAsset 型別
+type SelectedSponsorAsset = { brandId: string; assetId: string; category: string; name: string; img: string; tag: string };
 
 const TIER_COLORS: Record<string, string> = {
   '白金贊助': 'bg-slate-100 text-slate-700 border-slate-300',
@@ -553,10 +554,15 @@ function S1AssetBank({ onNext }: { onNext: () => void }) {
   const { locale } = useLocaleStore();
   const tr = t();
   void locale;
+  // 從 store 讀取已選贊助商（re-entrant 時保留），並可寫回 store
+  const {
+    selectedSponsorAssets: storedSponsorAssets,
+    setSelectedSponsorAssets: storeSetSponsorAssets,
+  } = useProjectStore();
   const [activeTab, setActiveTab] = useState<'own' | 'sponsor'>('own');
   const [sponsorCategory, setSponsorCategory] = useState<SponsorCategory>('car');
   const [expandedBrand, setExpandedBrand] = useState<string | null>('lexus');
-  const [selectedSponsorAssets, setSelectedSponsorAssets] = useState<SelectedSponsorAsset[]>([]);
+  const [selectedSponsorAssets, setSelectedSponsorAssets] = useState<SelectedSponsorAsset[]>(storedSponsorAssets);
   const [showSponsorInfo, setShowSponsorInfo] = useState(false);
 
   const sponsorCategories: { id: SponsorCategory; icon: React.ElementType; label: string; desc: string; color: string }[] = [
@@ -844,7 +850,11 @@ function S1AssetBank({ onNext }: { onNext: () => void }) {
       {/* CTA */}
       <div className="mt-6">
         <button
-          onClick={onNext}
+          onClick={() => {
+            // 存入 projectStore 供 S3 讀取
+            storeSetSponsorAssets(selectedSponsorAssets);
+            onNext();
+          }}
           className="w-full bg-primary text-white py-3 rounded-xl font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
         >
           <ChevronRight size={18} />
@@ -869,39 +879,82 @@ type AppearanceOptions = {
   hair: string; hairColor: string; hairLength: string;
   face: string; eyes: string; eyewear: string;
   facial: string; posture: string; style: string;
+  extraNote: string; // 補充描述（自由填寫）
 };
 
 const DEFAULT_APPEARANCE: AppearanceOptions = {
   height: '', build: '', skin: '', hair: '', hairColor: '', hairLength: '',
   face: '', eyes: '', eyewear: '', facial: '', posture: '', style: '',
+  extraNote: '',
 };
+
+// 將 AppearanceOptions 轉成中文摘要字串供 AI prompt 導入
+function buildAppearanceSummary(a: AppearanceOptions): string {
+  return [
+    a.height, a.build,
+    a.skin ? a.skin + '膚色' : '',
+    a.hairLength && a.hairColor ? `${a.hairColor}${a.hairLength}${a.hair || ''}` : (a.hair || ''),
+    a.face ? a.face + '臉型' : '',
+    a.eyewear && a.eyewear !== '無眼鏡' ? a.eyewear : '',
+    a.facial && a.facial !== '無鬚' ? a.facial : '',
+    a.eyes, a.posture, a.style,
+    a.extraNote,
+  ].filter(Boolean).join('，');
+}
 
 // ── Shared: CharacterProfileCard ────────────────────────────────────────────
 function CharacterProfileCard({
   img, name, role, age, bg, similarity, setSimilarity, mode,
+  initialTraits, initialAppearance,
+  onTraitsChange, onAppearanceChange,
 }: {
   img: string; name: string; role: string; age: string; bg: string;
   similarity: string; setSimilarity: (v: string) => void;
   mode: 'drama' | 'legacy';
+  initialTraits?: string[];
+  initialAppearance?: AppearanceOptions;
+  onTraitsChange?: (t: string[]) => void;
+  onAppearanceChange?: (a: AppearanceOptions) => void;
 }) {
   const { locale } = useLocaleStore();
   const tr = t();
   void locale;
-  const [traits, setTraits] = useState(['開朗樂觀', '勤力', '重情義', '愛說故事', '傳統']);
+  const [traits, setTraits] = useState(initialTraits ?? ['開朗樂觀', '勤力', '重情義', '愛說故事', '傳統']);
   const [newTrait, setNewTrait] = useState('');
   const [addingTrait, setAddingTrait] = useState(false);
-  const [appearance, setAppearance] = useState<AppearanceOptions>(DEFAULT_APPEARANCE);
+  const [appearance, setAppearance] = useState<AppearanceOptions>(initialAppearance ?? DEFAULT_APPEARANCE);
   const [showAppearance, setShowAppearance] = useState(false);
 
-  const removeTrait = (t: string) => setTraits(prev => prev.filter(x => x !== t));
+  const removeTrait = (t: string) => {
+    const next = traits.filter(x => x !== t);
+    setTraits(next);
+    onTraitsChange?.(next);
+  };
   const addTrait = () => {
     const v = newTrait.trim();
-    if (v && !traits.includes(v)) setTraits(prev => [...prev, v]);
+    if (v && !traits.includes(v)) {
+      const next = [...traits, v];
+      setTraits(next);
+      onTraitsChange?.(next);
+    }
     setNewTrait(''); setAddingTrait(false);
   };
+  const addPresetTrait = (p: string) => {
+    const next = [...traits, p];
+    setTraits(next);
+    onTraitsChange?.(next);
+  };
 
-  const setApp = (k: keyof AppearanceOptions, v: string) =>
-    setAppearance(prev => ({ ...prev, [k]: prev[k] === v ? '' : v }));
+  const setApp = (k: keyof AppearanceOptions, v: string) => {
+    const next = { ...appearance, [k]: appearance[k] === v ? '' : v };
+    setAppearance(next);
+    onAppearanceChange?.(next);
+  };
+  const setAppText = (k: keyof AppearanceOptions, v: string) => {
+    const next = { ...appearance, [k]: v };
+    setAppearance(next);
+    onAppearanceChange?.(next);
+  };
 
   const simColors = [
     { color: 'bg-green-500', border: 'border-green-500', bg: 'bg-green-50' },
@@ -1023,7 +1076,7 @@ function CharacterProfileCard({
             {TRAIT_PRESETS.filter(p => !traits.includes(p)).map(p => (
               <button
                 key={p}
-                onClick={() => setTraits(prev => [...prev, p])}
+                onClick={() => addPresetTrait(p)}
                 className="text-[11px] text-muted border border-line px-2.5 py-0.5 rounded-full hover:border-primary hover:text-primary transition-colors"
               >
                 + {p}
@@ -1084,23 +1137,16 @@ function CharacterProfileCard({
                 className="w-full border border-line rounded-lg px-3 py-2 text-xs bg-bg-soft focus:outline-none focus:border-primary resize-none"
                 rows={2}
                 placeholder={s2tr.supplementPlaceholder}
+                value={appearance.extraNote}
+                onChange={e => setAppText('extraNote', e.target.value)}
               />
             </div>
 
             {/* Preview summary */}
-            {Object.values(appearance).some(Boolean) && (
+            {Object.entries(appearance).some(([k, v]) => k !== 'extraNote' && v) && (
               <div className="bg-primary/5 border border-primary/20 rounded-lg p-3">
                 <p className="text-xs text-primary font-semibold mb-1">{s2tr.appearancePreview}</p>
-                <p className="text-xs text-ink leading-relaxed">
-                  {[
-                    appearance.height, appearance.build,
-                    appearance.skin ? appearance.skin + '膚色' : '',
-                    appearance.hairLength && appearance.hairColor ? `${appearance.hairColor}${appearance.hairLength}${appearance.hair || ''}` : (appearance.hair || ''),
-                    appearance.face, appearance.eyewear !== '無眼鏡' ? appearance.eyewear : '',
-                    appearance.facial !== '無鬚' ? appearance.facial : '',
-                    appearance.eyes, appearance.posture, appearance.style,
-                  ].filter(Boolean).join('，')}
-                </p>
+                <p className="text-xs text-ink leading-relaxed">{buildAppearanceSummary(appearance)}</p>
               </div>
             )}
           </div>
@@ -1233,9 +1279,10 @@ function S3StoryFramework({ onNext }: { onNext: () => void }) {
   void locale;
   const sa = tr.storyArchitect;
 
-  // 從 store 讀取 S2 角色資料（作為生成上下文）
+  // 從 store 讀取 S2 角色資料（作為生成上下文）及 S1 贊助商已選資產
   const {
     characters: storedCharacters,
+    selectedSponsorAssets: storedSponsorAssets,
     setSelectedTopic: storeSetTopic,
     setOutline: storeSetOutline,
     setStoryCards: storeSetStoryCards,
@@ -1335,7 +1382,8 @@ function S3StoryFramework({ onNext }: { onNext: () => void }) {
         <S1cEpisodes
           context={context}
           outline={outline}
-          characters={storedCharacters}   // ← 讀取 S2 角色作為故事生成上下文
+          characters={storedCharacters}        // ← S2 角色（作為故事生成上下文）
+          sponsorAssets={storedSponsorAssets}  // ← S1 贊助商已選（作為元素選擇器資料源）
           onAccept={(cards) => {
             setStoryCards(cards);
             storeSetStoryCards(cards);

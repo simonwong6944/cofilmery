@@ -11,12 +11,12 @@ import { openRouterAdapter as aiAdapter } from '@/adapters/mockAdapter';
 import { CREDIT } from '@/credit-config';
 import type {
   SeriesContext, TopicOption, CharacterCard, EpisodeStoryCard,
-  ArchitectResponse,
+  ArchitectResponse, SelectedSponsorAsset,
 } from '@/adapters/types';
 import {
   RefreshCw, Check, Edit3, ChevronDown, ChevronUp,
   Sparkles, Users, BookOpen, Film, Plus, X, Save,
-  Mic, Star, AlertCircle, Loader2,
+  Mic, Star, AlertCircle, Loader2, Package, ArrowLeft,
 } from 'lucide-react';
 
 // ── 記錄 architect_actions 至後端 D1（fire-and-forget）────────────────
@@ -642,14 +642,47 @@ export function S2Characters({ context, onAccept }: S2CharactersProps) {
 }
 
 // ── S1c 逐集故事卡 ────────────────────────────────────────────────────
+// 本集元素（每集故事卡各自維持）
+interface EpisodeElements {
+  characterIds: string[];       // 出場角色（來自 S2）
+  sponsorProductIds: string[];  // 贊助商產品置入（來自 S1 已選）
+  ownAssetTags: string[];       // 資產/場景標籤（自由加）
+  props: string[];              // 道具/物件（自由填寫）
+  propInput: string;            // 道具輸入暫存
+}
+const DEFAULT_ELEMENTS: EpisodeElements = {
+  characterIds: [], sponsorProductIds: [], ownAssetTags: [], props: [], propInput: '',
+};
+
+// 將本集元素轉成 humanInput 文字，注入 AI prompt
+function buildElementsHint(el: EpisodeElements, characters: CharacterCard[], sponsorAssets: SelectedSponsorAsset[]): string {
+  const parts: string[] = [];
+  if (el.characterIds.length > 0) {
+    const names = el.characterIds.map(id => characters.find(c => c.id === id)?.name_i18n['zh-HK'] ?? id);
+    parts.push(`本集出場角色：${names.join('、')}`);
+  }
+  if (el.sponsorProductIds.length > 0) {
+    const prods = el.sponsorProductIds.map(id => sponsorAssets.find(a => a.assetId === id)?.name ?? id);
+    parts.push(`本集須自然植入贊助商產品：${prods.join('、')}（請融入劇情，避免硬銷）`);
+  }
+  if (el.ownAssetTags.length > 0) {
+    parts.push(`本集資產/場景：${el.ownAssetTags.join('、')}`);
+  }
+  if (el.props.length > 0) {
+    parts.push(`本集道具/物件：${el.props.join('、')}`);
+  }
+  return parts.join('\n');
+}
+
 interface S1cEpisodesProps {
   context: SeriesContext;
   outline: { episodeNumber: number; title_i18n: { 'zh-HK': string; en: string; 'zh-CN': string }; oneLine_i18n: { 'zh-HK': string; en: string; 'zh-CN': string } }[];
   characters: CharacterCard[];
+  sponsorAssets?: SelectedSponsorAsset[]; // S1 已選贊助商資產（唯一資料源）
   onAccept: (cards: EpisodeStoryCard[]) => void;
 }
 
-export function S1cEpisodes({ context, outline, characters, onAccept }: S1cEpisodesProps) {
+export function S1cEpisodes({ context, outline, characters, sponsorAssets = [], onAccept }: S1cEpisodesProps) {
   const { locale } = useLocaleStore();
   const tr = t();
   void locale;
@@ -662,6 +695,15 @@ export function S1cEpisodes({ context, outline, characters, onAccept }: S1cEpiso
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const [editing, setEditing] = useState<number | null>(null);
   const [editBody, setEditBody] = useState('');
+  // 每集的本集元素（各自獨立）
+  const [episodeElements, setEpisodeElements] = useState<Record<number, EpisodeElements>>({});
+  // 控制每集元素選擇器是否展開
+  const [elementsExpanded, setElementsExpanded] = useState<Set<number>>(new Set());
+
+  const getElements = (epNum: number): EpisodeElements =>
+    episodeElements[epNum] ?? DEFAULT_ELEMENTS;
+  const updateElements = (epNum: number, patch: Partial<EpisodeElements>) =>
+    setEpisodeElements(prev => ({ ...prev, [epNum]: { ...getElements(epNum), ...patch } }));
 
   const expandEpisode = async (epNum: number) => {
     if (cards[epNum]) {
@@ -670,8 +712,10 @@ export function S1cEpisodes({ context, outline, characters, onAccept }: S1cEpiso
     }
     setLoading(prev => ({ ...prev, [epNum]: true }));
     try {
+      const elemHint = buildElementsHint(getElements(epNum), characters, sponsorAssets);
       const res = await aiAdapter.generateArchitect({
         stage: 'episodes', context, characters, targetEpisode: epNum,
+        humanInput: elemHint || undefined,
       });
       if (res.storyCard) {
         setCards(prev => ({ ...prev, [epNum]: res.storyCard! }));
@@ -686,8 +730,10 @@ export function S1cEpisodes({ context, outline, characters, onAccept }: S1cEpiso
   const regenerateEpisode = async (epNum: number) => {
     setLoading(prev => ({ ...prev, [epNum]: true }));
     try {
+      const elemHint = buildElementsHint(getElements(epNum), characters, sponsorAssets);
       const res = await aiAdapter.generateArchitect({
         stage: 'episodes', context, characters, targetEpisode: epNum,
+        humanInput: elemHint || undefined,
       });
       if (res.storyCard) {
         setCards(prev => ({ ...prev, [epNum]: res.storyCard! }));
@@ -747,6 +793,27 @@ export function S1cEpisodes({ context, outline, characters, onAccept }: S1cEpiso
                   <p className="text-sm font-semibold text-ink truncate">{ep.title_i18n[loc]}</p>
                   <p className="text-xs text-muted truncate">{ep.oneLine_i18n[loc]}</p>
                 </div>
+                {/* 元素選擇器切換按鈕 */}
+                <button
+                  onClick={() => setElementsExpanded(prev => {
+                    const s = new Set(prev);
+                    s.has(ep.episodeNumber) ? s.delete(ep.episodeNumber) : s.add(ep.episodeNumber);
+                    return s;
+                  })}
+                  className={`flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-lg border transition-colors shrink-0 ${
+                    elementsExpanded.has(ep.episodeNumber)
+                      ? 'border-amber-400 text-amber-700 bg-amber-50'
+                      : 'border-line text-muted hover:border-amber-300 hover:text-amber-600'
+                  }`}
+                  title="設定本集元素"
+                >
+                  <Package size={10} />
+                  {(() => {
+                    const el = getElements(ep.episodeNumber);
+                    const count = el.characterIds.length + el.sponsorProductIds.length + el.ownAssetTags.length + el.props.length;
+                    return count > 0 ? `元素 ${count}` : '元素';
+                  })()}
+                </button>
                 {!card && (
                   <button
                     onClick={() => expandEpisode(ep.episodeNumber)}
@@ -767,6 +834,170 @@ export function S1cEpisodes({ context, outline, characters, onAccept }: S1cEpiso
                   </button>
                 )}
               </div>
+
+              {/* ── 本集元素選擇器（只讀 S1/S2 已選範圍）── */}
+              {elementsExpanded.has(ep.episodeNumber) && (() => {
+                const el = getElements(ep.episodeNumber);
+                return (
+                  <div className="p-4 border-t border-amber-100 bg-amber-50/40 space-y-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Package size={13} className="text-amber-600" />
+                      <span className="text-xs font-semibold text-amber-800">本集元素（生成/重新生成時 AI 會將以下元素織入故事）</span>
+                    </div>
+
+                    {/* 1. 出場角色（來自 S2） */}
+                    <div>
+                      <p className="text-[11px] font-semibold text-ink mb-1.5 flex items-center gap-1">
+                        <Users size={11} className="text-primary" /> 出場角色
+                        <span className="text-muted font-normal">（來自 S2 角色設定）</span>
+                      </p>
+                      {characters.length === 0 ? (
+                        <div className="flex items-center gap-2 text-xs text-muted bg-white rounded-lg px-3 py-2 border border-dashed border-line">
+                          <ArrowLeft size={11} />
+                          未從 S2 設定角色，可返回 S2 補充
+                        </div>
+                      ) : (
+                        <div className="flex flex-wrap gap-1.5">
+                          {characters.map(c => {
+                            const selected = el.characterIds.includes(c.id);
+                            return (
+                              <button
+                                key={c.id}
+                                onClick={() => updateElements(ep.episodeNumber, {
+                                  characterIds: selected
+                                    ? el.characterIds.filter(id => id !== c.id)
+                                    : [...el.characterIds, c.id],
+                                })}
+                                className={`text-[11px] px-2.5 py-1 rounded-full border transition-all ${
+                                  selected
+                                    ? 'bg-primary text-white border-primary'
+                                    : 'border-line text-muted hover:border-primary hover:text-primary bg-white'
+                                }`}
+                              >
+                                {selected && <Check size={9} className="inline mr-0.5" />}
+                                {c.name_i18n['zh-HK']}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 2. 贊助商產品置入（來自 S1 已選） */}
+                    <div>
+                      <p className="text-[11px] font-semibold text-ink mb-1.5 flex items-center gap-1">
+                        <Sparkles size={11} className="text-amber-500" /> 贊助商產品置入
+                        <span className="text-muted font-normal">（只顯示 S1 資產庫已選產品）</span>
+                      </p>
+                      {sponsorAssets.length === 0 ? (
+                        <div className="flex items-center gap-2 text-xs text-muted bg-white rounded-lg px-3 py-2 border border-dashed border-line">
+                          <ArrowLeft size={11} />
+                          未從資產庫選取贊助商產品，可返回 S1 補充
+                        </div>
+                      ) : (
+                        <div className="flex flex-wrap gap-1.5">
+                          {sponsorAssets.map(asset => {
+                            const selected = el.sponsorProductIds.includes(asset.assetId);
+                            return (
+                              <button
+                                key={asset.assetId}
+                                onClick={() => updateElements(ep.episodeNumber, {
+                                  sponsorProductIds: selected
+                                    ? el.sponsorProductIds.filter(id => id !== asset.assetId)
+                                    : [...el.sponsorProductIds, asset.assetId],
+                                })}
+                                className={`flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full border transition-all ${
+                                  selected
+                                    ? 'bg-amber-500 text-white border-amber-500'
+                                    : 'border-line text-muted hover:border-amber-400 hover:text-amber-700 bg-white'
+                                }`}
+                              >
+                                {selected && <Check size={9} />}
+                                {asset.name}
+                                <span className={`text-[9px] ${selected ? 'text-amber-100' : 'text-muted'}`}>{asset.tag}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 3. 資產/場景標籤（自由加，來自 S1 自有素材描述） */}
+                    <div>
+                      <p className="text-[11px] font-semibold text-ink mb-1.5 flex items-center gap-1">
+                        <Film size={11} className="text-green-600" /> 資產/場景
+                        <span className="text-muted font-normal">（自由標記本集場景）</span>
+                      </p>
+                      <div className="flex flex-wrap gap-1.5 mb-1.5">
+                        {el.ownAssetTags.map(tag => (
+                          <span key={tag} className="inline-flex items-center gap-1 text-[11px] bg-green-100 text-green-700 px-2.5 py-0.5 rounded-full border border-green-200">
+                            {tag}
+                            <button onClick={() => updateElements(ep.episodeNumber, { ownAssetTags: el.ownAssetTags.filter(t => t !== tag) })}>
+                              <X size={9} />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                      <div className="flex gap-1.5">
+                        <input
+                          className="flex-1 text-[11px] border border-line rounded-lg px-2.5 py-1 bg-white focus:outline-none focus:border-green-400"
+                          placeholder="例：街市攤檔、舊式公屋走廊…"
+                          value={el.propInput + ''}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter' && (e.target as HTMLInputElement).value.trim()) {
+                              const v = (e.target as HTMLInputElement).value.trim();
+                              if (!el.ownAssetTags.includes(v)) updateElements(ep.episodeNumber, { ownAssetTags: [...el.ownAssetTags, v] });
+                              (e.target as HTMLInputElement).value = '';
+                            }
+                          }}
+                        />
+                        <span className="text-[10px] text-muted self-center">Enter 加入</span>
+                      </div>
+                    </div>
+
+                    {/* 4. 道具/物件（自由填寫） */}
+                    <div>
+                      <p className="text-[11px] font-semibold text-ink mb-1.5 flex items-center gap-1">
+                        <BookOpen size={11} className="text-violet-600" /> 道具/物件
+                        <span className="text-muted font-normal">（自由加入）</span>
+                      </p>
+                      <div className="flex flex-wrap gap-1.5 mb-1.5">
+                        {el.props.map(prop => (
+                          <span key={prop} className="inline-flex items-center gap-1 text-[11px] bg-violet-100 text-violet-700 px-2.5 py-0.5 rounded-full border border-violet-200">
+                            {prop}
+                            <button onClick={() => updateElements(ep.episodeNumber, { props: el.props.filter(p => p !== prop) })}>
+                              <X size={9} />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                      <div className="flex gap-1.5">
+                        <input
+                          className="flex-1 text-[11px] border border-line rounded-lg px-2.5 py-1 bg-white focus:outline-none focus:border-violet-400"
+                          placeholder="例：一封手寫信、舊單車…"
+                          value={el.propInput}
+                          onChange={e => updateElements(ep.episodeNumber, { propInput: e.target.value })}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter' && el.propInput.trim()) {
+                              if (!el.props.includes(el.propInput.trim()))
+                                updateElements(ep.episodeNumber, { props: [...el.props, el.propInput.trim()], propInput: '' });
+                            }
+                          }}
+                        />
+                        <button
+                          onClick={() => {
+                            if (el.propInput.trim() && !el.props.includes(el.propInput.trim()))
+                              updateElements(ep.episodeNumber, { props: [...el.props, el.propInput.trim()], propInput: '' });
+                          }}
+                          className="text-[11px] bg-violet-600 text-white px-2.5 py-1 rounded-lg hover:bg-violet-700 transition-colors"
+                        >
+                          <Plus size={10} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* 展開的故事卡內容 */}
               {card && isExp && (
