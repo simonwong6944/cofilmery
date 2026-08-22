@@ -1199,25 +1199,86 @@ function S2CharacterSetup({ onNext }: { onNext: () => void }) {
   const tr = t();
   void locale;
 
-  // 從 store 讀取已有角色（re-entrant：返回時保留）
   const { characters: storedCharacters, setCharacters: storeSetCharacters } = useProjectStore();
 
-  // 固定的系列上下文（之後可從 S0 store 讀取）
-  const context: SeriesContext = {
-    seriesTitle: '街市情緣',
-    genre: 'dream',
-    tone: 'warm',
-    coreNeed: 'seen',
-    episodeCount: 30,
-    durationLabel: '60秒',
-    mode: 'drama',
-  };
+  // 預設兩個角色（若 store 已有則以 store 為準）
+  const DEFAULT_CHARS = [
+    {
+      id: 'char-1',
+      img: 'https://images.unsplash.com/photo-1546961342-ea5f62d5a27b?w=200&h=200&fit=crop',
+      name: '陳伯（陳錦榮）',
+      role: '街市豬肉檔主',
+      age: '68歲',
+      bg: '四十年老街坊，年輕時有廚師夢',
+      similarity: tr.creator.drama.s2.simVeryClose,
+      traits: ['重情義', '傳統', '固執', '沉默寡言', '善解人意'],
+      appearance: {
+        height: '中等身高', build: '壯實', skin: '古銅色',
+        hair: '直髮', hairColor: '全白', hairLength: '短髮',
+        face: '方臉', eyes: '眼神溫和', eyewear: '無眼鏡',
+        facial: '短鬚', posture: '昂首挺胸', style: '廚師圍裙',
+        extraNote: '雙手粗糙有力，慣穿藍色圍裙',
+      } as AppearanceOptions,
+    },
+    {
+      id: 'char-2',
+      img: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop',
+      name: '阿明（李志明）',
+      role: '廚藝班學員',
+      age: '28歲',
+      bg: '熱愛烹飪，新開廚藝班',
+      similarity: tr.creator.drama.s2.simSeventyPct,
+      traits: ['開朗樂觀', '勵志', '勇於嘗試', '好勝', '念舊'],
+      appearance: {
+        height: '高挑', build: '纖細', skin: '白皙',
+        hair: '直髮', hairColor: '黑色', hairLength: '短髮',
+        face: '瓜子臉', eyes: '眼神銳利', eyewear: '細框眼鏡',
+        facial: '無鬚', posture: '輕鬆隨意', style: '廚師圍裙',
+        extraNote: '手腕有小廚刀紋身',
+      } as AppearanceOptions,
+    },
+  ];
 
-  const handleAccept = (chars: CharacterCard[]) => {
+  // 每個角色卡的 traits / appearance / similarity 獨立 state
+  const [cardTraits, setCardTraits] = useState<Record<string, string[]>>(
+    () => Object.fromEntries(DEFAULT_CHARS.map(c => [c.id, c.traits]))
+  );
+  const [cardAppearance, setCardAppearance] = useState<Record<string, AppearanceOptions>>(
+    () => Object.fromEntries(DEFAULT_CHARS.map(c => [c.id, c.appearance]))
+  );
+  const [cardSimilarity, setCardSimilarity] = useState<Record<string, string>>(
+    () => Object.fromEntries(DEFAULT_CHARS.map(c => [c.id, c.similarity]))
+  );
+
+  const handleSaveAndNext = () => {
+    // 把 CharacterProfileCard 的資料寫回 store
+    const chars: CharacterCard[] = storedCharacters.length > 0
+      ? storedCharacters.map(c => ({
+          ...c,
+          personality: cardTraits[c.id] ?? [],
+          appearanceOptions: cardAppearance[c.id] ?? DEFAULT_APPEARANCE,
+          similarityLevel: cardSimilarity[c.id] ?? '',
+        }))
+      : DEFAULT_CHARS.map(c => ({
+          id: c.id,
+          name_i18n: { 'zh-HK': c.name, en: c.name, 'zh-CN': c.name },
+          identityTag_i18n: { 'zh-HK': c.role, en: c.role, 'zh-CN': c.role },
+          coreDesire_i18n: { 'zh-HK': '', en: '', 'zh-CN': '' },
+          traitsConflict_i18n: { 'zh-HK': '', en: '', 'zh-CN': '' },
+          arc_i18n: { 'zh-HK': '', en: '', 'zh-CN': '' },
+          speechStyle_i18n: { 'zh-HK': '', en: '', 'zh-CN': '' },
+          relations_i18n: { 'zh-HK': '', en: '', 'zh-CN': '' },
+          appearancePrompt_zh: buildAppearanceSummary(c.appearance),
+          personality: cardTraits[c.id] ?? c.traits,
+          appearanceOptions: cardAppearance[c.id] ?? c.appearance,
+          similarityLevel: cardSimilarity[c.id] ?? c.similarity,
+          humanEdited: false,
+        }));
     storeSetCharacters(chars);
-    // 注意：不清空 S3 資料（不呼叫 setSelectedTopic/setOutline/setStoryCards）
     onNext();
   };
+
+  const displayChars = DEFAULT_CHARS;
 
   return (
     <div className="max-w-2xl space-y-4">
@@ -1229,38 +1290,49 @@ function S2CharacterSetup({ onNext }: { onNext: () => void }) {
         <p className="text-muted text-sm mt-1">先定 1–2 個主角，配角隨時可回頭補充。靈魂欄位餵給故事生成，視覺欄位餵給關鍵幀。</p>
       </div>
 
-      {/* 已有角色時顯示已存角色提示 */}
-      {storedCharacters.length > 0 && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 flex items-center gap-3">
-          <Users size={16} className="text-blue-500 shrink-0" />
-          <div>
-            <p className="text-sm font-semibold text-blue-800">已有 {storedCharacters.length} 個角色</p>
-            <p className="text-xs text-blue-600">返回編輯唔會清空 S3 已生成的故事框架。</p>
+      {/* 角色卡列表 — 使用 CharacterProfileCard（含個性特質 + 外型細節） */}
+      {displayChars.map(c => (
+        <div key={c.id}>
+          <div className="flex items-center gap-2 mb-2">
+            <span className="w-5 h-5 rounded-full bg-primary/10 text-primary text-[10px] font-bold flex items-center justify-center">
+              {c.id === 'char-1' ? '主' : '配'}
+            </span>
+            <span className="text-sm font-semibold text-ink">{c.name}</span>
           </div>
+          <CharacterProfileCard
+            img={c.img}
+            name={c.name}
+            role={c.role}
+            age={c.age}
+            bg={c.bg}
+            similarity={cardSimilarity[c.id] ?? c.similarity}
+            setSimilarity={v => setCardSimilarity(prev => ({ ...prev, [c.id]: v }))}
+            mode="drama"
+            initialTraits={cardTraits[c.id]}
+            initialAppearance={cardAppearance[c.id]}
+            onTraitsChange={ts => setCardTraits(prev => ({ ...prev, [c.id]: ts }))}
+            onAppearanceChange={ap => setCardAppearance(prev => ({ ...prev, [c.id]: ap }))}
+          />
         </div>
-      )}
+      ))}
 
-      {/* 使用 StoryArchitect 的 S2Characters 元件（靈魂欄位完整） */}
-      <S2Characters
-        context={context}
-        onAccept={handleAccept}
-      />
+      {/* 新增角色按鈕 */}
+      <button className="w-full border-2 border-dashed border-line rounded-xl p-3 flex items-center justify-center gap-2 text-muted hover:border-primary hover:text-primary transition-colors text-sm">
+        <Plus size={16} /> 新增角色
+      </button>
 
-      {/* 主角已定，快速過關 CTA */}
+      {/* CTA */}
       <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center justify-between gap-4">
         <div>
-          <p className="text-sm font-semibold text-amber-800">只定主角，稍後補配角？</p>
-          <p className="text-xs text-amber-600 mt-0.5">S2 隨時可回頭新增或修改角色，不影響已生成的故事。</p>
+          <p className="text-sm font-semibold text-amber-800">角色設定完成？</p>
+          <p className="text-xs text-amber-600 mt-0.5">個性特質和外型細節已儲存，S3 故事生成會自動帶入。</p>
         </div>
         <button
-          onClick={() => {
-            // 允許「淨係主角」過關：即使無角色也可進入 S3
-            onNext();
-          }}
+          onClick={handleSaveAndNext}
           className="shrink-0 flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors whitespace-nowrap"
         >
           <ChevronRight size={15} />
-          主角已定，開始寫故事
+          儲存並進入故事框架
         </button>
       </div>
     </div>
