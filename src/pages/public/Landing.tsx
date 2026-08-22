@@ -4,8 +4,15 @@ import { Logo } from '@/components/shared/Logo';
 import { Film, BookOpen, BookMarked, Users, Eye, ArrowRight, Play } from 'lucide-react';
 import { MOCK_DRAMA_SERIES, MOCK_LEGACY_SERIES } from '@/lib/mockData';
 import { ModeBadge } from '@/components/shared/ModeBadge';
+import { useLocaleStore } from '@/store/localeStore';
+import { t } from '@/i18n';
 
 export default function Landing() {
+  // Subscribe to locale so this component re-renders on language switch
+  const { locale } = useLocaleStore();
+  const tr = t();
+  const l = tr.landing;
+
   return (
     <div className="min-h-screen bg-bg-soft">
       <PublicNav />
@@ -16,7 +23,7 @@ export default function Landing() {
         <div className="absolute inset-0">
           <img
             src="/images/landing/elder-watching-film.jpg"
-            alt="長者觀看短片"
+            alt={l.hero1}
             className="w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-b from-bg-soft/95 via-bg-soft/80 to-bg-soft" />
@@ -25,14 +32,14 @@ export default function Landing() {
         <div className="relative max-w-7xl mx-auto px-6 pt-20 pb-16 text-center">
           <div className="inline-flex items-center gap-2 bg-accent/10 text-accent px-4 py-1.5 rounded-full text-sm font-medium mb-6">
             <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
-            CoEldery 85 生態系統原生功能
+            {l.badge}
           </div>
           <h1 className="text-5xl md:text-6xl font-bold text-ink leading-tight mb-5">
-            看見每一段人生故事<br />
-            <span className="text-primary">延續每一份值得傳承的回憶</span>
+            {l.hero1}<br />
+            <span className="text-primary">{l.hero2}</span>
           </h1>
           <p className="text-xl text-muted mb-10 max-w-2xl mx-auto">
-            一個創作平台 · 兩種創作方向 · 同一套粵語影像技術
+            {l.subline}
           </p>
 
           {/* Two Mode Cards */}
@@ -40,23 +47,23 @@ export default function Landing() {
             <div className="bg-primary rounded-2xl p-8 text-left text-white shadow-card-hover">
               <div className="flex items-center gap-2 mb-4">
                 <Film size={22} />
-                <span className="font-bold text-xl">戲劇模式</span>
+                <span className="font-bold text-xl">{l.dramaMode}</span>
               </div>
-              <p className="text-white/90 font-medium mb-2">以長者提供之生活素材作為創作基礎</p>
-              <p className="text-white/70 text-sm mb-6">創作虛構粵語短劇 · 最多七十集 · 每集十五至六十秒</p>
+              <p className="text-white/90 font-medium mb-2">{l.dramaModeDesc}</p>
+              <p className="text-white/70 text-sm mb-6">{l.dramaModeDetail}</p>
               <Link to="/drama-mode" className="inline-flex items-center gap-2 bg-white text-primary font-semibold px-5 py-2.5 rounded-lg hover:bg-white/90 transition-colors text-sm">
-                了解更多 <ArrowRight size={14} />
+                {l.learnMore} <ArrowRight size={14} />
               </Link>
             </div>
             <div className="bg-accent rounded-2xl p-8 text-left text-white shadow-card-hover">
               <div className="flex items-center gap-2 mb-4">
                 <BookOpen size={22} />
-                <span className="font-bold text-xl">傳承模式</span>
+                <span className="font-bold text-xl">{l.legacyMode}</span>
               </div>
-              <p className="text-white/90 font-medium mb-2">運用人工智能記錄真實人生故事</p>
-              <p className="text-white/70 text-sm mb-6">每集三至十分鐘 · 為家人留下珍貴的人生紀錄</p>
+              <p className="text-white/90 font-medium mb-2">{l.legacyModeDesc}</p>
+              <p className="text-white/70 text-sm mb-6">{l.legacyModeDetail}</p>
               <Link to="/legacy-mode" className="inline-flex items-center gap-2 bg-white text-accent font-semibold px-5 py-2.5 rounded-lg hover:bg-white/90 transition-colors text-sm">
-                了解更多 <ArrowRight size={14} />
+                {l.learnMore} <ArrowRight size={14} />
               </Link>
             </div>
           </div>
@@ -64,9 +71,9 @@ export default function Landing() {
           {/* Stats */}
           <div className="flex flex-wrap justify-center gap-12 mb-12">
             {[
-              { icon: BookMarked, label: '已記錄', value: '二千八百四十七', unit: '個生命故事' },
-              { icon: Users,      label: '支援',   value: '三千二百位',    unit: '年輕創作者' },
-              { icon: Eye,        label: '覆蓋',   value: '二百九十六萬', unit: '五十五歲以上觀眾' },
+              { icon: BookMarked, label: l.stat1Label, value: l.stat1Value, unit: l.stat1Unit },
+              { icon: Users,      label: l.stat2Label, value: l.stat2Value, unit: l.stat2Unit },
+              { icon: Eye,        label: l.stat3Label, value: l.stat3Value, unit: l.stat3Unit },
             ].map(({ icon: Icon, label, value, unit }) => (
               <div key={label} className="flex flex-col items-center gap-1">
                 <Icon size={24} className="text-accent mb-1" />
@@ -79,8 +86,8 @@ export default function Landing() {
 
           {/* Creator Banner */}
           <div className="bg-primary/5 border border-primary/20 rounded-xl py-4 px-6 text-sm text-primary font-medium">
-            創作者招募中 · 現正接受十八至三十歲創作者申請 ·{' '}
-            <Link to="/recruit" className="underline hover:no-underline">立即加入</Link>
+            {l.creatorBannerText}{' '}
+            <Link to="/recruit" className="underline hover:no-underline">{l.creatorBannerLink}</Link>
           </div>
         </div>
       </section>
@@ -90,25 +97,25 @@ export default function Landing() {
         <div className="absolute inset-0 opacity-15">
           <img
             src="/images/recruit/bridge-hands.jpg"
-            alt="跨代連結"
+            alt=""
             className="w-full h-full object-cover"
           />
         </div>
         <div className="relative max-w-7xl mx-auto px-6 py-12 grid md:grid-cols-3 gap-8 text-white">
           <div className="text-center">
             <div className="text-4xl mb-3">🎬</div>
-            <h3 className="font-bold text-lg mb-2">以故事連結兩代人</h3>
-            <p className="text-white/70 text-sm leading-relaxed">年輕創作者以長者的人生素材創作，每一集都承載真實的生命重量。</p>
+            <h3 className="font-bold text-lg mb-2">{l.missionTitle1}</h3>
+            <p className="text-white/70 text-sm leading-relaxed">{l.missionDesc1}</p>
           </div>
           <div className="text-center border-x border-white/20">
             <div className="text-4xl mb-3">🤖</div>
-            <h3 className="font-bold text-lg mb-2">AI 降低創作門檻</h3>
-            <p className="text-white/70 text-sm leading-relaxed">毋須器材、演員、後期技術。AI 全程輔助，讓才華不再受資源限制。</p>
+            <h3 className="font-bold text-lg mb-2">{l.missionTitle2}</h3>
+            <p className="text-white/70 text-sm leading-relaxed">{l.missionDesc2}</p>
           </div>
           <div className="text-center">
             <div className="text-4xl mb-3">💛</div>
-            <h3 className="font-bold text-lg mb-2">為長者保留珍貴記憶</h3>
-            <p className="text-white/70 text-sm leading-relaxed">超過 55 萬香港長者，他們的故事值得被好好記錄、被後代珍藏。</p>
+            <h3 className="font-bold text-lg mb-2">{l.missionTitle3}</h3>
+            <p className="text-white/70 text-sm leading-relaxed">{l.missionDesc3}</p>
           </div>
         </div>
       </section>
@@ -116,9 +123,9 @@ export default function Landing() {
       {/* Featured Works */}
       <section className="max-w-7xl mx-auto px-6 py-16 border-t border-line">
         <div className="flex items-center justify-between mb-8">
-          <h2 className="text-3xl font-bold text-primary">精選作品</h2>
+          <h2 className="text-3xl font-bold text-primary">{l.featuredWorks}</h2>
           <Link to="/works" className="text-sm text-accent hover:underline flex items-center gap-1">
-            查看全部 <ArrowRight size={14} />
+            {l.viewAll} <ArrowRight size={14} />
           </Link>
         </div>
         <div className="grid md:grid-cols-3 gap-6">
@@ -152,32 +159,32 @@ export default function Landing() {
           <div className="flex flex-col md:flex-row items-start justify-between gap-8">
             <div>
               <Logo size="md" withWordmark withTagline theme="dark" />
-              <p className="text-white/60 text-sm mt-3 max-w-xs">人工智能輔助粵語短片共創平台，CoEldery 85 生態系統原生功能</p>
+              <p className="text-white/60 text-sm mt-3 max-w-xs">{l.footerTagline}</p>
             </div>
             <div className="grid grid-cols-3 gap-8 text-sm">
               <div>
-                <p className="font-semibold mb-3">平台</p>
-                {['關於', '兩種模式', '作品展廊', '定價'].map(l => (
-                  <p key={l} className="text-white/60 hover:text-white cursor-pointer mb-1.5">{l}</p>
+                <p className="font-semibold mb-3">{l.footerPlatform}</p>
+                {[l.footerAbout, l.footerModes, l.footerWorks, l.footerPricing].map(label => (
+                  <p key={label} className="text-white/60 hover:text-white cursor-pointer mb-1.5">{label}</p>
                 ))}
               </div>
               <div>
-                <p className="font-semibold mb-3">創作者</p>
-                {['創作者招募', 'ESG 階梯', '點數制度', '提交審批'].map(l => (
-                  <p key={l} className="text-white/60 hover:text-white cursor-pointer mb-1.5">{l}</p>
+                <p className="font-semibold mb-3">{l.footerCreator}</p>
+                {[l.footerRecruit, l.footerESG, l.footerCredits, l.footerSubmit].map(label => (
+                  <p key={label} className="text-white/60 hover:text-white cursor-pointer mb-1.5">{label}</p>
                 ))}
               </div>
               <div>
-                <p className="font-semibold mb-3">企業</p>
-                {['ESG 合作', '企業傳承', '品牌贊助', '聯絡我們'].map(l => (
-                  <p key={l} className="text-white/60 hover:text-white cursor-pointer mb-1.5">{l}</p>
+                <p className="font-semibold mb-3">{l.footerEnterprise}</p>
+                {[l.footerESGCollab, l.footerCorpLegacy, l.footerBrandSponsor, l.footerContact].map(label => (
+                  <p key={label} className="text-white/60 hover:text-white cursor-pointer mb-1.5">{label}</p>
                 ))}
               </div>
             </div>
           </div>
           <div className="border-t border-white/20 mt-8 pt-8 flex flex-col md:flex-row items-center justify-between text-sm text-white/50">
-            <p>© 2026 CoFilmery · CoEldery 85 生態系統</p>
-            <p>私隱政策 · 使用條款 · 聯絡我們</p>
+            <p>{l.footerCopyright}</p>
+            <p>{l.footerLinks}</p>
           </div>
         </div>
       </footer>

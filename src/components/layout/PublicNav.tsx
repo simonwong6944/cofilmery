@@ -3,6 +3,7 @@ import { Logo } from '@/components/shared/Logo';
 import { useAuthStore } from '@/store/authStore';
 import { useLocaleStore } from '@/store/localeStore';
 import { LOCALE_LABELS } from '@/i18n';
+import { t } from '@/i18n';
 import type { SupportedLocale } from '@/types';
 import { Globe, LogIn } from 'lucide-react';
 
@@ -10,6 +11,9 @@ export function PublicNav() {
   const { isAuthenticated, user, logout } = useAuthStore();
   const { locale, setLocale } = useLocaleStore();
   const navigate = useNavigate();
+
+  // Re-read tr on every render so locale changes propagate immediately
+  const tr = t();
 
   const handleLogout = () => { logout(); navigate('/'); };
 
@@ -31,12 +35,12 @@ export function PublicNav() {
         </Link>
 
         <nav className="hidden md:flex items-center gap-8">
-          <Link to="/about" className="text-sm text-ink hover:text-primary transition-colors">關於</Link>
-          <Link to="/drama-mode" className="text-sm text-ink hover:text-primary transition-colors">戲劇模式</Link>
-          <Link to="/legacy-mode" className="text-sm text-ink hover:text-primary transition-colors">傳承模式</Link>
-          <Link to="/works" className="text-sm text-ink hover:text-primary transition-colors">作品集</Link>
-          <Link to="/recruit" className="text-sm text-ink hover:text-primary transition-colors">創作者</Link>
-          <Link to="/enterprise" className="text-sm text-ink hover:text-primary transition-colors">贊助合作</Link>
+          <Link to="/about" className="text-sm text-ink hover:text-primary transition-colors">{tr.nav.about}</Link>
+          <Link to="/drama-mode" className="text-sm text-ink hover:text-primary transition-colors">{tr.nav.dramaMode}</Link>
+          <Link to="/legacy-mode" className="text-sm text-ink hover:text-primary transition-colors">{tr.nav.legacyMode}</Link>
+          <Link to="/works" className="text-sm text-ink hover:text-primary transition-colors">{tr.nav.works}</Link>
+          <Link to="/recruit" className="text-sm text-ink hover:text-primary transition-colors">{tr.nav.recruit}</Link>
+          <Link to="/enterprise" className="text-sm text-ink hover:text-primary transition-colors">{tr.nav.enterprise}</Link>
         </nav>
 
         <div className="flex items-center gap-3">
@@ -57,15 +61,15 @@ export function PublicNav() {
           {isAuthenticated ? (
             <>
               <Link to={getDashboardPath()} className="text-sm text-primary font-medium hover:underline">{user?.name}</Link>
-              <button onClick={handleLogout} className="text-sm text-muted hover:text-ink transition-colors">登出</button>
+              <button onClick={handleLogout} className="text-sm text-muted hover:text-ink transition-colors">{tr.nav.logout}</button>
             </>
           ) : (
             <>
               <Link to="/login" className="flex items-center gap-1.5 text-sm text-ink hover:text-primary transition-colors">
-                <LogIn size={16} /> 登入
+                <LogIn size={16} /> {tr.nav.login}
               </Link>
               <Link to="/login" className="bg-primary text-white text-sm px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors font-medium">
-                免費試用
+                {tr.nav.freeTrial}
               </Link>
             </>
           )}
