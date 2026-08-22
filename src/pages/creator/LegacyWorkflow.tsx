@@ -15,8 +15,35 @@ import { CreditIndicator } from '@/components/shared/CreditIndicator';
 // ─────────────────────────────────────────
 // S0: 專案設定
 // ─────────────────────────────────────────
+const LEGACY_MODES = [
+  {
+    id: 'personal',
+    icon: '👤',
+    label: '個人模式',
+    tagline: '個人 · 家庭',
+    desc: '個人記錄自己一生故事傳承給後代，或由子女、孫兒為父母、祖父母拍攝他們的珍貴人生歲月。',
+    examples: ['退休老師口述執教生涯', '孫兒採訪阿公阿婆', '子女為父母製作壽宴影片'],
+  },
+  {
+    id: 'corporate',
+    icon: '🏢',
+    label: '企業模式',
+    tagline: '企業 · 機構',
+    desc: '企業為員工拍攝在公司的付出與成就故事。不論是創辦人、高管，還是長期服務的普通員工，每位都有值得記錄的故事。',
+    examples: ['創辦人創業歷程專題', '服務三十年員工的故事', '退休員工「那些年」系列'],
+  },
+  {
+    id: 'social',
+    icon: '🌍',
+    label: '社會人士模式',
+    tagline: '社會 · 公益',
+    desc: '由政府、機構、學校或學生，為默默付出的社會人士拍攝故事，記錄老師、環保義工、好心人對社會的貢獻。',
+    examples: ['學生為校長拍退休紀念片', '環保義工的堅持歷程', '義工婆婆照顧陌生老人的故事'],
+  },
+];
+
 function S0ProjectSetup({ onNext }: { onNext: () => void }) {
-  const [subMode, setSubMode] = useState('individual');
+  const [subMode, setSubMode] = useState('personal');
 
   const themes = [
     { id: 'craft', label: '手藝與職業', desc: '老師傅的技藝與歲月' },
@@ -27,14 +54,53 @@ function S0ProjectSetup({ onNext }: { onNext: () => void }) {
     { id: 'dream', label: '未圓之夢', desc: '長者心底的遺憾與渴望' },
   ];
 
+  const selectedMode = LEGACY_MODES.find(m => m.id === subMode)!;
+
   return (
     <div className="max-w-2xl">
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-primary">S0 · 專案設定</h2>
-        <p className="text-muted text-sm mt-1">為長者傳承計劃建立項目，記錄珍貴生命故事。</p>
+        <p className="text-muted text-sm mt-1">選擇傳承模式，為珍貴的人生故事建立項目。</p>
       </div>
 
       <div className="space-y-5">
+
+        {/* 3 Sub-Mode Selector */}
+        <div className="bg-card rounded-xl border border-line p-5 shadow-card">
+          <label className="block text-sm font-semibold text-ink mb-3">選擇傳承模式</label>
+          <div className="grid grid-cols-3 gap-2 mb-4">
+            {LEGACY_MODES.map(m => (
+              <button
+                key={m.id}
+                onClick={() => setSubMode(m.id)}
+                className={`p-3 rounded-xl border-2 text-left transition-all ${
+                  subMode === m.id
+                    ? 'border-accent bg-accent/10'
+                    : 'border-line hover:border-accent/40'
+                }`}
+              >
+                <div className="text-2xl mb-1.5">{m.icon}</div>
+                <div className={`font-semibold text-sm ${subMode === m.id ? 'text-accent' : 'text-ink'}`}>
+                  {m.label}
+                </div>
+                <div className="text-xs text-muted mt-0.5">{m.tagline}</div>
+              </button>
+            ))}
+          </div>
+          {/* Selected Mode Detail */}
+          <div className="bg-accent/5 border border-accent/20 rounded-lg p-4">
+            <p className="text-sm text-ink mb-2">{selectedMode.desc}</p>
+            <div className="flex flex-wrap gap-1.5">
+              {selectedMode.examples.map(eg => (
+                <span key={eg} className="text-xs bg-white border border-accent/30 text-accent px-2 py-0.5 rounded-full">
+                  {eg}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Title */}
         <div className="bg-card rounded-xl border border-line p-5 shadow-card">
           <label className="block text-sm font-semibold text-ink mb-2">項目標題</label>
           <input
@@ -44,6 +110,7 @@ function S0ProjectSetup({ onNext }: { onNext: () => void }) {
           />
         </div>
 
+        {/* Theme */}
         <div className="bg-card rounded-xl border border-line p-5 shadow-card">
           <label className="block text-sm font-semibold text-ink mb-3">傳承主題</label>
           <div className="grid grid-cols-2 gap-2">
@@ -59,32 +126,11 @@ function S0ProjectSetup({ onNext }: { onNext: () => void }) {
           </div>
         </div>
 
-        <div className="bg-card rounded-xl border border-line p-5 shadow-card">
-          <label className="block text-sm font-semibold text-ink mb-3">子模式</label>
-          <div className="grid grid-cols-2 gap-3">
-            {[
-              { id: 'individual', label: '個人傳承', desc: '單一長者的生命故事' },
-              { id: 'corporate', label: '企業領袖傳承', desc: '機構或企業歷史記錄' },
-            ].map(s => (
-              <button
-                key={s.id}
-                onClick={() => setSubMode(s.id)}
-                className={`p-4 rounded-xl border-2 text-left transition-all ${
-                  subMode === s.id ? 'border-accent bg-accent/5' : 'border-line hover:border-accent/40'
-                }`}
-              >
-                <div className="font-semibold text-ink text-sm">{s.label}</div>
-                <div className="text-muted text-xs mt-1">{s.desc}</div>
-              </button>
-            ))}
-          </div>
-        </div>
-
         <div className="bg-amber-50 border-l-4 border-amber-400 rounded-r-xl p-4 flex gap-3">
           <AlertTriangle size={18} className="text-amber-500 shrink-0 mt-0.5" />
           <div>
             <p className="font-semibold text-sm text-ink">重要提示</p>
-            <p className="text-sm text-muted mt-0.5">本模式以長者提供之真實生活素材為基礎，請確保已取得受訪者書面同意。</p>
+            <p className="text-sm text-muted mt-0.5">本模式以真實生活素材為基礎，請確保已取得受訪者書面同意。</p>
           </div>
         </div>
 
