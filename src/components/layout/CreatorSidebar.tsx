@@ -8,9 +8,9 @@ import { TierBadge } from '@/components/shared/TierBadge';
 const NAV_ITEMS = [
   { path: '/creator',               icon: LayoutDashboard, label: '創作者中心' },
   { path: '/creator/works',         icon: FolderOpen,      label: '作品列表' },
-  { path: '/creator/mode-select',   icon: PlusCircle,      label: '新增創作' },
+  { path: '/creator/new',           icon: PlusCircle,      label: '新增創作' },
   { path: '/creator/credits',       icon: Coins,           label: '點數中心' },
-  { path: '/creator/tier',          icon: Award,           label: 'ESG 階梯' },
+  { path: '/creator/esg',           icon: Award,           label: 'ESG 階梯' },
   { path: '/creator/notifications', icon: Bell,            label: '通知', badge: 2 },
 ];
 

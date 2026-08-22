@@ -43,7 +43,7 @@ export default function DramaMode() {
           ))}
         </div>
         <div className="text-center">
-          <Link to="/creator/mode-select" className="inline-flex items-center gap-2 bg-primary text-white font-bold px-10 py-4 rounded-xl hover:bg-primary/90 transition-colors text-lg">
+          <Link to="/creator/new" className="inline-flex items-center gap-2 bg-primary text-white font-bold px-10 py-4 rounded-xl hover:bg-primary/90 transition-colors text-lg">
             立即開始使用戲劇模式創作 <ArrowRight size={18} />
           </Link>
         </div>

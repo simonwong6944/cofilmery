@@ -54,7 +54,7 @@ export default function LegacyMode() {
           ))}
         </div>
         <div className="text-center">
-          <Link to="/creator/mode-select" className="inline-flex items-center gap-2 bg-accent text-white font-bold px-10 py-4 rounded-xl hover:bg-accent/90 transition-colors text-lg">
+          <Link to="/creator/new" className="inline-flex items-center gap-2 bg-accent text-white font-bold px-10 py-4 rounded-xl hover:bg-accent/90 transition-colors text-lg">
             立即開始使用傳承模式 <ArrowRight size={18} />
           </Link>
         </div>

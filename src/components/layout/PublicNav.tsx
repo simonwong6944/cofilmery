@@ -32,7 +32,9 @@ export function PublicNav() {
 
         <nav className="hidden md:flex items-center gap-8">
           <Link to="/about" className="text-sm text-ink hover:text-primary transition-colors">關於</Link>
-          <Link to="/modes/drama" className="text-sm text-ink hover:text-primary transition-colors">兩種模式</Link>
+          <Link to="/drama-mode" className="text-sm text-ink hover:text-primary transition-colors">戲劇模式</Link>
+          <Link to="/legacy-mode" className="text-sm text-ink hover:text-primary transition-colors">傳承模式</Link>
+          <Link to="/works" className="text-sm text-ink hover:text-primary transition-colors">作品集</Link>
           <Link to="/recruit" className="text-sm text-ink hover:text-primary transition-colors">創作者</Link>
           <Link to="/enterprise" className="text-sm text-ink hover:text-primary transition-colors">贊助合作</Link>
         </nav>

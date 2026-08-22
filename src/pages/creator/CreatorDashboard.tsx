@@ -49,7 +49,7 @@ export default function CreatorDashboard() {
             {/* Project Cards */}
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-bold text-primary text-lg">我的作品</h2>
-              <Link to="/creator/mode-select" className="bg-accent text-white text-sm px-4 py-2 rounded-lg hover:bg-accent/90 transition-colors">+ 新增創作</Link>
+              <Link to="/creator/new" className="bg-accent text-white text-sm px-4 py-2 rounded-lg hover:bg-accent/90 transition-colors">+ 新增創作</Link>
             </div>
             <div className="grid grid-cols-4 gap-4">
               {MOCK_ALL_SERIES.map(project => (

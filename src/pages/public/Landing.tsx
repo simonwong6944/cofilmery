@@ -33,7 +33,7 @@ export default function Landing() {
             </div>
             <p className="text-white/90 font-medium mb-2">以長者提供之生活素材作為創作基礎</p>
             <p className="text-white/70 text-sm mb-6">創作虛構粵語短劇 · 最多七十集 · 每集十五至六十秒</p>
-            <Link to="/modes/drama" className="inline-flex items-center gap-2 bg-white text-primary font-semibold px-5 py-2.5 rounded-lg hover:bg-white/90 transition-colors text-sm">
+            <Link to="/drama-mode" className="inline-flex items-center gap-2 bg-white text-primary font-semibold px-5 py-2.5 rounded-lg hover:bg-white/90 transition-colors text-sm">
               了解更多 <ArrowRight size={14} />
             </Link>
           </div>
@@ -44,7 +44,7 @@ export default function Landing() {
             </div>
             <p className="text-white/90 font-medium mb-2">運用人工智能記錄真實人生故事</p>
             <p className="text-white/70 text-sm mb-6">每集三至十分鐘 · 為家人留下珍貴的人生紀錄</p>
-            <Link to="/modes/legacy" className="inline-flex items-center gap-2 bg-white text-accent font-semibold px-5 py-2.5 rounded-lg hover:bg-white/90 transition-colors text-sm">
+            <Link to="/legacy-mode" className="inline-flex items-center gap-2 bg-white text-accent font-semibold px-5 py-2.5 rounded-lg hover:bg-white/90 transition-colors text-sm">
               了解更多 <ArrowRight size={14} />
             </Link>
           </div>
