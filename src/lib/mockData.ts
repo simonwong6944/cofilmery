@@ -1,10 +1,46 @@
 /** CoFilmery Mock Data — ≥6 projects (3 Drama + 3 Legacy), used throughout the app */
 
+/**
+ * drama genre keys (matches DramaMode.tsx GENRES):
+ *   'dream'     — 圓夢類
+ *   'romance'   — 愛情回憶類
+ *   'family'    — 家庭溫情類
+ *   'restart'   — 人生重啟類
+ *   'era'       — 年代回憶類
+ *   'hero'      — 長者英雄類
+ *
+ * legacy subMode keys (matches LegacyMode.tsx SUB_MODES):
+ *   'personal'  — 個人模式
+ *   'corporate' — 企業模式
+ *   'social'    — 社會人士模式
+ *
+ * autoTags: AI-generated tags appended after creation (simulated)
+ */
+
+export const DRAMA_GENRES = [
+  { id: 'dream',   label: '圓夢類',     icon: '🌟' },
+  { id: 'romance', label: '愛情回憶類', icon: '💛' },
+  { id: 'family',  label: '家庭溫情類', icon: '👨‍👩‍👧‍👦' },
+  { id: 'restart', label: '人生重啟類', icon: '🌺' },
+  { id: 'era',     label: '年代回憶類', icon: '🕰️' },
+  { id: 'hero',    label: '長者英雄類', icon: '🤝' },
+] as const;
+
+export const LEGACY_SUB_MODES = [
+  { id: 'personal',  label: '個人模式',     icon: '👤' },
+  { id: 'corporate', label: '企業模式',     icon: '🏢' },
+  { id: 'social',    label: '社會人士模式', icon: '🌍' },
+] as const;
+
+export type DramaGenreId = typeof DRAMA_GENRES[number]['id'];
+export type LegacySubModeId = typeof LEGACY_SUB_MODES[number]['id'];
+
 export const MOCK_DRAMA_SERIES = [
   {
     id: 'drama-001',
     title: '街市情緣',
     mode: 'drama' as const,
+    genre: 'family' as DramaGenreId,
     status: 'published' as const,
     episodes: 30,
     completedEpisodes: 18,
@@ -14,6 +50,7 @@ export const MOCK_DRAMA_SERIES = [
     esgScore: 8.5,
     description: '以大埔街市為背景，記錄一位七十年代老街坊的日常生活與人情故事。',
     tags: ['家庭', '街市', '懷舊', '粵語對白'],
+    autoTags: ['父女情', '市井生活', '跨代關係', '七十年代', '大埔', '情感共鳴'],
     publishedAt: '2026-08-15',
     duration: 30,
   },
@@ -21,6 +58,7 @@ export const MOCK_DRAMA_SERIES = [
     id: 'drama-002',
     title: '涼茶世家',
     mode: 'drama' as const,
+    genre: 'hero' as DramaGenreId,
     status: 'reviewing' as const,
     episodes: 50,
     completedEpisodes: 8,
@@ -30,6 +68,7 @@ export const MOCK_DRAMA_SERIES = [
     esgScore: 9.2,
     description: '三代傳承的涼茶舖，見證香港半個世紀的變遷。',
     tags: ['傳承', '中醫', '家族', '香港故事'],
+    autoTags: ['老字號', '家族生意', '中醫藥文化', '非物質遺產', '師傅精神', '三代同堂'],
     publishedAt: '2026-07-20',
     duration: 45,
   },
@@ -37,6 +76,7 @@ export const MOCK_DRAMA_SERIES = [
     id: 'drama-003',
     title: '獅子山下',
     mode: 'drama' as const,
+    genre: 'era' as DramaGenreId,
     status: 'published' as const,
     episodes: 70,
     completedEpisodes: 70,
@@ -46,6 +86,7 @@ export const MOCK_DRAMA_SERIES = [
     esgScore: 9.0,
     description: '以獅子山精神為主題，呈現六十年代草根港人奮鬥的故事。',
     tags: ['奮鬥', '懷舊', '香港精神', '六十年代'],
+    autoTags: ['草根奮鬥', '集體回憶', '獅子山精神', '基層生活', '六十年代香港', '勵志'],
     publishedAt: '2026-06-01',
     duration: 60,
   },
@@ -56,6 +97,7 @@ export const MOCK_LEGACY_SERIES = [
     id: 'legacy-001',
     title: '陳伯的街市歲月',
     mode: 'legacy' as const,
+    legacySubMode: 'personal' as LegacySubModeId,
     status: 'published' as const,
     episodes: 1,
     completedEpisodes: 1,
@@ -66,6 +108,7 @@ export const MOCK_LEGACY_SERIES = [
     esgScore: 9.5,
     description: '八十二歲的陳先生分享在大埔街市工作五十年的人生回憶。',
     tags: ['長者故事', '街市文化', '大埔', '口述歷史'],
+    autoTags: ['五十年職人', '大埔老街坊', '手藝傳承', '晚年智慧', '口述歷史', '情感紀錄'],
     publishedAt: '2026-08-10',
     duration: 8,
   },
@@ -73,6 +116,7 @@ export const MOCK_LEGACY_SERIES = [
     id: 'legacy-002',
     title: '海邊老友記',
     mode: 'legacy' as const,
+    legacySubMode: 'social' as LegacySubModeId,
     status: 'draft' as const,
     episodes: 3,
     completedEpisodes: 1,
@@ -83,6 +127,7 @@ export const MOCK_LEGACY_SERIES = [
     esgScore: 0,
     description: '七十五歲的李女士四十年來在西貢義教基層兒童的故事。',
     tags: ['義工', '教育', '西貢', '奉獻精神'],
+    autoTags: ['無私奉獻', '社區教育', '西貢漁村', '基層兒童', '義教精神', '社會英雄'],
     publishedAt: '',
     duration: 10,
   },
@@ -90,6 +135,7 @@ export const MOCK_LEGACY_SERIES = [
     id: 'legacy-003',
     title: '中藥世家三代傳',
     mode: 'legacy' as const,
+    legacySubMode: 'corporate' as LegacySubModeId,
     status: 'reviewing' as const,
     episodes: 2,
     completedEpisodes: 2,
@@ -100,6 +146,7 @@ export const MOCK_LEGACY_SERIES = [
     esgScore: 8.8,
     description: '上環百年中藥舖的三代傳承故事，記錄瀕臨失傳的中醫藥知識。',
     tags: ['中醫藥', '傳承', '上環', '非物質文化遺產'],
+    autoTags: ['百年老字號', '三代傳承', '上環舊街', '中藥智慧', '企業精神', '文化保育'],
     publishedAt: '2026-07-30',
     duration: 9,
   },
