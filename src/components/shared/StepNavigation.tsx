@@ -1,8 +1,33 @@
 import { cn } from '@/lib/utils';
 import { Check } from 'lucide-react';
 
-const DRAMA_STEPS = ['立項', '取材', '劇本', '分鏡', '畫面', '字幕', '配音', '合成', '送審', '發佈'];
-const LEGACY_STEPS = ['立項', '授權', '訪談', '轉錄', '故事線', '素材', '旁白', '剪輯', '送審', '發佈'];
+// Drama Mode: S0-S9 correct labels (with Plan Overview as special pre-step)
+const DRAMA_STEPS = [
+  '系列設定',   // S0
+  '資產庫',     // S1
+  '角色設定',   // S2
+  '故事框架',   // S3 (3a大綱→3b框架→3c分集)
+  '分鏡',       // S4
+  '關鍵幀',     // S5
+  '影片生成',   // S6
+  '粵語配音',   // S7
+  '平台剪輯',   // S8
+  '審批發佈',   // S9
+];
+
+// Legacy Mode: S0-S9 correct labels
+const LEGACY_STEPS = [
+  '專案設定',       // S0
+  '素材庫',         // S1
+  '人物設定',       // S2
+  '訪談引導',       // S3
+  '錄製',           // S4
+  'AI轉錄校對',     // S5
+  '執故事線',       // S6
+  '字幕配樂',       // S7
+  '平台剪輯',       // S8
+  '授權發佈',       // S9
+];
 
 interface StepNavigationProps {
   mode: 'drama' | 'legacy';

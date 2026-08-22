@@ -1,59 +1,65 @@
-import { useParams, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
-import { Mic, FileText, BookOpen, Play, Star, Upload, CheckCircle, Send, Globe, Award } from 'lucide-react';
+import { useParams, useNavigate } from 'react-router-dom';
+import {
+  Mic, FileText, Upload, CheckCircle, Send, Globe, Award,
+  ChevronRight, RefreshCw, Check, Sparkles, Users, BookOpen,
+  AlertTriangle, Eye, Save, Music, Edit3, Star, Heart, Camera
+} from 'lucide-react';
 import { CreatorSidebar } from '@/components/layout/CreatorSidebar';
 import { Logo } from '@/components/shared/Logo';
 import { StepNavigation } from '@/components/shared/StepNavigation';
 import { AIAssistantPanel } from '@/components/shared/AIAssistantPanel';
 import { CreditIndicator } from '@/components/shared/CreditIndicator';
 
-// ─────────── S0: 立項 ───────────
-function S0Initiate({ onNext }: { onNext: () => void }) {
-  const [form, setForm] = useState({
-    title: '',
-    elder: '',
-    age: '',
-    topic: '',
-    subMode: 'individual',
-  });
+// ─────────────────────────────────────────
+// S0: 專案設定
+// ─────────────────────────────────────────
+function S0ProjectSetup({ onNext }: { onNext: () => void }) {
+  const [subMode, setSubMode] = useState('individual');
+
+  const themes = [
+    { id: 'craft', label: '手藝與職業', desc: '老師傅的技藝與歲月' },
+    { id: 'memory', label: '地方記憶', desc: '舊香港的街道與社區' },
+    { id: 'family', label: '家族傳承', desc: '家族故事與跨代連結' },
+    { id: 'culture', label: '文化習俗', desc: '節慶、習俗、傳統生活' },
+    { id: 'history', label: '歷史見證', desc: '重大時代事件的親歷者' },
+    { id: 'dream', label: '未圓之夢', desc: '長者心底的遺憾與渴望' },
+  ];
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <h2 className="text-2xl font-bold text-ink mb-2">S0 · 立項設定</h2>
-      <p className="text-muted mb-6">為長者傳承計劃建立項目，記錄珍貴生命故事。</p>
+    <div className="max-w-2xl">
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-primary">S0 · 專案設定</h2>
+        <p className="text-muted text-sm mt-1">為長者傳承計劃建立項目，記錄珍貴生命故事。</p>
+      </div>
 
-      <div className="card-base p-6 space-y-5">
-        <div>
-          <label className="form-label">項目標題</label>
-          <input className="form-input" placeholder="例：陳伯的街市歲月" value={form.title}
-            onChange={e => setForm({ ...form, title: e.target.value })} />
+      <div className="space-y-5">
+        <div className="bg-card rounded-xl border border-line p-5 shadow-card">
+          <label className="block text-sm font-semibold text-ink mb-2">項目標題</label>
+          <input
+            className="w-full border border-line rounded-lg px-3 py-2.5 bg-bg-soft focus:outline-none focus:border-primary text-ink"
+            placeholder="例：陳伯的街市歲月、阿婆的裁縫心事"
+            defaultValue="陳伯的街市歲月"
+          />
         </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="form-label">受訪長者姓名</label>
-            <input className="form-input" placeholder="例：陳伯" value={form.elder}
-              onChange={e => setForm({ ...form, elder: e.target.value })} />
+
+        <div className="bg-card rounded-xl border border-line p-5 shadow-card">
+          <label className="block text-sm font-semibold text-ink mb-3">傳承主題</label>
+          <div className="grid grid-cols-2 gap-2">
+            {themes.map(t => (
+              <button
+                key={t.id}
+                className="p-3 rounded-lg border-2 border-line text-left hover:border-primary/40 transition-all"
+              >
+                <div className="font-semibold text-sm text-ink">{t.label}</div>
+                <div className="text-xs text-muted mt-0.5">{t.desc}</div>
+              </button>
+            ))}
           </div>
-          <div>
-            <label className="form-label">長者年齡</label>
-            <input className="form-input" type="number" placeholder="例：78" value={form.age}
-              onChange={e => setForm({ ...form, age: e.target.value })} />
-          </div>
         </div>
-        <div>
-          <label className="form-label">主題方向</label>
-          <select className="form-input" value={form.topic}
-            onChange={e => setForm({ ...form, topic: e.target.value })}>
-            <option value="">請選擇</option>
-            <option value="craft">手藝與職業</option>
-            <option value="memory">地方記憶</option>
-            <option value="family">家族傳承</option>
-            <option value="culture">文化習俗</option>
-            <option value="history">歷史見證</option>
-          </select>
-        </div>
-        <div>
-          <label className="form-label">子模式</label>
+
+        <div className="bg-card rounded-xl border border-line p-5 shadow-card">
+          <label className="block text-sm font-semibold text-ink mb-3">子模式</label>
           <div className="grid grid-cols-2 gap-3">
             {[
               { id: 'individual', label: '個人傳承', desc: '單一長者的生命故事' },
@@ -61,9 +67,9 @@ function S0Initiate({ onNext }: { onNext: () => void }) {
             ].map(s => (
               <button
                 key={s.id}
-                onClick={() => setForm({ ...form, subMode: s.id })}
-                className={`p-4 rounded-lg border-2 text-left transition-colors ${
-                  form.subMode === s.id ? 'border-accent bg-accent/5' : 'border-line hover:border-accent/50'
+                onClick={() => setSubMode(s.id)}
+                className={`p-4 rounded-xl border-2 text-left transition-all ${
+                  subMode === s.id ? 'border-accent bg-accent/5' : 'border-line hover:border-accent/40'
                 }`}
               >
                 <div className="font-semibold text-ink text-sm">{s.label}</div>
@@ -73,240 +79,516 @@ function S0Initiate({ onNext }: { onNext: () => void }) {
           </div>
         </div>
 
-        <button onClick={onNext}
-          className="w-full bg-accent text-white py-3 rounded-lg font-semibold hover:bg-accent/90 transition-colors">
-          確認立項，進入採訪準備
+        <div className="bg-amber-50 border-l-4 border-amber-400 rounded-r-xl p-4 flex gap-3">
+          <AlertTriangle size={18} className="text-amber-500 shrink-0 mt-0.5" />
+          <div>
+            <p className="font-semibold text-sm text-ink">重要提示</p>
+            <p className="text-sm text-muted mt-0.5">本模式以長者提供之真實生活素材為基礎，請確保已取得受訪者書面同意。</p>
+          </div>
+        </div>
+
+        <button
+          onClick={onNext}
+          className="w-full bg-accent text-white py-3 rounded-xl font-semibold hover:bg-accent/90 transition-colors flex items-center justify-center gap-2"
+        >
+          <ChevronRight size={18} /> 確認立項，進入素材庫
         </button>
       </div>
     </div>
   );
 }
 
-// ─────────── S1: 採訪準備 ───────────
-function S1Prepare({ onNext }: { onNext: () => void }) {
-  return (
-    <div className="max-w-2xl mx-auto">
-      <h2 className="text-2xl font-bold text-ink mb-2">S1 · 採訪準備</h2>
-      <p className="text-muted mb-6">AI 生成個性化採訪問題，讓長者輕鬆分享故事。</p>
+// ─────────────────────────────────────────
+// S1: 素材庫（Subject Asset Bank）
+// ─────────────────────────────────────────
+function S1AssetBank({ onNext }: { onNext: () => void }) {
+  const assetTypes = [
+    { icon: Users, label: '受訪者近照（用於人物設定）', count: 1, color: 'text-blue-500', accept: 'JPG/PNG' },
+    { icon: Camera, label: '舊照片 / 文物影像', count: 3, color: 'text-amber-500', accept: 'JPG/PNG' },
+    { icon: FileText, label: '書面文件 / 信件', count: 0, color: 'text-green-500', accept: 'PDF' },
+    { icon: Music, label: '相關音樂 / 歌曲', count: 0, color: 'text-purple-500', accept: 'MP3/WAV' },
+  ];
 
-      <div className="card-base p-6 mb-4">
+  return (
+    <div className="max-w-2xl">
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-primary">S1 · 素材庫</h2>
+        <p className="text-muted text-sm mt-1">上傳受訪者相關素材，AI 將用於生成一致的視覺呈現。</p>
+      </div>
+
+      <div className="space-y-4 mb-6">
+        {assetTypes.map((type, i) => (
+          <div key={i} className="bg-card rounded-xl border border-line p-5 shadow-card">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <type.icon size={18} className={type.color} />
+                <span className="font-semibold text-sm text-ink">{type.label}</span>
+                {type.count > 0 && (
+                  <span className="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full">
+                    {type.count} 個已上傳
+                  </span>
+                )}
+              </div>
+              <span className="text-xs text-muted">{type.accept}</span>
+            </div>
+            <div className="border-2 border-dashed border-line rounded-lg p-4 text-center hover:border-primary transition-colors cursor-pointer">
+              <Upload size={18} className="mx-auto text-muted mb-1" />
+              <p className="text-xs text-muted">點擊上傳或拖放</p>
+            </div>
+          </div>
+        ))}
+
+        {/* 已上傳預覽 */}
+        <div className="bg-card rounded-xl border border-line p-5 shadow-card">
+          <h3 className="font-semibold text-ink text-sm mb-3">已上傳素材</h3>
+          <div className="grid grid-cols-4 gap-2">
+            {[
+              'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=120&h=120&fit=crop&crop=face',
+              'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=120&h=120&fit=crop',
+              'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=120&h=120&fit=crop',
+              'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=120&h=120&fit=crop',
+            ].map((src, i) => (
+              <div key={i} className="relative group">
+                <img src={src} alt="" className="w-full aspect-square object-cover rounded-lg" />
+                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 rounded-lg flex items-center justify-center transition-opacity">
+                  <button className="text-white text-xs">刪除</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <button
+        onClick={onNext}
+        className="w-full bg-accent text-white py-3 rounded-xl font-semibold hover:bg-accent/90 transition-colors flex items-center justify-center gap-2"
+      >
+        <ChevronRight size={18} /> 素材庫確認，進入人物設定
+      </button>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────
+// S2: 人物設定（Subject Setup）
+// ─────────────────────────────────────────
+function S2SubjectSetup({ onNext }: { onNext: () => void }) {
+  return (
+    <div className="max-w-2xl">
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-primary">S2 · 人物設定</h2>
+        <p className="text-muted text-sm mt-1">建立受訪長者的人物檔案，AI 生成時保持外型與氣質一致。</p>
+      </div>
+
+      <div className="space-y-4 mb-6">
+        {/* 主角設定 */}
+        <div className="bg-card rounded-xl border border-line p-5 shadow-card">
+          <div className="flex gap-4 mb-4">
+            <img
+              src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=80&h=80&fit=crop&crop=face"
+              alt="陳伯"
+              className="w-20 h-20 rounded-xl object-cover shrink-0"
+            />
+            <div className="flex-1 space-y-2">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs text-muted">受訪者稱呼</label>
+                  <input className="w-full border border-line rounded px-2 py-1.5 text-sm bg-bg-soft focus:outline-none focus:border-primary" defaultValue="陳伯" />
+                </div>
+                <div>
+                  <label className="text-xs text-muted">年齡</label>
+                  <input type="number" className="w-full border border-line rounded px-2 py-1.5 text-sm bg-bg-soft focus:outline-none focus:border-primary" defaultValue="72" />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-muted">外型描述（供 AI 生成參考）</label>
+                <input className="w-full border border-line rounded px-2 py-1.5 text-sm bg-bg-soft focus:outline-none focus:border-primary"
+                  defaultValue="白髮，圓臉，笑容溫和，慣穿白色廚師圍裙" />
+              </div>
+            </div>
+          </div>
+
+          {/* 性格特質 */}
+          <div>
+            <label className="text-sm font-semibold text-ink mb-2 block">性格特質</label>
+            <div className="flex flex-wrap gap-2">
+              {['開朗樂觀', '勤力', '重情義', '愛說故事', '傳統'].map(trait => (
+                <span key={trait} className="bg-primary/10 text-primary text-xs px-3 py-1 rounded-full font-medium">
+                  {trait}
+                </span>
+              ))}
+              <button className="text-xs text-muted border border-dashed border-line px-3 py-1 rounded-full hover:border-primary hover:text-primary transition-colors">
+                + 新增
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* 身份一致性 */}
+        <div className="bg-card rounded-xl border border-line p-5 shadow-card">
+          <label className="block text-sm font-semibold text-ink mb-3">身份視覺一致性設定</label>
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { id: '極似', label: '極似', desc: 'AI 強一致（近乎一模一樣）', color: 'bg-green-500' },
+              { id: '70%', label: '70%', desc: '主要特徵保持', color: 'bg-blue-500' },
+              { id: '神韻', label: '神韻', desc: '捕捉氣質，不拘形似', color: 'bg-purple-500' },
+            ].map(s => (
+              <button
+                key={s.id}
+                className="p-3 rounded-lg border-2 border-line text-left hover:border-primary transition-all"
+              >
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className={`w-2 h-2 rounded-full ${s.color}`} />
+                  <span className="font-bold text-sm text-ink">{s.label}</span>
+                </div>
+                <p className="text-xs text-muted leading-tight">{s.desc}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* 其他相關人物 */}
+        <div className="bg-card rounded-xl border border-line p-5 shadow-card">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold text-ink text-sm">相關人物（選填）</h3>
+            <button className="text-accent text-sm hover:underline">+ 新增</button>
+          </div>
+          <div className="text-xs text-muted">例如：家人、同事、街坊等可能出現在傳承影片中的人物。</div>
+        </div>
+      </div>
+
+      <button
+        onClick={onNext}
+        className="w-full bg-accent text-white py-3 rounded-xl font-semibold hover:bg-accent/90 transition-colors flex items-center justify-center gap-2"
+      >
+        <ChevronRight size={18} /> 人物設定完成，進入訪談引導
+      </button>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────
+// S3: 訪談引導（Interview Guidance）
+// ─────────────────────────────────────────
+function S3InterviewGuide({ onNext }: { onNext: () => void }) {
+  const questions = [
+    { q: '您在街市工作了多少年？是什麼緣故開始這份工作的？', followup: '當時家庭環境是怎樣的？有沒有其他選擇？' },
+    { q: '您最記得的街市景象是什麼？能詳細描述一下嗎？', followup: '那個畫面為什麼會令您印象這麼深刻？' },
+    { q: '從前的街市和現在有什麼不同？最大的變化是什麼？', followup: '您覺得消失了的東西中，最可惜的是哪一樣？' },
+    { q: '在街市中，您認識了哪些難忘的街坊或朋友？', followup: '能說說其中一個令您感動的故事嗎？' },
+    { q: '如果要傳授一件事給年輕人，您會說什麼？', followup: '這是您自己親身經歷得來的體會嗎？' },
+  ];
+
+  return (
+    <div className="max-w-2xl">
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-primary">S3 · 訪談引導</h2>
+        <p className="text-muted text-sm mt-1">AI 為每條問題生成智能追問，協助引導長者說出最深刻的故事。</p>
+      </div>
+
+      <div className="bg-card rounded-xl border border-line p-5 shadow-card mb-4">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-bold text-ink">AI 生成採訪問題</h3>
           <CreditIndicator cost={2} label="生成" />
         </div>
         <div className="space-y-3">
-          {[
-            '您在街市工作了多少年？是什麼緣故開始這份工作的？',
-            '您最記得的街市景象是什麼？',
-            '從前的街市和現在有什麼不同？',
-            '在街市中，您認識了哪些難忘的街坊？',
-            '如果要傳授一件事給年輕人，您會說什麼？',
-          ].map((q, i) => (
-            <div key={i} className="flex items-start gap-3 p-3 bg-bg-soft rounded-lg">
-              <span className="w-6 h-6 rounded-full bg-accent text-white text-xs flex items-center justify-center flex-shrink-0 mt-0.5">
-                {i + 1}
-              </span>
-              <p className="text-ink text-sm">{q}</p>
+          {questions.map((item, i) => (
+            <div key={i} className="bg-bg-soft rounded-xl p-4 border border-line">
+              <div className="flex items-start gap-3 mb-2">
+                <span className="w-6 h-6 rounded-full bg-accent text-white text-xs flex items-center justify-center flex-shrink-0 mt-0.5 font-bold">
+                  {i + 1}
+                </span>
+                <p className="text-ink text-sm">{item.q}</p>
+              </div>
+              <div className="ml-9 bg-white border border-accent/20 rounded-lg p-2.5">
+                <p className="text-xs text-muted font-medium mb-0.5">💡 智能追問：</p>
+                <p className="text-xs text-accent italic">{item.followup}</p>
+              </div>
             </div>
           ))}
         </div>
         <div className="mt-4 flex gap-3">
-          <button className="flex-1 border border-line text-muted px-4 py-2 rounded-lg text-sm hover:border-accent hover:text-accent transition-colors">
-            重新生成
+          <button className="flex-1 border border-line text-muted px-4 py-2 rounded-lg text-sm hover:border-accent hover:text-accent transition-colors flex items-center gap-1.5 justify-center">
+            <RefreshCw size={13} /> 重新生成
           </button>
-          <button className="flex-1 bg-accent text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-accent/90 transition-colors">
-            下載問題清單
+          <button className="flex-1 bg-accent text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-accent/90 transition-colors flex items-center gap-1.5 justify-center">
+            <BookOpen size={13} /> 下載問題清單
           </button>
         </div>
       </div>
 
-      <div className="card-base p-6 mb-4">
+      {/* 拍攝建議 */}
+      <div className="bg-card rounded-xl border border-line p-5 shadow-card mb-6">
         <h3 className="font-bold text-ink mb-3">拍攝建議</h3>
-        <ul className="space-y-2 text-sm text-muted">
-          <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-green-500" />選擇安靜、光線充足的環境</li>
-          <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-green-500" />拍攝前讓長者熟悉環境，放鬆心情</li>
-          <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-green-500" />準備相關文物、老照片作輔助</li>
-          <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-green-500" />錄音設備放置距長者 30cm 內</li>
+        <ul className="space-y-2 text-sm">
+          {[
+            '選擇安靜、光線充足的環境（長者熟悉的空間更佳）',
+            '拍攝前讓長者熟悉環境，放鬆心情，切勿催促',
+            '準備相關文物、老照片作輔助，有助引發記憶',
+            '錄音設備放置距長者 30cm 內，確保收音清晰',
+            '每次訪談不超過 1.5 小時，可分多次進行',
+          ].map((tip, i) => (
+            <li key={i} className="flex items-start gap-2">
+              <CheckCircle className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
+              <span className="text-muted">{tip}</span>
+            </li>
+          ))}
         </ul>
       </div>
 
-      <button onClick={onNext} className="w-full bg-accent text-white py-3 rounded-lg font-semibold hover:bg-accent/90 transition-colors">
-        準備完成，前往素材上傳
+      <button
+        onClick={onNext}
+        className="w-full bg-accent text-white py-3 rounded-xl font-semibold hover:bg-accent/90 transition-colors flex items-center justify-center gap-2"
+      >
+        <ChevronRight size={18} /> 準備完成，進入錄製
       </button>
     </div>
   );
 }
 
-// ─────────── S2: 素材上傳 ───────────
-function S2Materials({ onNext }: { onNext: () => void }) {
+// ─────────────────────────────────────────
+// S4: 錄製（Recording）
+// ─────────────────────────────────────────
+function S4Recording({ onNext }: { onNext: () => void }) {
+  const [uploaded, setUploaded] = useState(false);
+
   return (
-    <div className="max-w-2xl mx-auto">
-      <h2 className="text-2xl font-bold text-ink mb-2">S2 · 素材上傳</h2>
-      <p className="text-muted mb-6">上傳訪問錄音、老照片及相關文物影像。</p>
+    <div className="max-w-2xl">
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-primary">S4 · 錄製</h2>
+        <p className="text-muted text-sm mt-1">完成訪談錄製後，上傳音訊和影像素材至此。</p>
+      </div>
 
       <div className="space-y-4 mb-6">
+        {/* 上傳區域 */}
         {[
-          { icon: Mic, label: '訪談錄音', accept: '音訊檔 MP3/WAV', color: 'text-blue-500' },
-          { icon: Upload, label: '老照片及文物影像', accept: '圖片 JPG/PNG', color: 'text-amber-500' },
-          { icon: FileText, label: '書面文件（可選）', accept: 'PDF/Word', color: 'text-green-500' },
+          { icon: Mic, label: '訪談錄音', accept: 'MP3 / WAV / M4A', color: 'text-blue-500', hint: '建議總時長 30–90 分鐘' },
+          { icon: Camera, label: '訪談影像（可選）', accept: 'MP4 / MOV', color: 'text-purple-500', hint: '有影像更佳，方便後期配插' },
         ].map((item, i) => (
-          <div key={i} className="card-base p-5">
+          <div key={i} className="bg-card rounded-xl border border-line p-5 shadow-card">
             <div className="flex items-center gap-3 mb-3">
-              <item.icon className={`w-5 h-5 ${item.color}`} />
-              <span className="font-semibold text-ink">{item.label}</span>
+              <item.icon size={20} className={item.color} />
+              <div>
+                <span className="font-semibold text-sm text-ink">{item.label}</span>
+                <p className="text-xs text-muted">{item.hint}</p>
+              </div>
               <span className="text-xs text-muted ml-auto">{item.accept}</span>
             </div>
-            <div className="border-2 border-dashed border-line rounded-lg p-6 text-center hover:border-accent transition-colors cursor-pointer">
-              <Upload className="w-8 h-8 mx-auto text-muted mb-2" />
-              <p className="text-sm text-muted">點擊上傳或拖放檔案</p>
+            <div
+              onClick={() => setUploaded(true)}
+              className="border-2 border-dashed border-line rounded-lg p-6 text-center hover:border-primary transition-colors cursor-pointer"
+            >
+              <Upload size={24} className="mx-auto text-muted mb-2" />
+              <p className="text-sm text-muted">點擊上傳或拖放</p>
             </div>
           </div>
         ))}
+
+        {/* 已上傳確認 */}
+        {uploaded && (
+          <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+            <div className="flex items-center gap-3">
+              <CheckCircle className="w-5 h-5 text-green-500" />
+              <div>
+                <p className="font-semibold text-ink text-sm">錄音上傳成功</p>
+                <p className="text-xs text-muted">陳伯訪談錄音_01.mp3 · 1小時23分鐘</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 拍攝清單 */}
+        <div className="bg-card rounded-xl border border-line p-5 shadow-card">
+          <h3 className="font-semibold text-ink text-sm mb-3">錄製後建議補充拍攝</h3>
+          <div className="space-y-2 text-sm text-muted">
+            {['受訪者在熟悉環境的日常影像（街市、家居）', '相關物件特寫（舊照片、工具、手藝製品）', '長者與家人或街坊的互動片段'].map((s, i) => (
+              <label key={i} className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" className="accent-accent" />
+                <span>{s}</span>
+              </label>
+            ))}
+          </div>
+        </div>
       </div>
 
-      <button onClick={onNext} className="w-full bg-accent text-white py-3 rounded-lg font-semibold hover:bg-accent/90 transition-colors">
-        素材已上傳，開始 AI 謄錄
+      <button
+        onClick={onNext}
+        className="w-full bg-accent text-white py-3 rounded-xl font-semibold hover:bg-accent/90 transition-colors flex items-center justify-center gap-2"
+      >
+        <ChevronRight size={18} /> 錄製完成，開始 AI 轉錄
       </button>
     </div>
   );
 }
 
-// ─────────── S3: AI 謄錄 ───────────
-function S3Transcript({ onNext }: { onNext: () => void }) {
-  return (
-    <div className="max-w-2xl mx-auto">
-      <h2 className="text-2xl font-bold text-ink mb-2">S3 · AI 謄錄</h2>
-      <p className="text-muted mb-6">AI 將粵語訪談自動轉為文字稿，支援廣東話用語。</p>
+// ─────────────────────────────────────────
+// S5: AI轉錄＋強制校對
+// ─────────────────────────────────────────
+function S5Transcription({ onNext }: { onNext: () => void }) {
+  const [proofread, setProofread] = useState(false);
 
-      <div className="card-base p-6 mb-4">
+  const transcript = [
+    { speaker: '採訪者', text: '陳伯，您在街市工作了多少年？' },
+    { speaker: '陳伯', text: '唉，我喺嗰個街市做咗差唔多四十年囉。當年係我老爸帶我入行嘅，嗰時我得十八歲，做豬肉佬學徒。' },
+    { speaker: '採訪者', text: '您最記得的街市景象是什麼？' },
+    { speaker: '陳伯', text: '最記得係朝早五點幾就要去入貨，嗰陣時街市好熱鬧，啲阿嬸爭住買靚豬肉，又係點評我哋，話我哋邊塊靚邊塊唔靚。' },
+    { speaker: '採訪者', text: '從前的街市和現在有什麼不同？' },
+    { speaker: '陳伯', text: '舊時街市係個社區嘅心臟，啲街坊關係好親密。而家個街市雖然仲係喺度，但係感覺唔同啦，冇咁多人情味咯。' },
+  ];
+
+  return (
+    <div className="max-w-2xl">
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-primary">S5 · AI 轉錄 ＋ 校對</h2>
+        <p className="text-muted text-sm mt-1">AI 將粵語訪談自動轉為文字稿。<strong className="text-ink">必須確認校對後</strong>才可繼續。</p>
+      </div>
+
+      <div className="bg-card rounded-xl border border-line p-5 shadow-card mb-4">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-bold text-ink">謄錄文字稿</h3>
+          <h3 className="font-bold text-ink">AI 謄錄文字稿</h3>
           <CreditIndicator cost={5} label="謄錄" />
         </div>
-        <div className="bg-bg-soft rounded-lg p-4 max-h-64 overflow-y-auto text-sm text-ink leading-relaxed">
-          <p className="mb-3"><strong>採訪者：</strong>陳伯，您在街市工作了多少年？</p>
-          <p className="mb-3"><strong>陳伯：</strong>唉，我喺嗰個街市做咗差唔多四十年囉。當年係我老爸帶我入行嘅，嗰時我得十八歲，做豬肉佬學徒。</p>
-          <p className="mb-3"><strong>採訪者：</strong>您最記得的街市景象是什麼？</p>
-          <p className="mb-3"><strong>陳伯：</strong>最記得係朝早五點幾就要去入貨，嗰陣時街市好熱鬧，啲阿嬸爭住買靚豬肉，又係點評我哋，話我哋邊塊靚邊塊唔靚。</p>
-          <p className="mb-3"><strong>採訪者：</strong>從前的街市和現在有什麼不同？</p>
-          <p><strong>陳伯：</strong>舊時街市係個社區嘅心臟，啲街坊關係好親密。而家個街市雖然仲係喺度，但係感覺唔同啦，冇咁多人情味咯。</p>
+        <div className="bg-bg-soft rounded-lg p-4 max-h-64 overflow-y-auto text-sm text-ink leading-relaxed space-y-3">
+          {transcript.map((line, i) => (
+            <p key={i}>
+              <strong className={line.speaker === '陳伯' ? 'text-primary' : 'text-muted'}>
+                {line.speaker}：
+              </strong>
+              {line.text}
+            </p>
+          ))}
         </div>
         <div className="mt-4 flex gap-3">
           <button className="flex items-center gap-2 border border-line text-muted px-4 py-2 rounded-lg text-sm hover:border-primary hover:text-primary transition-colors">
-            <FileText className="w-4 h-4" />
-            下載原稿
+            <FileText className="w-4 h-4" /> 下載原稿
           </button>
           <button className="flex-1 bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors">
-            進入編輯模式
+            進入編輯校對模式
           </button>
         </div>
       </div>
 
-      <button onClick={onNext} className="w-full bg-accent text-white py-3 rounded-lg font-semibold hover:bg-accent/90 transition-colors">
-        確認文字稿，進行剪輯
-      </button>
-    </div>
-  );
-}
-
-// ─────────── S4: 剪輯成片 ───────────
-function S4Edit({ onNext }: { onNext: () => void }) {
-  return (
-    <div className="max-w-2xl mx-auto">
-      <h2 className="text-2xl font-bold text-ink mb-2">S4 · 剪輯成片</h2>
-      <p className="text-muted mb-6">AI 輔助剪輯，自動選取精彩片段，加入字幕及背景音樂。</p>
-
-      <div className="card-base p-6 mb-4">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-bold text-ink">AI 自動剪輯</h3>
-          <CreditIndicator cost={8} label="剪輯" />
-        </div>
-        <div className="grid grid-cols-3 gap-3 mb-4">
-          {['3分鐘精華版', '8分鐘完整版', '15分鐘加長版'].map((v, i) => (
-            <button key={i}
-              className={`p-3 rounded-lg border-2 text-center text-sm font-medium transition-colors ${
-                i === 1 ? 'border-accent bg-accent/5 text-accent' : 'border-line text-muted hover:border-accent/50'
-              }`}
-            >
-              {v}
-            </button>
-          ))}
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          {['字幕樣式', '背景音樂', '片頭片尾', '老照片插入'].map((opt, i) => (
-            <label key={i} className="flex items-center gap-3 p-3 border border-line rounded-lg cursor-pointer hover:border-accent transition-colors">
-              <input type="checkbox" defaultChecked={i < 3} className="accent-accent" />
-              <span className="text-sm text-ink">{opt}</span>
-            </label>
-          ))}
-        </div>
-        <button className="mt-4 w-full bg-accent text-white py-2 rounded-lg text-sm font-medium hover:bg-accent/90 transition-colors">
-          開始 AI 剪輯
-        </button>
+      {/* 強制校對確認 */}
+      <div className={`rounded-xl border p-5 mb-4 transition-colors ${proofread ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'}`}>
+        <label className="flex items-start gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={proofread}
+            onChange={e => setProofread(e.target.checked)}
+            className="accent-green-500 w-5 h-5 mt-0.5"
+          />
+          <div>
+            <p className={`font-semibold text-sm ${proofread ? 'text-green-800' : 'text-amber-800'}`}>
+              {proofread ? '✓ 已確認校對完成' : '⚠ 必須完成校對才可繼續'}
+            </p>
+            <p className="text-xs text-muted mt-0.5">
+              我已仔細閱讀以上文字稿，確認內容準確反映長者原話，粵語詞彙及人名地名均已核實。
+            </p>
+          </div>
+        </label>
       </div>
 
-      <button onClick={onNext} className="w-full bg-accent text-white py-3 rounded-lg font-semibold hover:bg-accent/90 transition-colors">
-        剪輯完成，加入章節標記
+      <button
+        onClick={onNext}
+        disabled={!proofread}
+        className={`w-full py-3 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2 ${
+          proofread
+            ? 'bg-accent text-white hover:bg-accent/90'
+            : 'bg-line text-muted cursor-not-allowed'
+        }`}
+      >
+        <ChevronRight size={18} /> 確認文字稿，執故事線
       </button>
     </div>
   );
 }
 
-// ─────────── S5: 章節標記 ───────────
-function S5Chapters({ onNext }: { onNext: () => void }) {
-  return (
-    <div className="max-w-2xl mx-auto">
-      <h2 className="text-2xl font-bold text-ink mb-2">S5 · 章節標記</h2>
-      <p className="text-muted mb-6">為長篇故事劃分章節，方便觀眾按需收看。</p>
+// ─────────────────────────────────────────
+// S6: 執故事線
+// ─────────────────────────────────────────
+function S6StoryLine({ onNext }: { onNext: () => void }) {
+  const storyline = [
+    { time: '00:00', title: '開場：街市清晨', desc: '用陳伯描述朝早五點入貨的畫面切入，帶出街市的人情味', type: '場景導入' },
+    { time: '01:30', title: '入行的緣起', desc: '父親帶入行、十八歲學徒，展示時代背景', type: '人生轉折' },
+    { time: '03:45', title: '街市的黃金歲月', desc: '阿嬸搶豬肉的趣事，舊時街市的人情景象', type: '核心回憶' },
+    { time: '06:00', title: '時代變遷的感嘆', desc: '舊時與現在對比，社區人情的流逝', type: '情感昇華' },
+    { time: '08:30', title: '給年輕人的話', desc: '陳伯的人生感悟，留給後輩的話語', type: '傳承金句' },
+  ];
 
-      <div className="card-base p-6 mb-4">
-        <h3 className="font-bold text-ink mb-4">章節列表</h3>
+  return (
+    <div className="max-w-2xl">
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-primary">S6 · 執故事線</h2>
+        <p className="text-muted text-sm mt-1">AI 根據文字稿自動整理故事結構，可拖動調整段落順序。</p>
+      </div>
+
+      <div className="bg-card rounded-xl border border-line p-5 shadow-card mb-4">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-bold text-ink">AI 生成故事線</h3>
+          <CreditIndicator cost={8} label="生成" />
+        </div>
         <div className="space-y-3">
-          {[
-            { time: '00:00', title: '童年與入行' },
-            { time: '02:15', title: '街市的黃金歲月' },
-            { time: '05:30', title: '難忘的街坊情' },
-            { time: '08:45', title: '時代變遷的感慨' },
-            { time: '11:20', title: '給年輕人的話' },
-          ].map((ch, i) => (
-            <div key={i} className="flex items-center gap-3 p-3 bg-bg-soft rounded-lg">
-              <span className="text-xs text-muted font-mono w-12">{ch.time}</span>
-              <input className="flex-1 border-none bg-transparent text-ink text-sm focus:outline-none" defaultValue={ch.title} />
-              <button className="text-muted hover:text-red-400 text-xs">刪除</button>
+          {storyline.map((seg, i) => (
+            <div key={i} className="flex items-start gap-3 p-3 bg-bg-soft rounded-xl border border-line">
+              <div className="flex flex-col items-center gap-1 shrink-0">
+                <span className="text-xs text-muted font-mono">{seg.time}</span>
+                {i < storyline.length - 1 && <div className="w-0.5 h-6 bg-line" />}
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="font-semibold text-sm text-ink">{seg.title}</span>
+                  <span className="text-xs bg-accent/10 text-accent px-2 py-0.5 rounded-full">{seg.type}</span>
+                </div>
+                <p className="text-xs text-muted leading-relaxed">{seg.desc}</p>
+              </div>
+              <div className="flex gap-1 shrink-0">
+                <button className="text-xs text-accent hover:underline">✏</button>
+                <button className="text-xs text-muted hover:text-primary">↕</button>
+              </div>
             </div>
           ))}
         </div>
-        <button className="mt-3 text-accent text-sm hover:underline">
-          + 新增章節
+        <button className="mt-3 text-accent text-sm hover:underline flex items-center gap-1">
+          <Sparkles size={13} /> AI 重新整理故事線
         </button>
       </div>
 
-      <button onClick={onNext} className="w-full bg-accent text-white py-3 rounded-lg font-semibold hover:bg-accent/90 transition-colors">
-        章節完成，進入字幕校對
+      <button
+        onClick={onNext}
+        className="w-full bg-accent text-white py-3 rounded-xl font-semibold hover:bg-accent/90 transition-colors flex items-center justify-center gap-2"
+      >
+        <ChevronRight size={18} /> 故事線確認，加入字幕配樂
       </button>
     </div>
   );
 }
 
-// ─────────── S6: 字幕校對 ───────────
-function S6Subtitles({ onNext }: { onNext: () => void }) {
+// ─────────────────────────────────────────
+// S7: 字幕配樂
+// ─────────────────────────────────────────
+function S7SubtitleMusic({ onNext }: { onNext: () => void }) {
   return (
-    <div className="max-w-2xl mx-auto">
-      <h2 className="text-2xl font-bold text-ink mb-2">S6 · 字幕校對</h2>
-      <p className="text-muted mb-6">校對粵語字幕，確保準確反映長者原話。</p>
+    <div className="max-w-2xl">
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-primary">S7 · 字幕配樂</h2>
+        <p className="text-muted text-sm mt-1">校對粵語字幕，選配符合傳承感的背景音樂。</p>
+      </div>
 
-      <div className="card-base p-6 mb-4">
-        <div className="space-y-3 max-h-80 overflow-y-auto">
+      {/* 字幕校對 */}
+      <div className="bg-card rounded-xl border border-line p-5 shadow-card mb-4">
+        <h3 className="font-bold text-ink mb-3">字幕校對</h3>
+        <div className="space-y-2 max-h-56 overflow-y-auto">
           {[
             { time: '0:02', text: '我喺嗰個街市做咗差唔多四十年囉。' },
             { time: '0:08', text: '當年係我老爸帶我入行嘅，嗰時我得十八歲。' },
             { time: '0:15', text: '做豬肉佬學徒，由頭學起。' },
             { time: '0:22', text: '最記得係朝早五點幾就要去入貨。' },
+            { time: '0:30', text: '嗰陣時街市好熱鬧，充滿人情味。' },
           ].map((s, i) => (
             <div key={i} className="flex gap-3 items-start">
-              <span className="text-xs text-muted font-mono w-12 mt-1 flex-shrink-0">{s.time}</span>
+              <span className="text-xs text-muted font-mono w-12 mt-1.5 flex-shrink-0">{s.time}</span>
               <textarea
-                className="flex-1 border border-line rounded px-3 py-1.5 text-sm text-ink resize-none focus:ring-1 focus:ring-accent focus:border-accent"
+                className="flex-1 border border-line rounded px-3 py-1.5 text-sm text-ink resize-none focus:ring-1 focus:ring-accent focus:border-accent bg-bg-soft"
                 defaultValue={s.text}
                 rows={2}
               />
@@ -315,171 +597,248 @@ function S6Subtitles({ onNext }: { onNext: () => void }) {
         </div>
       </div>
 
-      <button onClick={onNext} className="w-full bg-accent text-white py-3 rounded-lg font-semibold hover:bg-accent/90 transition-colors">
-        字幕確認，進入配音
+      {/* 背景音樂 */}
+      <div className="bg-card rounded-xl border border-line p-5 shadow-card mb-6">
+        <h3 className="font-bold text-ink mb-3">背景音樂</h3>
+        <div className="space-y-2">
+          {[
+            { label: '溫暖鋼琴曲（推薦）', desc: '輕柔感動，適合傳承主題', active: true },
+            { label: '懷舊廣東歌純音樂版', desc: '勾起香港集體回憶', active: false },
+            { label: '輕鬆木結他', desc: '輕快溫馨，生活感強', active: false },
+            { label: '無音樂（純人聲）', desc: '突出受訪者本人聲音', active: false },
+          ].map((m, i) => (
+            <label key={i} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${m.active ? 'border-accent bg-accent/5' : 'border-line hover:border-accent/40'}`}>
+              <input type="radio" name="music" className="accent-accent" defaultChecked={m.active} />
+              <div>
+                <p className="font-medium text-sm text-ink">{m.label}</p>
+                <p className="text-xs text-muted">{m.desc}</p>
+              </div>
+              <button className="ml-auto text-xs text-accent border border-accent px-3 py-1 rounded-lg hover:bg-accent/5 flex items-center gap-1">
+                <Mic size={11} /> 試聽
+              </button>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <button
+        onClick={onNext}
+        className="w-full bg-accent text-white py-3 rounded-xl font-semibold hover:bg-accent/90 transition-colors flex items-center justify-center gap-2"
+      >
+        <ChevronRight size={18} /> 字幕配樂確認，進入平台剪輯
       </button>
     </div>
   );
 }
 
-// ─────────── S7: Cantonese 配音 ───────────
-function S7Voiceover({ onNext }: { onNext: () => void }) {
+// ─────────────────────────────────────────
+// S8: 平台內剪輯
+// ─────────────────────────────────────────
+function S8PlatformEdit({ onNext }: { onNext: () => void }) {
   return (
-    <div className="max-w-2xl mx-auto">
-      <h2 className="text-2xl font-bold text-ink mb-2">S7 · 旁白配音</h2>
-      <p className="text-muted mb-6">AI Seedance 為影片加入粵語旁白，串連故事脈絡。</p>
-
-      <div className="card-base p-6 mb-4">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-bold text-ink">旁白腳本</h3>
-          <CreditIndicator cost={6} label="配音" />
+    <div className="w-full max-w-3xl">
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-primary">S8 · 平台內剪輯</h2>
+        <p className="text-muted text-sm mt-1">AI 輔助剪輯，選取精彩片段，加入老照片和片頭片尾。</p>
+        <div className="inline-flex items-center gap-1.5 mt-2 bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-medium">
+          <Check size={11} /> 此步驟免費，不消耗積分
         </div>
-        <textarea
-          className="w-full border border-line rounded-lg px-4 py-3 text-sm text-ink resize-none focus:ring-1 focus:ring-accent"
-          rows={5}
-          defaultValue="在香港的街市裡，有一位叫陳伯的豬肉佬，用了四十年時光，見證了一個社區的變遷。他的故事，是無數香港人共同的記憶……"
-        />
-        <div className="mt-4 grid grid-cols-2 gap-3">
-          {['溫暖女聲（普通話）', '懷舊男聲（粵語）'].map((v, i) => (
-            <button key={i}
-              className={`p-3 rounded-lg border-2 text-sm transition-colors ${
+      </div>
+
+      {/* 播放器預覽 */}
+      <div className="bg-black rounded-xl overflow-hidden mb-4 aspect-video flex items-center justify-center relative">
+        <p className="text-white opacity-60">▶ 傳承影片預覽</p>
+        <div className="absolute bottom-3 left-3 right-3">
+          <div className="h-1 bg-white/30 rounded-full">
+            <div className="h-full bg-white rounded-full w-2/5" />
+          </div>
+        </div>
+      </div>
+
+      {/* 版本選擇 */}
+      <div className="bg-card rounded-xl border border-line p-5 shadow-card mb-4">
+        <h3 className="font-bold text-ink mb-3">版本選擇</h3>
+        <div className="grid grid-cols-3 gap-3">
+          {['3分鐘精華版', '8分鐘完整版', '15分鐘加長版'].map((v, i) => (
+            <button
+              key={i}
+              className={`p-3 rounded-lg border-2 text-center text-sm font-medium transition-colors ${
                 i === 1 ? 'border-accent bg-accent/5 text-accent' : 'border-line text-muted hover:border-accent/50'
               }`}
             >
-              <Mic className="w-4 h-4 mx-auto mb-1" />
               {v}
             </button>
           ))}
         </div>
-        <button className="mt-3 w-full bg-accent text-white py-2 rounded-lg text-sm font-medium hover:bg-accent/90 transition-colors">
-          <Play className="w-4 h-4 inline mr-2" />
-          試聽旁白
-        </button>
       </div>
 
-      <button onClick={onNext} className="w-full bg-accent text-white py-3 rounded-lg font-semibold hover:bg-accent/90 transition-colors">
-        配音完成，合成影片
+      {/* 剪輯選項 */}
+      <div className="bg-card rounded-xl border border-line p-5 shadow-card mb-4">
+        <h3 className="font-bold text-ink mb-3">剪輯設定</h3>
+        <div className="grid grid-cols-2 gap-2">
+          {[
+            { label: '字幕樣式（大字，長者友善）', checked: true },
+            { label: '背景音樂', checked: true },
+            { label: '傳統書法片頭', checked: true },
+            { label: '老照片插入', checked: true },
+            { label: '懷舊菲林片尾效果', checked: false },
+            { label: '片尾感謝名單', checked: true },
+          ].map((opt, i) => (
+            <label key={i} className="flex items-center gap-3 p-3 border border-line rounded-lg cursor-pointer hover:border-accent transition-colors">
+              <input type="checkbox" defaultChecked={opt.checked} className="accent-accent" />
+              <span className="text-sm text-ink">{opt.label}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <button
+        onClick={onNext}
+        className="w-full bg-accent text-white py-3 rounded-xl font-semibold hover:bg-accent/90 transition-colors flex items-center justify-center gap-2"
+      >
+        <ChevronRight size={18} /> 剪輯完成，送交授權發佈
       </button>
     </div>
   );
 }
 
-// ─────────── S8: 合成 ───────────
-function S8Compile({ onNext }: { onNext: () => void }) {
-  return (
-    <div className="max-w-2xl mx-auto">
-      <h2 className="text-2xl font-bold text-ink mb-2">S8 · 合成輸出</h2>
-      <p className="text-muted mb-6">最終合成，生成高清傳承影片。</p>
+// ─────────────────────────────────────────
+// S9: 授權發佈
+// ─────────────────────────────────────────
+function S9AuthorizePublish({ onNext }: { onNext: () => void }) {
+  const [consents, setConsents] = useState([false, false, false]);
+  const allConsented = consents.every(Boolean);
 
-      <div className="card-base p-6 mb-4">
-        <h3 className="font-bold text-ink mb-4">合成設定</h3>
-        <div className="space-y-4">
-          <div>
-            <label className="form-label">輸出畫質</label>
-            <select className="form-input">
-              <option>1080p Full HD（推薦）</option>
-              <option>720p HD</option>
-              <option>4K（需更多積分）</option>
-            </select>
-          </div>
-          <div>
-            <label className="form-label">片頭風格</label>
-            <div className="grid grid-cols-3 gap-2">
-              {['傳統書法', '現代簡約', '懷舊菲林'].map((s, i) => (
-                <button key={i}
-                  className={`py-2 px-3 rounded-lg border text-sm transition-colors ${
-                    i === 0 ? 'border-accent bg-accent/5 text-accent' : 'border-line text-muted hover:border-accent/50'
-                  }`}
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-        <div className="mt-5 p-4 bg-bg-soft rounded-lg">
-          <div className="flex items-center justify-between text-sm mb-2">
-            <span className="text-muted">預計用時</span>
-            <span className="text-ink font-medium">約 8 分鐘</span>
-          </div>
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted">積分消耗</span>
-            <CreditIndicator cost={10} label="合成" />
-          </div>
-        </div>
-        <button className="mt-4 w-full bg-accent text-white py-2 rounded-lg text-sm font-medium hover:bg-accent/90 transition-colors">
-          開始合成
-        </button>
+  const toggleConsent = (i: number) => {
+    const next = [...consents];
+    next[i] = !next[i];
+    setConsents(next);
+  };
+
+  return (
+    <div className="max-w-2xl">
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-primary">S9 · 授權發佈</h2>
+        <p className="text-muted text-sm mt-1">確認授權聲明後提交審核，通過後在平台發佈，讓更多人看見長者智慧。</p>
       </div>
 
-      <button onClick={onNext} className="w-full bg-accent text-white py-3 rounded-lg font-semibold hover:bg-accent/90 transition-colors">
-        合成完成，送交審核
-      </button>
-    </div>
-  );
-}
-
-// ─────────── S9: 送審發佈 ───────────
-function S9Publish({ onNext }: { onNext: () => void }) {
-  return (
-    <div className="max-w-2xl mx-auto">
-      <h2 className="text-2xl font-bold text-ink mb-2">S9 · 送審及發佈</h2>
-      <p className="text-muted mb-6">提交審核，通過後在平台發佈，讓更多人看見長者智慧。</p>
-
-      <div className="card-base p-6 mb-4">
-        <h3 className="font-bold text-ink mb-4">發佈設定</h3>
-        <div className="space-y-4">
-          <div>
-            <label className="form-label">授權聲明</label>
-            <div className="space-y-2">
-              {['已獲長者本人同意發佈', '家屬同意書已簽署', '私隱資料已作適當處理'].map((item, i) => (
-                <label key={i} className="flex items-center gap-3 cursor-pointer">
-                  <input type="checkbox" className="accent-accent w-4 h-4" />
-                  <span className="text-sm text-ink">{item}</span>
-                </label>
-              ))}
+      {/* 五維度 AI 評分 */}
+      <div className="bg-card rounded-xl border border-line p-5 shadow-card mb-4">
+        <h3 className="font-bold text-ink mb-3">AI 內容評分</h3>
+        <div className="space-y-2">
+          {[
+            { label: '內容品質', score: 9 },
+            { label: '語言表達', score: 8 },
+            { label: '文化適切', score: 10 },
+            { label: '倫理規範', score: 10 },
+            { label: '商業合規', score: 9 },
+          ].map(d => (
+            <div key={d.label} className="flex items-center gap-3">
+              <span className="text-xs text-muted w-20 text-right">{d.label}</span>
+              <div className="flex-1 h-2 bg-line rounded-full overflow-hidden">
+                <div className="h-full bg-accent rounded-full" style={{ width: `${d.score * 10}%` }} />
+              </div>
+              <span className="text-xs font-bold text-accent w-8">{d.score}/10</span>
             </div>
-          </div>
+          ))}
+        </div>
+        <p className="text-xs text-primary font-medium mt-3">AI 總評：9.2/10 · 強烈推薦發佈</p>
+      </div>
+
+      {/* 授權聲明 */}
+      <div className="bg-card rounded-xl border border-line p-5 shadow-card mb-4">
+        <h3 className="font-bold text-ink mb-3">授權聲明（必須全部勾選）</h3>
+        <div className="space-y-3">
+          {[
+            '已獲長者本人同意以其故事及肖像製作傳承影片並公開發佈',
+            '家屬同意書已完成簽署（如長者無法自行簽署）',
+            '私隱資料已作適當處理，敏感個人資訊已獲同意披露',
+          ].map((item, i) => (
+            <label
+              key={i}
+              className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                consents[i] ? 'border-green-400 bg-green-50' : 'border-line hover:border-accent/40'
+              }`}
+            >
+              <input
+                type="checkbox"
+                className="accent-green-500 w-4 h-4 mt-0.5"
+                checked={consents[i]}
+                onChange={() => toggleConsent(i)}
+              />
+              <span className="text-sm text-ink">{item}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      {/* 發佈設定 */}
+      <div className="bg-card rounded-xl border border-line p-5 shadow-card mb-4">
+        <h3 className="font-bold text-ink mb-3">發佈設定</h3>
+        <div className="space-y-3">
           <div>
-            <label className="form-label">發佈對象</label>
-            <select className="form-input">
+            <label className="text-xs text-muted mb-1 block">發佈對象</label>
+            <select className="w-full border border-line rounded-lg px-3 py-2 bg-bg-soft text-sm focus:outline-none focus:border-primary">
               <option>公開發佈（所有觀眾）</option>
               <option>登入用戶限定</option>
               <option>限家人查看（私密）</option>
             </select>
           </div>
           <div>
-            <label className="form-label">相關標籤</label>
-            <input className="form-input" placeholder="例：街市、香港情懷、手藝傳承" />
+            <label className="text-xs text-muted mb-1 block">相關標籤</label>
+            <input
+              className="w-full border border-line rounded-lg px-3 py-2 bg-bg-soft text-sm focus:outline-none focus:border-primary"
+              defaultValue="街市、香港情懷、長者故事、手藝傳承、CoEldery85"
+            />
           </div>
-        </div>
-        <div className="mt-5 flex gap-3">
-          <button className="flex-1 flex items-center justify-center gap-2 border border-accent text-accent py-3 rounded-lg font-semibold hover:bg-accent/5 transition-colors">
-            <Globe className="w-4 h-4" />
-            預覽
-          </button>
-          <button className="flex-1 flex items-center justify-center gap-2 bg-accent text-white py-3 rounded-lg font-semibold hover:bg-accent/90 transition-colors">
-            <Send className="w-4 h-4" />
-            送交審核
-          </button>
         </div>
       </div>
 
-      <div className="card-base p-5 border-l-4 border-green-400">
+      {/* ESG 積分 */}
+      <div className="bg-card rounded-xl border-l-4 border-green-400 p-5 mb-6 shadow-card">
         <div className="flex items-center gap-3">
           <Award className="w-6 h-6 text-green-500" />
           <div>
             <p className="font-semibold text-ink text-sm">發佈後可獲得 ESG 積分</p>
-            <p className="text-muted text-xs mt-0.5">每部傳承影片可為贊助機構提供 CSR 記錄證明</p>
+            <p className="text-muted text-xs mt-0.5">每部傳承影片可為贊助機構提供 CSR 記錄證明，本作品預計 +85 ESG 積分</p>
           </div>
         </div>
+      </div>
+
+      <div className="flex gap-3">
+        <button className="flex items-center gap-2 border border-line px-5 py-3 rounded-xl text-muted hover:border-primary transition-colors text-sm">
+          <Globe className="w-4 h-4" /> 預覽
+        </button>
+        <button
+          disabled={!allConsented}
+          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-semibold transition-colors ${
+            allConsented
+              ? 'bg-accent text-white hover:bg-accent/90'
+              : 'bg-line text-muted cursor-not-allowed'
+          }`}
+        >
+          <Send className="w-4 h-4" /> 送交審核並發佈
+        </button>
       </div>
     </div>
   );
 }
 
-// ─────────── Main Component ───────────
-const STEPS = [S0Initiate, S1Prepare, S2Materials, S3Transcript, S4Edit, S5Chapters, S6Subtitles, S7Voiceover, S8Compile, S9Publish];
+// ─────────────────────────────────────────
+// Main Component
+// ─────────────────────────────────────────
+const STEPS = [
+  S0ProjectSetup,    // 0: 專案設定
+  S1AssetBank,       // 1: 素材庫
+  S2SubjectSetup,    // 2: 人物設定
+  S3InterviewGuide,  // 3: 訪談引導
+  S4Recording,       // 4: 錄製
+  S5Transcription,   // 5: AI轉錄校對
+  S6StoryLine,       // 6: 執故事線
+  S7SubtitleMusic,   // 7: 字幕配樂
+  S8PlatformEdit,    // 8: 平台剪輯
+  S9AuthorizePublish,// 9: 授權發佈
+];
 
 export default function LegacyWorkflow() {
   const { step } = useParams();
@@ -489,6 +848,9 @@ export default function LegacyWorkflow() {
 
   const goNext = () => navigate(`/creator/legacy/${Math.min(currentStep + 1, 9)}`);
 
+  const seriesTitles: Record<number, string> = { 0: '新傳承項目' };
+  const headerTitle = seriesTitles[currentStep] ?? '陳伯的街市歲月';
+
   return (
     <div className="flex h-screen bg-bg-soft overflow-hidden">
       <CreatorSidebar />
@@ -496,7 +858,11 @@ export default function LegacyWorkflow() {
         <header className="bg-card border-b border-line px-6 py-3 flex items-center gap-4 shrink-0">
           <Logo size="sm" withWordmark />
           <span className="text-accent font-bold">傳承模式</span>
-          <span className="text-muted text-sm">· 陳伯的街市歲月</span>
+          <span className="text-muted text-sm">· {headerTitle}</span>
+          <div className="ml-auto flex items-center gap-3">
+            <Heart size={16} className="text-accent" />
+            <span className="text-xs text-muted">積分：842</span>
+          </div>
         </header>
         <div className="flex flex-1 overflow-hidden">
           <div className="w-48 shrink-0 bg-card border-r border-line overflow-y-auto">
