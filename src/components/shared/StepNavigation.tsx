@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { Check } from 'lucide-react';
+import { Check, MapPin } from 'lucide-react';
 import { useLocaleStore } from '@/store/localeStore';
 import { t } from '@/i18n';
 
@@ -7,10 +7,14 @@ interface StepNavigationProps {
   mode: 'drama' | 'legacy';
   currentStep: number;
   onStepClick?: (step: number) => void;
+  /** drama 模式：route 1 = PlanOverview（策劃案總覽）是否為當前 */
+  isPlanOverview?: boolean;
+  /** drama 模式：點擊 PlanOverview 標記的 callback */
+  onPlanOverviewClick?: () => void;
   className?: string;
 }
 
-export function StepNavigation({ mode, currentStep, onStepClick, className }: StepNavigationProps) {
+export function StepNavigation({ mode, currentStep, onStepClick, isPlanOverview, onPlanOverviewClick, className }: StepNavigationProps) {
   const { locale } = useLocaleStore();
   const tr = t();
   void locale;
@@ -47,28 +51,48 @@ export function StepNavigation({ mode, currentStep, onStepClick, className }: St
     <nav className={cn('flex flex-col gap-1 py-4', className)}>
       {steps.map((label, i) => {
         const done = i < currentStep;
-        const active = i === currentStep;
+        const active = i === currentStep && !isPlanOverview;
         return (
-          <button
-            key={i}
-            onClick={() => onStepClick?.(i)}
-            className={cn(
-              'flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm text-left transition-colors',
-              active && 'bg-primary text-white font-semibold',
-              done && 'text-primary font-medium hover:bg-primary/5',
-              !active && !done && 'text-muted hover:bg-gray-50',
+          <>
+            <button
+              key={i}
+              onClick={() => onStepClick?.(i)}
+              className={cn(
+                'flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm text-left transition-colors',
+                active && 'bg-primary text-white font-semibold',
+                done && 'text-primary font-medium hover:bg-primary/5',
+                !active && !done && 'text-muted hover:bg-gray-50',
+              )}
+            >
+              <span className={cn(
+                'flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold shrink-0',
+                active && 'bg-white text-primary',
+                done && 'bg-green-500 text-white',
+                !active && !done && 'bg-line text-muted',
+              )}>
+                {done ? <Check size={11} /> : i}
+              </span>
+              {label}
+            </button>
+            {/* PlanOverview 視覺標記：插在 S0（index 0）後面 */}
+            {mode === 'drama' && i === 0 && (
+              <button
+                key="plan-overview"
+                onClick={onPlanOverviewClick}
+                className={cn(
+                  'flex items-center gap-2 px-4 py-1.5 ml-2 rounded-lg text-xs text-left transition-colors border-l-2',
+                  isPlanOverview
+                    ? 'border-accent text-accent font-semibold bg-accent/5'
+                    : currentStep > 0
+                      ? 'border-green-400 text-green-600 hover:bg-green-50'
+                      : 'border-line text-muted hover:bg-gray-50',
+                )}
+              >
+                <MapPin size={11} className="shrink-0" />
+                策劃案總覽
+              </button>
             )}
-          >
-            <span className={cn(
-              'flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold shrink-0',
-              active && 'bg-white text-primary',
-              done && 'bg-green-500 text-white',
-              !active && !done && 'bg-line text-muted',
-            )}>
-              {done ? <Check size={11} /> : i}
-            </span>
-            {label}
-          </button>
+          </>
         );
       })}
     </nav>

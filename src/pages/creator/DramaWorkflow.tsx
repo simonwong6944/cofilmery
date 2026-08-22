@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { AestheticComposer, type AestheticOutput } from '@/components/shared/AestheticComposer';
 import {
   S1aTopic, S1bOutline, S2Characters, S1cEpisodes,
-  StageProgress, LegacyModeNotice, type ArchitectSubStage,
+  StageProgress, type ArchitectSubStage,
 } from '@/components/shared/StoryArchitect';
 import type { TopicOption, CharacterCard, EpisodeStoryCard, SeriesContext } from '@/adapters/types';
 import { Layers } from 'lucide-react';
@@ -258,172 +258,6 @@ function S0SeriesSetup({ onNext }: { onNext: () => void }) {
           {tr.creator.drama.s0.confirmBtn}
         </button>
       </div>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────
-// 前置: 故事骨架與角色深化引擎（Story Architect）
-// 插入點：S0 完成後 → PlanOverview 之前
-// ─────────────────────────────────────────
-function StoryArchitectFlow({ onNext }: { onNext: () => void }) {
-  const { locale } = useLocaleStore();
-  const tr = t();
-  void locale;
-  const sa = tr.storyArchitect;
-
-  // projectStore — 寫入 Story Architect 產出供下游工具使用
-  const { setCharacters: storeSetCharacters, setStoryCards: storeSetStoryCards,
-          setSelectedTopic: storeSetTopic, setOutline: storeSetOutline,
-          setContext: storeSetContext, setCoCreated,
-          isCoCreated, coCreateNote } = useProjectStore();
-
-  // 子階段狀態
-  const [subStage, setSubStage] = useState<ArchitectSubStage>('topic');
-  const [selectedTopic, setSelectedTopic] = useState<TopicOption | null>(null);
-  const [outline, setOutline] = useState<{ episodeNumber: number; title_i18n: { 'zh-HK': string; en: string; 'zh-CN': string }; oneLine_i18n: { 'zh-HK': string; en: string; 'zh-CN': string } }[]>([]);
-  const [characters, setCharacters] = useState<CharacterCard[]>([]);
-  const [storyCards, setStoryCards] = useState<EpisodeStoryCard[]>([]);  // Phase 3: 不再以 _ 忽略
-
-  // 從 S0 取得的系列資訊（Phase 3: 同時寫入 store）
-  const context: SeriesContext = {
-    seriesTitle: '街市情緣',
-    genre: 'dream',
-    tone: 'warm',
-    coreNeed: 'seen',
-    episodeCount: 30,
-    durationLabel: '60秒',
-    mode: 'drama',
-  };
-
-  return (
-    <div className="max-w-2xl space-y-4">
-      {/* 標題 */}
-      <div className="mb-2">
-        <div className="inline-flex items-center gap-2 bg-violet-100 text-violet-700 px-3 py-1 rounded-full text-xs font-semibold mb-3">
-          <BookOpen size={12} /> 故事骨架工場
-        </div>
-        <h2 className="text-2xl font-bold text-primary">AI 起草，人來定奪</h2>
-        <p className="text-muted text-sm mt-1">逐層確認故事方向，每一步你都可以接受、重生成或親手修改。</p>
-      </div>
-
-      {/* 進度列 */}
-      <StageProgress current={subStage} />
-
-      {/* 傳承模式安全提示 */}
-      {context.mode === 'legacy' && <LegacyModeNotice />}
-
-      {/* S1a 選題方向 */}
-      {subStage === 'topic' && (
-        <S1aTopic
-          context={context}
-          onAccept={(topic) => {
-            setSelectedTopic(topic);
-            storeSetTopic(topic);         // Phase 3: 寫入 store
-            storeSetContext(context);     // Phase 3: 寫入系列上下文
-            setSubStage('outline');
-          }}
-        />
-      )}
-
-      {/* S1b 全劇大綱 */}
-      {subStage === 'outline' && selectedTopic && (
-        <S1bOutline
-          context={context}
-          selectedTopic={selectedTopic}
-          onAccept={(ol, outlineCoCreateNote) => {
-            setOutline(ol);
-            storeSetOutline(ol);          // Phase 3: 寫入 store
-            // Phase 3: 共創標記 — 有輸入 outlineCoCreateNote 時標記
-            if (outlineCoCreateNote && outlineCoCreateNote.trim()) {
-              setCoCreated(true, outlineCoCreateNote.trim());
-            }
-            setSubStage('characters');
-          }}
-        />
-      )}
-
-      {/* S2 角色深化 */}
-      {subStage === 'characters' && (
-        <S2Characters
-          context={context}
-          onAccept={(chars) => {
-            setCharacters(chars);
-            storeSetCharacters(chars);    // Phase 3: 寫入 store 供 Storyboard 使用
-            setSubStage('episodes');
-          }}
-        />
-      )}
-
-      {/* S1c 逐集故事卡 */}
-      {subStage === 'episodes' && (
-        <S1cEpisodes
-          context={context}
-          outline={outline}
-          characters={characters}
-          onAccept={(cards) => {
-            setStoryCards(cards);
-            // Phase 3: 寫入 projectStore 供 ScriptEditor / Storyboard 使用
-            storeSetStoryCards(cards);
-            setSubStage('done');
-          }}
-        />
-      )}
-
-      {/* 完成 → 前往策劃案總覽 */}
-      {subStage === 'done' && (
-        <div className="bg-card rounded-xl border border-line shadow-card p-6 text-center">
-          <div className="w-14 h-14 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Check size={28} className="text-accent" />
-          </div>
-          <h3 className="text-lg font-bold text-ink mb-2">故事骨架完成！</h3>
-          <p className="text-muted text-sm mb-4">你的選題方向、全劇大綱、角色卡及部分分集故事卡已儲存，可在後續步驟隨時調整。</p>
-
-          {/* Phase 3: Co-create badge — 有 humanInput 時顯示共創標記 */}
-          {isCoCreated && (
-            <div className="inline-flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-700 px-4 py-2 rounded-full text-sm font-semibold mb-4">
-              <Star size={14} className="fill-amber-400 text-amber-400" />
-              {sa.coCreate.badge}
-              {coCreateNote && <span className="text-xs font-normal text-amber-600 ml-1">· {coCreateNote.slice(0, 20)}{coCreateNote.length > 20 ? '…' : ''}</span>}
-            </div>
-          )}
-
-          {/* 角色摘要 */}
-          {characters.length > 0 && (
-            <div className="flex flex-wrap gap-2 justify-center mb-4">
-              {characters.slice(0, 4).map(c => (
-                <span key={c.id} className="inline-flex items-center gap-1 bg-violet-50 text-violet-700 px-3 py-1 rounded-full text-xs">
-                  <Users size={10} /> {c.name_i18n['zh-HK']}
-                </span>
-              ))}
-              {storyCards.length > 0 && (
-                <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs">
-                  <Film size={10} /> {storyCards.length} 集故事卡
-                </span>
-              )}
-            </div>
-          )}
-
-          <button
-            onClick={onNext}
-            className="flex items-center gap-2 bg-accent text-white px-6 py-3 rounded-xl font-semibold hover:bg-accent/90 transition-colors mx-auto"
-          >
-            <Check size={18} /> {sa.action.accept}
-          </button>
-        </div>
-      )}
-
-      {/* 跳過按鈕（長者友善：不強迫，可跳過直去策劃案）*/}
-      {subStage !== 'done' && (
-        <div className="text-center">
-          <button
-            onClick={onNext}
-            className="text-xs text-muted hover:text-primary transition-colors underline underline-offset-2"
-          >
-            跳過故事骨架，直接前往策劃案總覽
-          </button>
-        </div>
-      )}
     </div>
   );
 }
@@ -1227,340 +1061,258 @@ function CharacterProfileCard({
 }
 
 // ─────────────────────────────────────────
-// S2: 角色設定（Drama mode）
+// S2: 主要角色設定（新版）
+// 靈魂欄位（欲望/弧線/語言）+ 視覺欄位（外型/一致性）
+// 允許「淨係主角」過關；re-entrant 不清空 S3 資料
 // ─────────────────────────────────────────
 function S2CharacterSetup({ onNext }: { onNext: () => void }) {
   const { locale } = useLocaleStore();
   const tr = t();
   void locale;
-  const [selectedChar, setSelectedChar] = useState(0);
-  const [similarities, setSimilarities] = useState(['極似', '70%', '神韻']);
 
-  const characters = [
-    {
-      name: '陳伯', role: '主角', age: '72歲', bg: '退休豬肉佬，愛做菜',
-      img: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=80&h=80&fit=crop&crop=face',
-    },
-    {
-      name: '陳太', role: '女主角', age: '68歲', bg: '陳伯老伴，賢惠體貼',
-      img: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=80&h=80&fit=crop&crop=face',
-    },
-    {
-      name: '阿明', role: '配角', age: '35歲', bg: '街坊年輕人，學廚學生',
-      img: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&h=80&fit=crop&crop=face',
-    },
-  ];
+  // 從 store 讀取已有角色（re-entrant：返回時保留）
+  const { characters: storedCharacters, setCharacters: storeSetCharacters } = useProjectStore();
 
-  const char = characters[selectedChar];
+  // 固定的系列上下文（之後可從 S0 store 讀取）
+  const context: SeriesContext = {
+    seriesTitle: '街市情緣',
+    genre: 'dream',
+    tone: 'warm',
+    coreNeed: 'seen',
+    episodeCount: 30,
+    durationLabel: '60秒',
+    mode: 'drama',
+  };
+
+  const handleAccept = (chars: CharacterCard[]) => {
+    storeSetCharacters(chars);
+    // 注意：不清空 S3 資料（不呼叫 setSelectedTopic/setOutline/setStoryCards）
+    onNext();
+  };
 
   return (
-    <div className="max-w-2xl">
-      <div className="mb-6">
+    <div className="max-w-2xl space-y-4">
+      <div className="mb-2">
+        <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-semibold mb-3">
+          <Users size={12} /> S2 主要角色設定
+        </div>
         <h2 className="text-2xl font-bold text-primary">{tr.creator.drama.s2.title}</h2>
-        <p className="text-muted text-sm mt-1">{tr.creator.drama.s2.subtitle}</p>
+        <p className="text-muted text-sm mt-1">先定 1–2 個主角，配角隨時可回頭補充。靈魂欄位餵給故事生成，視覺欄位餵給關鍵幀。</p>
       </div>
 
-      <div className="space-y-4 mb-6">
-        {/* 角色陣容選擇器 */}
-        <div className="bg-card rounded-xl border border-line p-4 shadow-card">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-semibold text-ink text-sm">{tr.creator.drama.s2.castTitle}</h3>
-            <button className="text-accent text-sm hover:underline flex items-center gap-1">
-              <Plus size={13} /> {tr.creator.drama.s2.addChar}
-            </button>
-          </div>
-          <div className="flex gap-3 flex-wrap">
-            {characters.map((c, i) => (
-              <button
-                key={i}
-                onClick={() => setSelectedChar(i)}
-                className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all ${
-                  selectedChar === i ? 'border-primary bg-primary/5' : 'border-line hover:border-primary/40'
-                }`}
-              >
-                <img src={c.img} alt={c.name} className="w-12 h-12 rounded-full object-cover" />
-                <span className="text-xs font-semibold text-ink">{c.name}</span>
-                <span className="text-[10px] text-muted">{c.role}</span>
-                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
-                  similarities[i] === '極似' ? 'bg-green-100 text-green-700' :
-                  similarities[i] === '70%'  ? 'bg-blue-100 text-blue-700'  :
-                                               'bg-purple-100 text-purple-700'
-                }`}>{similarities[i]}</span>
-              </button>
-            ))}
+      {/* 已有角色時顯示已存角色提示 */}
+      {storedCharacters.length > 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 flex items-center gap-3">
+          <Users size={16} className="text-blue-500 shrink-0" />
+          <div>
+            <p className="text-sm font-semibold text-blue-800">已有 {storedCharacters.length} 個角色</p>
+            <p className="text-xs text-blue-600">返回編輯唔會清空 S3 已生成的故事框架。</p>
           </div>
         </div>
+      )}
 
-        {/* Character profile card */}
-        <CharacterProfileCard
-          key={selectedChar}
-          img={char.img}
-          name={char.name}
-          role={char.role}
-          age={char.age}
-          bg={char.bg}
-          similarity={similarities[selectedChar]}
-          setSimilarity={v => setSimilarities(prev => prev.map((s, i) => i === selectedChar ? v : s))}
-          mode="drama"
-        />
+      {/* 使用 StoryArchitect 的 S2Characters 元件（靈魂欄位完整） */}
+      <S2Characters
+        context={context}
+        onAccept={handleAccept}
+      />
+
+      {/* 主角已定，快速過關 CTA */}
+      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center justify-between gap-4">
+        <div>
+          <p className="text-sm font-semibold text-amber-800">只定主角，稍後補配角？</p>
+          <p className="text-xs text-amber-600 mt-0.5">S2 隨時可回頭新增或修改角色，不影響已生成的故事。</p>
+        </div>
+        <button
+          onClick={() => {
+            // 允許「淨係主角」過關：即使無角色也可進入 S3
+            onNext();
+          }}
+          className="shrink-0 flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors whitespace-nowrap"
+        >
+          <ChevronRight size={15} />
+          主角已定，開始寫故事
+        </button>
       </div>
-
-      <button
-        onClick={onNext}
-        className="w-full bg-primary text-white py-3 rounded-xl font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
-      >
-        <ChevronRight size={18} />
-        {tr.creator.drama.s2.confirmBtn}
-        <CreditIndicator cost={0} className="ml-2" />
-      </button>
     </div>
   );
 }
 
 // ─────────────────────────────────────────
-// S3: 故事框架（3a → 3b → 3c 垂直展開）
+// S3: 故事框架（新版）
+// 整合：3a 選題方向 → 3b 全劇大綱 → 3c 逐集故事卡
+// 讀取 S2 characters 作為生成上下文
+// 每階段有 Accept / Regenerate / Edit 三動作
 // ─────────────────────────────────────────
 function S3StoryFramework({ onNext }: { onNext: () => void }) {
   const { locale } = useLocaleStore();
   const tr = t();
   void locale;
-  const [phase3a, setPhase3a] = useState(true);
-  const [phase3b, setPhase3b] = useState(false);
-  const [phase3bDone, setPhase3bDone] = useState(false);
-  const [phase3c, setPhase3c] = useState(false);
+  const sa = tr.storyArchitect;
 
-  const arcData = [
-    {
-      act: '第一幕：開端', eps: '第1–8集', theme: '街市老師傅的最後一個月',
-      core: '介紹陳伯的退休倒數，埋下廚師夢的伏線',
-      points: [
-        { ep: 1, plot: '陳伯最後一天上班，街坊依依不捨', hook: '陳太無意發現陳伯藏了一本舊廚藝筆記' },
-        { ep: 2, plot: '退休第一天，陳伯無所適從', hook: '阿明登門拜師，陳伯拒絕' },
-        { ep: 3, plot: '阿明第三次求師，陳伯動搖', hook: '廚藝筆記第一頁出現：「給未來的自己」' },
-      ],
-    },
-    {
-      act: '第二幕：發展', eps: '第9–22集', theme: '師徒情誼，跌跌撞撞學廚藝',
-      core: '陳伯打開心扉，師徒關係昇華，家人關係修復',
-      points: [
-        { ep: 9, plot: '第一堂廚藝課，笑料百出', hook: '阿明比賽報名截止迫近' },
-        { ep: 15, plot: '陳太生病，陳伯崩潰放棄', hook: '阿明獨自練習，拍下影片給陳伯' },
-      ],
-    },
-    {
-      act: '第三幕：高潮＋結局', eps: '第23–30集', theme: '圓夢舞台，老夫妻的最美結局',
-      core: '廚藝比賽登場，陳伯以觀眾身份重新看見自己的價值',
-      points: [
-        { ep: 23, plot: '比賽當日，阿明失常', hook: '陳伯衝上舞台，親自示範' },
-        { ep: 30, plot: '陳伯獲得「終身成就獎」', hook: '全劇終' },
-      ],
-    },
-  ];
+  // 從 store 讀取 S2 角色資料（作為生成上下文）
+  const {
+    characters: storedCharacters,
+    setSelectedTopic: storeSetTopic,
+    setOutline: storeSetOutline,
+    setStoryCards: storeSetStoryCards,
+    setCoCreated,
+    isCoCreated, coCreateNote,
+  } = useProjectStore();
 
-  const episodeCards = [
-    { ep: 1, scene: '豬肉檔，清晨五點', conflict: '陳伯最後一天上班，心情複雜', dialogue: '陳伯（低沉）：「做咗四十年，今日係最後一次⋯」', hook: '陳太在家發現舊廚藝筆記，封面寫：給未來的自己' },
-    { ep: 2, scene: '陳伯家廳，早上', conflict: '退休第一天無所事事，連倒垃圾都倒錯時間', dialogue: '陳太（溫柔）：「係咪悶㗎？」陳伯（倔強）：「我唔悶！」', hook: '門鈴響，阿明出現在門口' },
-    { ep: 3, scene: '街市舊鋪位，黃昏', conflict: '阿明三顧茅廬，陳伯終於動搖', dialogue: '阿明（誠懇）：「陳伯，我唔係要學廚藝，我係想學您嘅人生。」', hook: '陳伯打開廚藝筆記第一頁⋯' },
-  ];
+  // 系列上下文（之後可從 S0 store 讀取）
+  const context: SeriesContext = {
+    seriesTitle: '街市情緣',
+    genre: 'dream',
+    tone: 'warm',
+    coreNeed: 'seen',
+    episodeCount: 30,
+    durationLabel: '60秒',
+    mode: 'drama',
+  };
+
+  // 子階段狀態
+  const [subStage, setSubStage] = useState<ArchitectSubStage>('topic');
+  const [selectedTopic, setSelectedTopic] = useState<TopicOption | null>(null);
+  const [outline, setOutline] = useState<{ episodeNumber: number; title_i18n: { 'zh-HK': string; en: string; 'zh-CN': string }; oneLine_i18n: { 'zh-HK': string; en: string; 'zh-CN': string } }[]>([]);
+  const [storyCards, setStoryCards] = useState<EpisodeStoryCard[]>([]);
 
   return (
-    <div className="max-w-2xl">
-      <div className="mb-6">
+    <div className="max-w-2xl space-y-4">
+      {/* 標題 */}
+      <div className="mb-2">
+        <div className="inline-flex items-center gap-2 bg-accent/10 text-accent px-3 py-1 rounded-full text-xs font-semibold mb-3">
+          <BookOpen size={12} /> S3 故事框架
+        </div>
         <h2 className="text-2xl font-bold text-primary">{tr.creator.drama.s3.title}</h2>
-        <p className="text-muted text-sm mt-1">{tr.creator.drama.s3.subtitle}</p>
+        <p className="text-muted text-sm mt-1">選題方向 → 全劇大綱 → 逐集故事卡，每步都可接受、重生成或手動編輯。</p>
       </div>
 
-      <div className="space-y-4">
-        {/* ── 3a 大綱 ── */}
-        <div className="bg-card rounded-xl border border-line shadow-card overflow-hidden">
-          <button
-            onClick={() => setPhase3a(!phase3a)}
-            className="w-full flex items-center justify-between p-5 hover:bg-bg-soft transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <span className="w-7 h-7 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center">3a</span>
-              <div className="text-left">
-                <div className="font-bold text-ink">{tr.creator.drama.s3.phase3aTitle}</div>
-                <div className="text-xs text-muted">{tr.creator.drama.s3.phase3aSubtitle}</div>
-              </div>
+      {/* 角色上下文提示（若 S2 有角色） */}
+      {storedCharacters.length > 0 && (
+        <div className="bg-green-50 border border-green-200 rounded-xl p-3 flex items-center gap-3">
+          <Users size={16} className="text-green-600 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold text-green-800">故事將圍繞以下主角展開</p>
+            <div className="flex flex-wrap gap-1.5 mt-1">
+              {storedCharacters.slice(0, 4).map(c => (
+                <span key={c.id} className="inline-flex items-center gap-1 bg-white text-green-700 border border-green-200 px-2 py-0.5 rounded-full text-xs">
+                  {c.name_i18n['zh-HK']}
+                </span>
+              ))}
+              {storedCharacters.length > 4 && (
+                <span className="text-xs text-green-600">+{storedCharacters.length - 4}</span>
+              )}
             </div>
-            {phase3a ? <ChevronDown size={16} className="text-muted" /> : <ChevronRight size={16} className="text-muted" />}
-          </button>
+          </div>
+        </div>
+      )}
 
-          {phase3a && (
-            <div className="px-5 pb-5 space-y-4 border-t border-line pt-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-muted mb-1 block">{tr.creator.drama.s3.conflictLabel}</label>
-                  <textarea
-                    className="w-full border border-line rounded-lg px-3 py-2 bg-bg-soft text-sm text-ink resize-none focus:outline-none focus:border-primary"
-                    rows={2}
-                    placeholder={tr.creator.drama.s3.conflictPlaceholder}
-                    defaultValue="陳伯年輕時放棄廚師夢，退休後不知如何面對空白人生"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-muted mb-1 block">{tr.creator.drama.s3.arcLabel}</label>
-                  <textarea
-                    className="w-full border border-line rounded-lg px-3 py-2 bg-bg-soft text-sm text-ink resize-none focus:outline-none focus:border-primary"
-                    rows={2}
-                    placeholder={tr.creator.drama.s3.arcPlaceholder}
-                    defaultValue="由「人生已完」的失落感，走向「重新被需要」的圓滿"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="text-xs text-muted mb-1 block">{tr.creator.drama.s3.sceneLabel}</label>
-                <input
-                  className="w-full border border-line rounded-lg px-3 py-2 bg-bg-soft text-sm text-ink focus:outline-none focus:border-primary"
-                  defaultValue="灣仔街市、陳伯家廳、社區廚藝中心"
-                />
-              </div>
-              <div>
-                <label className="text-xs text-muted mb-1 block">{tr.creator.drama.s3.relationsLabel}</label>
-                <input
-                  className="w-full border border-line rounded-lg px-3 py-2 bg-bg-soft text-sm text-ink focus:outline-none focus:border-primary"
-                  defaultValue="陳伯（主）＋ 陳太（支持者）＋ 阿明（觸發者）"
-                />
-              </div>
-              <button
-                onClick={() => { setPhase3b(true); setPhase3a(false); }}
-                className="w-full bg-primary text-white py-2.5 rounded-xl font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
-              >
-                <Sparkles size={15} /> {tr.creator.drama.s3.generateBtn}
-                <CreditIndicator cost={15} className="ml-1" />
-              </button>
+      {/* 無角色提示 */}
+      {storedCharacters.length === 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-center gap-3">
+          <AlertTriangle size={16} className="text-amber-500 shrink-0" />
+          <p className="text-xs text-amber-700">尚未定義角色。可以先生成故事框架，之後返回 S2 補充主角。</p>
+        </div>
+      )}
+
+      {/* 進度列 */}
+      <StageProgress current={subStage} />
+
+      {/* 3a 選題方向 */}
+      {subStage === 'topic' && (
+        <S1aTopic
+          context={context}
+          onAccept={(topic) => {
+            setSelectedTopic(topic);
+            storeSetTopic(topic);
+            setSubStage('outline');
+          }}
+        />
+      )}
+
+      {/* 3b 全劇大綱 */}
+      {subStage === 'outline' && selectedTopic && (
+        <S1bOutline
+          context={context}
+          selectedTopic={selectedTopic}
+          onAccept={(ol, outlineCoCreateNote) => {
+            setOutline(ol);
+            storeSetOutline(ol);
+            if (outlineCoCreateNote && outlineCoCreateNote.trim()) {
+              setCoCreated(true, outlineCoCreateNote.trim());
+            }
+            setSubStage('episodes');
+          }}
+        />
+      )}
+
+      {/* 3c 逐集故事卡 */}
+      {subStage === 'episodes' && (
+        <S1cEpisodes
+          context={context}
+          outline={outline}
+          characters={storedCharacters}   // ← 讀取 S2 角色作為故事生成上下文
+          onAccept={(cards) => {
+            setStoryCards(cards);
+            storeSetStoryCards(cards);
+            setSubStage('done');
+          }}
+        />
+      )}
+
+      {/* 完成 → 前往下一步 */}
+      {subStage === 'done' && (
+        <div className="bg-card rounded-xl border border-line shadow-card p-6 text-center">
+          <div className="w-14 h-14 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Check size={28} className="text-accent" />
+          </div>
+          <h3 className="text-lg font-bold text-ink mb-2">故事框架完成！</h3>
+          <p className="text-muted text-sm mb-4">選題方向、全劇大綱及分集故事卡已儲存，可隨時返回修改。</p>
+
+          {/* Co-create badge */}
+          {isCoCreated && (
+            <div className="inline-flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-700 px-4 py-2 rounded-full text-sm font-semibold mb-4">
+              <Star size={14} className="fill-amber-400 text-amber-400" />
+              {sa.coCreate.badge}
+              {coCreateNote && <span className="text-xs font-normal text-amber-600 ml-1">· {coCreateNote.slice(0, 20)}{coCreateNote.length > 20 ? '…' : ''}</span>}
             </div>
           )}
+
+          {/* 摘要 */}
+          <div className="flex flex-wrap gap-2 justify-center mb-4">
+            {storedCharacters.slice(0, 3).map(c => (
+              <span key={c.id} className="inline-flex items-center gap-1 bg-violet-50 text-violet-700 px-3 py-1 rounded-full text-xs">
+                <Users size={10} /> {c.name_i18n['zh-HK']}
+              </span>
+            ))}
+            {storyCards.length > 0 && (
+              <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs">
+                <Film size={10} /> {storyCards.length} 集故事卡
+              </span>
+            )}
+          </div>
+
+          <button
+            onClick={onNext}
+            className="flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-xl font-semibold hover:bg-primary/90 transition-colors mx-auto"
+          >
+            <ChevronRight size={18} /> 前往分鏡
+          </button>
         </div>
+      )}
 
-        {/* ── 3b 故事框架 ── */}
-        {phase3b && (
-          <div className="bg-card rounded-xl border border-line shadow-card overflow-hidden">
-            <button
-              onClick={() => setPhase3b(!phase3b)}
-              className="w-full flex items-center justify-between p-5 hover:bg-bg-soft transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <span className="w-7 h-7 rounded-full bg-accent text-white text-xs font-bold flex items-center justify-center">3b</span>
-                <div className="text-left">
-                  <div className="font-bold text-ink">{tr.creator.drama.s3.phase3bTitle}</div>
-                  <div className="text-xs text-muted">{tr.creator.drama.s3.phase3bSubtitle}</div>
-                </div>
-                {phase3bDone && <span className="ml-2 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">{tr.creator.drama.s3.confirmed}</span>}
-              </div>
-              {phase3b ? <ChevronDown size={16} className="text-muted" /> : <ChevronRight size={16} className="text-muted" />}
-            </button>
-
-            <div className="px-5 pb-5 border-t border-line pt-4 space-y-3">
-              {arcData.map((arc, i) => (
-                <div key={i} className="bg-bg-soft rounded-xl p-4 border border-line">
-                  <div className="flex items-center justify-between mb-2">
-                    <div>
-                      <span className="font-bold text-primary text-sm">{arc.act}</span>
-                      <span className="text-xs text-muted ml-2">{arc.eps}</span>
-                    </div>
-                    <button className="text-xs text-accent hover:underline flex items-center gap-1">
-                      <RefreshCw size={11} /> {tr.creator.drama.s3.regenerate}
-                    </button>
-                  </div>
-                  <p className="text-xs text-ink font-medium mb-1">{arc.theme}</p>
-                  <p className="text-xs text-muted mb-2">{arc.core}</p>
-                  <div className="space-y-1.5">
-                    {arc.points.map((pt, j) => (
-                      <div key={j} className="bg-white rounded-lg px-3 py-2 text-xs border border-line/50">
-                        <span className="font-semibold text-primary">第{pt.ep}集</span>
-                        <span className="text-ink ml-2">{pt.plot}</span>
-                        <div className="text-amber-600 mt-0.5">{tr.creator.drama.s3.clueHook}{pt.hook}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-
-              <div className="flex gap-2">
-                <button className="flex items-center gap-1.5 border border-line px-4 py-2 rounded-lg text-sm text-muted hover:border-primary hover:text-primary transition-colors">
-                  <RefreshCw size={13} /> {tr.creator.drama.s3.regenerateAll}
-                </button>
-                <button
-                  onClick={() => { setPhase3bDone(true); setPhase3c(true); setPhase3b(false); }}
-                  className="flex-1 bg-accent text-white py-2 rounded-lg text-sm font-semibold hover:bg-accent/90 transition-colors flex items-center justify-center gap-1.5"
-                >
-                  <Check size={14} /> {tr.creator.drama.s3.confirmFrameworkBtn}
-                  <CreditIndicator cost={10} className="ml-1" />
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ── 3c 分集展開 ── */}
-        {phase3c && (
-          <div className="bg-card rounded-xl border border-line shadow-card overflow-hidden">
-            <button
-              onClick={() => setPhase3c(!phase3c)}
-              className="w-full flex items-center justify-between p-5 hover:bg-bg-soft transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <span className="w-7 h-7 rounded-full bg-green-600 text-white text-xs font-bold flex items-center justify-center">3c</span>
-                <div className="text-left">
-                  <div className="font-bold text-ink">{tr.creator.drama.s3.phase3cTitle}</div>
-                  <div className="text-xs text-muted">{tr.creator.drama.s3.phase3cSubtitle}</div>
-                </div>
-              </div>
-              {phase3c ? <ChevronDown size={16} className="text-muted" /> : <ChevronRight size={16} className="text-muted" />}
-            </button>
-
-            <div className="px-5 pb-5 border-t border-line pt-4 space-y-3">
-              {/* 前5集示例 */}
-              {episodeCards.map((ep, i) => (
-                <div key={i} className="bg-bg-soft rounded-xl p-4 border border-line">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-bold text-primary text-sm">第 {ep.ep} 集</span>
-                    <button className="text-xs text-accent hover:underline flex items-center gap-1">
-                      <RefreshCw size={11} /> {tr.creator.drama.s3.regenerate}本集
-                    </button>
-                  </div>
-                  <div className="space-y-1.5 text-xs">
-                    <div><span className="text-muted font-medium">{tr.creator.drama.s3.sceneTag}</span><span className="text-ink">{ep.scene}</span></div>
-                    <div><span className="text-muted font-medium">{tr.creator.drama.s3.conflictTag}</span><span className="text-ink">{ep.conflict}</span></div>
-                    <div className="bg-white border border-line rounded-lg p-2">
-                      <span className="text-muted font-medium">{tr.creator.drama.s3.dialogueTag}</span>
-                      <p className="text-ink mt-0.5 italic">「{ep.dialogue}」</p>
-                    </div>
-                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-2">
-                      <span className="text-amber-700 font-medium">{tr.creator.drama.s3.hookTag}</span>
-                      <span className="text-amber-800">{ep.hook}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-
-              {/* 批量生成更多集 */}
-              <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 text-center">
-                <p className="text-sm text-primary font-medium mb-1">已生成 第1–5集</p>
-                <p className="text-xs text-muted mb-3">繼續生成第 6–30 集</p>
-                <button className="bg-primary text-white px-6 py-2 rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors flex items-center gap-2 mx-auto">
-                  <Sparkles size={14} /> {tr.creator.drama.s3.bulkGenerateBtn}
-                  <CreditIndicator cost={50} className="ml-1" />
-                </button>
-              </div>
-
-              <div className="flex gap-2">
-                <button className="flex items-center gap-1.5 border border-line px-4 py-2 rounded-lg text-sm text-muted hover:border-primary transition-colors">
-                  <BookOpen size={13} /> {tr.creator.drama.s3.downloadScript}
-                </button>
-                <button
-                  onClick={onNext}
-                  className="flex-1 bg-primary text-white py-2 rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-1.5"
-                >
-                  <ChevronRight size={14} /> {tr.creator.drama.s3.confirmEpsBtn}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+      {/* 跳過按鈕 */}
+      {subStage !== 'done' && (
+        <div className="text-center">
+          <button
+            onClick={onNext}
+            className="text-xs text-muted hover:text-primary transition-colors underline underline-offset-2"
+          >
+            跳過故事框架，直接前往分鏡
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -2176,42 +1928,51 @@ function S9ReviewPublish({ onNext }: { onNext: () => void }) {
 
 // ─────────────────────────────────────────
 // Main Component
-// Route index map:
+// Route index map (11 items, no hidden routes):
 //   0  = S0SeriesSetup
-//   1  = StoryArchitectFlow  (故事骨架，隱藏於導覽列)
-//   2  = PlanOverview        (策劃案總覽，隱藏於導覽列)
-//   3  = S1AssetBank
-//   4  = S2CharacterSetup
-//   5  = S3StoryFramework
-//   6  = S4Storyboard
-//   7  = S5Keyframes
-//   8  = S6VideoGen
-//   9  = S7Voiceover
-//   10 = S8PlatformEdit
-//   11 = S9ReviewPublish
+//   1  = PlanOverview        (策劃案總覽，導覽列有視覺標記)
+//   2  = S1AssetBank
+//   3  = S2CharacterSetup    (新版)
+//   4  = S3StoryFramework    (新版)
+//   5  = S4Storyboard
+//   6  = S5Keyframes
+//   7  = S6VideoGen
+//   8  = S7Voiceover
+//   9  = S8PlatformEdit
+//   10 = S9ReviewPublish
 // ─────────────────────────────────────────
 const STEPS = [
   S0SeriesSetup,       // 0
-  StoryArchitectFlow,  // 1 (故事骨架，新增)
-  PlanOverview,        // 2 (策劃案總覽)
-  S1AssetBank,         // 3
-  S2CharacterSetup,    // 4
-  S3StoryFramework,    // 5
-  S4Storyboard,        // 6
-  S5Keyframes,         // 7
-  S6VideoGen,          // 8
-  S7Voiceover,         // 9
-  S8PlatformEdit,      // 10
-  S9ReviewPublish,     // 11
+  PlanOverview,        // 1 (策劃案總覽，有視覺標記)
+  S1AssetBank,         // 2
+  S2CharacterSetup,    // 3 (新版)
+  S3StoryFramework,    // 4 (新版)
+  S4Storyboard,        // 5
+  S5Keyframes,         // 6
+  S6VideoGen,          // 7
+  S7Voiceover,         // 8
+  S8PlatformEdit,      // 9
+  S9ReviewPublish,     // 10
 ];
 
-// StepNavigation shows S0-S9 (10 visible steps)
-// Hidden steps (StoryArchitect=1, PlanOverview=2) are offset from nav
+// routeStep 轉 navStep：
+// route 0 → nav 0 (S0)
+// route 1 → nav 0 (PlanOverview，不在 dramaSteps 計數，用 isPlanOverview)
+// route 2 → nav 1 (S1)
+// route 3+ → nav (route - 2)
+function routeStepToNavStep(routeStep: number): number {
+  if (routeStep === 0) return 0;
+  if (routeStep === 1) return 0; // PlanOverview：navStep 停在 0，靠 isPlanOverview flag
+  return routeStep - 2;
+}
+
+// navStep 轉 routeStep（導覽列點擊）：
+// nav 0 → route 0 (S0)
+// nav 1 → route 2 (S1AssetBank)
+// nav n≥2 → route n+2
 function navStepToRouteStep(navStep: number): number {
-  // navStep 0 → route 0 (S0)
-  // navStep 1 → route 3 (S1AssetBank, skip architect+plan)
-  // navStep n≥1 → route n+2
-  return navStep >= 1 ? navStep + 2 : navStep;
+  if (navStep === 0) return 0;
+  return navStep + 2;
 }
 
 export default function DramaWorkflow() {
@@ -2221,14 +1982,14 @@ export default function DramaWorkflow() {
   const tr = t();
   void locale;
 
-  const routeStep = Math.min(parseInt(step ?? '0', 10), 11);
+  const routeStep = Math.min(parseInt(step ?? '0', 10), 10);
   const StepComponent = STEPS[routeStep];
 
-  // Nav step: hide StoryArchitect (1) and PlanOverview (2) from nav count
-  // route 0 → nav 0; route 1,2 → nav 0 (hidden); route 3+ → nav (route-2)
-  const navStep = routeStep > 2 ? routeStep - 2 : 0;
+  // isPlanOverview: route 1 是策劃案總覽，導覽列 navStep 維持在 0 但顯示視覺標記
+  const isPlanOverview = routeStep === 1;
+  const navStep = routeStepToNavStep(routeStep);
 
-  const goNext = () => navigate(`/creator/drama/${Math.min(routeStep + 1, 11)}`);
+  const goNext = () => navigate(`/creator/drama/${Math.min(routeStep + 1, 10)}`);
 
   // Determine series title for header
   const seriesTitles: Record<number, string> = {
@@ -2250,12 +2011,14 @@ export default function DramaWorkflow() {
           </div>
         </header>
         <div className="flex flex-1 overflow-hidden">
-          {/* Step nav — only show for non-PlanOverview steps */}
+          {/* Step nav */}
           <div className="w-48 shrink-0 bg-card border-r border-line overflow-y-auto">
             <StepNavigation
               mode="drama"
               currentStep={navStep}
+              isPlanOverview={isPlanOverview}
               onStepClick={s => navigate(`/creator/drama/${navStepToRouteStep(s)}`)}
+              onPlanOverviewClick={() => navigate('/creator/drama/1')}
             />
           </div>
           {/* Canvas */}
