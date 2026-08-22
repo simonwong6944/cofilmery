@@ -1,10 +1,11 @@
 /**
  * StoryArchitect — 故事骨架與角色深化引擎
- * Phase 2：openRouterAdapter 接真 API（降級到 mock），積分接線，architect_actions 記錄
+ * Phase 3：project_id 從 useProjectStore 取得，廢除 DEFAULT_PROJECT_ID 硬編碼
  * 原則：AI 起草，人來定奪（三動作列：接受/重新生成/手動編輯）
  */
 import { useState } from 'react';
 import { useLocaleStore } from '@/store/localeStore';
+import { useProjectStore } from '@/store/projectStore';
 import { t } from '@/i18n';
 import { openRouterAdapter as aiAdapter } from '@/adapters/mockAdapter';
 import { CREDIT } from '@/credit-config';
@@ -37,8 +38,10 @@ async function recordAction(params: {
   }
 }
 
-// 預設 project_id（真實實作從 store/route 取得）
-const DEFAULT_PROJECT_ID = 'demo-project';
+// project_id hook — 從 projectStore 取得（Phase 3）
+function useProjectId() {
+  return useProjectStore((s) => s.projectId);
+}
 
 // ── 共用三動作列 ──────────────────────────────────────────────────────
 interface ActionBarProps {
@@ -100,6 +103,7 @@ export function S1aTopic({ context, onAccept }: S1aTopicProps) {
   void locale;
   const sa = tr.storyArchitect;
   const loc = locale as 'zh-HK' | 'en' | 'zh-CN';
+  const projectId = useProjectId();
 
   const [topics, setTopics] = useState<TopicOption[]>([]);
   const [selected, setSelected] = useState<string>('');
@@ -117,7 +121,7 @@ export function S1aTopic({ context, onAccept }: S1aTopicProps) {
       if (res.topics && res.topics.length > 0) setSelected(res.topics[0].id);
       // 記錄 AI 生成動作
       void recordAction({
-        project_id: DEFAULT_PROJECT_ID,
+        project_id: projectId,
         stage: 'topic',
         action: isRegenerate ? 'regenerate' : 'generate',
         actor: 'ai',
@@ -130,7 +134,7 @@ export function S1aTopic({ context, onAccept }: S1aTopicProps) {
   const handleAccept = () => {
     const topic = topics.find(t => t.id === selected);
     if (!topic) return;
-    void recordAction({ project_id: DEFAULT_PROJECT_ID, stage: 'topic', action: 'accept', actor: 'human' });
+    void recordAction({ project_id: projectId, stage: 'topic', action: 'accept', actor: 'human' });
     onAccept(topic);
   };
 
@@ -142,7 +146,7 @@ export function S1aTopic({ context, onAccept }: S1aTopicProps) {
       setEditTitle(topics[idx].title_i18n[loc]);
       setEditLogline(topics[idx].logline_i18n[loc]);
     }
-    void recordAction({ project_id: DEFAULT_PROJECT_ID, stage: 'topic', action: 'edit', actor: 'human' });
+    void recordAction({ project_id: projectId, stage: 'topic', action: 'edit', actor: 'human' });
   };
 
   const saveEdit = () => {
@@ -271,6 +275,7 @@ export function S1bOutline({ context, selectedTopic, onAccept }: S1bOutlineProps
   const tr = t();
   void locale;
   const sa = tr.storyArchitect;
+  const projectId = useProjectId();
   const loc = locale as 'zh-HK' | 'en' | 'zh-CN';
 
   type OutlineItem = { episodeNumber: number; title_i18n: { 'zh-HK': string; en: string; 'zh-CN': string }; oneLine_i18n: { 'zh-HK': string; en: string; 'zh-CN': string } };
@@ -286,7 +291,7 @@ export function S1bOutline({ context, selectedTopic, onAccept }: S1bOutlineProps
       const res = await aiAdapter.generateArchitect({ stage: 'outline', context, selectedTopic });
       setOutline((res.outline ?? []) as OutlineItem[]);
       void recordAction({
-        project_id: DEFAULT_PROJECT_ID, stage: 'outline',
+        project_id: projectId, stage: 'outline',
         action: isRegenerate ? 'regenerate' : 'generate', actor: 'ai',
       });
     } finally {
@@ -315,13 +320,13 @@ export function S1bOutline({ context, selectedTopic, onAccept }: S1bOutlineProps
       {outline.length > 0 && (
         <ActionBar
           onAccept={() => {
-            void recordAction({ project_id: DEFAULT_PROJECT_ID, stage: 'outline', action: 'accept', actor: 'human' });
+            void recordAction({ project_id: projectId, stage: 'outline', action: 'accept', actor: 'human' });
             onAccept(outline, coCreateNote);
           }}
           onRegenerate={() => generate(true)}
           onEdit={() => {
             setEditIdx(0);
-            void recordAction({ project_id: DEFAULT_PROJECT_ID, stage: 'outline', action: 'edit', actor: 'human' });
+            void recordAction({ project_id: projectId, stage: 'outline', action: 'edit', actor: 'human' });
           }}
           loading={loading}
           creditCost={CREDIT.architectOutline}
@@ -421,6 +426,7 @@ export function S2Characters({ context, onAccept }: S2CharactersProps) {
   const tr = t();
   void locale;
   const sa = tr.storyArchitect;
+  const projectId = useProjectId();
   const loc = locale as 'zh-HK' | 'en' | 'zh-CN';
 
   const [characters, setCharacters] = useState<CharacterCard[]>([]);
@@ -435,7 +441,7 @@ export function S2Characters({ context, onAccept }: S2CharactersProps) {
       const res = await aiAdapter.generateArchitect({ stage: 'characters', context, humanInput });
       setCharacters(res.characters ?? []);
       void recordAction({
-        project_id: DEFAULT_PROJECT_ID, stage: 'characters',
+        project_id: projectId, stage: 'characters',
         action: isRegenerate ? 'regenerate' : 'generate', actor: 'ai',
       });
     } finally {
@@ -495,13 +501,13 @@ export function S2Characters({ context, onAccept }: S2CharactersProps) {
       {characters.length > 0 && (
         <ActionBar
           onAccept={() => {
-            void recordAction({ project_id: DEFAULT_PROJECT_ID, stage: 'characters', action: 'accept', actor: 'human' });
+            void recordAction({ project_id: projectId, stage: 'characters', action: 'accept', actor: 'human' });
             onAccept(characters);
           }}
           onRegenerate={() => generate(undefined, true)}
           onEdit={() => {
             setEditingId(characters[0]?.id ?? null);
-            void recordAction({ project_id: DEFAULT_PROJECT_ID, stage: 'characters', action: 'edit', actor: 'human' });
+            void recordAction({ project_id: projectId, stage: 'characters', action: 'edit', actor: 'human' });
           }}
           loading={loading}
           creditCost={CREDIT.architectCharacters}
@@ -648,6 +654,7 @@ export function S1cEpisodes({ context, outline, characters, onAccept }: S1cEpiso
   const tr = t();
   void locale;
   const sa = tr.storyArchitect;
+  const projectId = useProjectId();
   const loc = locale as 'zh-HK' | 'en' | 'zh-CN';
 
   const [cards, setCards] = useState<Record<number, EpisodeStoryCard>>({});
@@ -669,7 +676,7 @@ export function S1cEpisodes({ context, outline, characters, onAccept }: S1cEpiso
       if (res.storyCard) {
         setCards(prev => ({ ...prev, [epNum]: res.storyCard! }));
         setExpanded(prev => { const s = new Set(prev); s.add(epNum); return s; });
-        void recordAction({ project_id: DEFAULT_PROJECT_ID, stage: 'episodes', action: 'generate', actor: 'ai' });
+        void recordAction({ project_id: projectId, stage: 'episodes', action: 'generate', actor: 'ai' });
       }
     } finally {
       setLoading(prev => ({ ...prev, [epNum]: false }));
@@ -684,7 +691,7 @@ export function S1cEpisodes({ context, outline, characters, onAccept }: S1cEpiso
       });
       if (res.storyCard) {
         setCards(prev => ({ ...prev, [epNum]: res.storyCard! }));
-        void recordAction({ project_id: DEFAULT_PROJECT_ID, stage: 'episodes', action: 'regenerate', actor: 'ai' });
+        void recordAction({ project_id: projectId, stage: 'episodes', action: 'regenerate', actor: 'ai' });
       }
     } finally {
       setLoading(prev => ({ ...prev, [epNum]: false }));
@@ -698,7 +705,7 @@ export function S1cEpisodes({ context, outline, characters, onAccept }: S1cEpiso
       humanEdited: true,
     }}));
     setEditing(null);
-    void recordAction({ project_id: DEFAULT_PROJECT_ID, stage: 'episodes', action: 'edit', actor: 'human' });
+    void recordAction({ project_id: projectId, stage: 'episodes', action: 'edit', actor: 'human' });
   };
 
   const acceptedCards = Object.values(cards);

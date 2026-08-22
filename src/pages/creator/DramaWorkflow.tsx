@@ -13,6 +13,7 @@ import { AIAssistantPanel } from '@/components/shared/AIAssistantPanel';
 import { CreditIndicator } from '@/components/shared/CreditIndicator';
 import { Logo } from '@/components/shared/Logo';
 import { useLocaleStore } from '@/store/localeStore';
+import { useProjectStore } from '@/store/projectStore';
 import { t } from '@/i18n';
 import {
   AlertTriangle, RefreshCw, Check, Mic, Save, ChevronDown, ChevronRight,
@@ -271,14 +272,20 @@ function StoryArchitectFlow({ onNext }: { onNext: () => void }) {
   void locale;
   const sa = tr.storyArchitect;
 
+  // projectStore — 寫入 Story Architect 產出供下游工具使用
+  const { setCharacters: storeSetCharacters, setStoryCards: storeSetStoryCards,
+          setSelectedTopic: storeSetTopic, setOutline: storeSetOutline,
+          setContext: storeSetContext, setCoCreated,
+          isCoCreated, coCreateNote } = useProjectStore();
+
   // 子階段狀態
   const [subStage, setSubStage] = useState<ArchitectSubStage>('topic');
   const [selectedTopic, setSelectedTopic] = useState<TopicOption | null>(null);
   const [outline, setOutline] = useState<{ episodeNumber: number; title_i18n: { 'zh-HK': string; en: string; 'zh-CN': string }; oneLine_i18n: { 'zh-HK': string; en: string; 'zh-CN': string } }[]>([]);
   const [characters, setCharacters] = useState<CharacterCard[]>([]);
-  const [_storyCards, setStoryCards] = useState<EpisodeStoryCard[]>([]);
+  const [storyCards, setStoryCards] = useState<EpisodeStoryCard[]>([]);  // Phase 3: 不再以 _ 忽略
 
-  // 從 S0 取得的系列資訊（在真實實作中應從 store/context 取得）
+  // 從 S0 取得的系列資訊（Phase 3: 同時寫入 store）
   const context: SeriesContext = {
     seriesTitle: '街市情緣',
     genre: 'dream',
@@ -312,6 +319,8 @@ function StoryArchitectFlow({ onNext }: { onNext: () => void }) {
           context={context}
           onAccept={(topic) => {
             setSelectedTopic(topic);
+            storeSetTopic(topic);         // Phase 3: 寫入 store
+            storeSetContext(context);     // Phase 3: 寫入系列上下文
             setSubStage('outline');
           }}
         />
@@ -322,8 +331,13 @@ function StoryArchitectFlow({ onNext }: { onNext: () => void }) {
         <S1bOutline
           context={context}
           selectedTopic={selectedTopic}
-          onAccept={(ol, _coCreateNote) => {
+          onAccept={(ol, outlineCoCreateNote) => {
             setOutline(ol);
+            storeSetOutline(ol);          // Phase 3: 寫入 store
+            // Phase 3: 共創標記 — 有輸入 outlineCoCreateNote 時標記
+            if (outlineCoCreateNote && outlineCoCreateNote.trim()) {
+              setCoCreated(true, outlineCoCreateNote.trim());
+            }
             setSubStage('characters');
           }}
         />
@@ -335,6 +349,7 @@ function StoryArchitectFlow({ onNext }: { onNext: () => void }) {
           context={context}
           onAccept={(chars) => {
             setCharacters(chars);
+            storeSetCharacters(chars);    // Phase 3: 寫入 store 供 Storyboard 使用
             setSubStage('episodes');
           }}
         />
@@ -348,6 +363,8 @@ function StoryArchitectFlow({ onNext }: { onNext: () => void }) {
           characters={characters}
           onAccept={(cards) => {
             setStoryCards(cards);
+            // Phase 3: 寫入 projectStore 供 ScriptEditor / Storyboard 使用
+            storeSetStoryCards(cards);
             setSubStage('done');
           }}
         />
@@ -361,6 +378,32 @@ function StoryArchitectFlow({ onNext }: { onNext: () => void }) {
           </div>
           <h3 className="text-lg font-bold text-ink mb-2">故事骨架完成！</h3>
           <p className="text-muted text-sm mb-4">你的選題方向、全劇大綱、角色卡及部分分集故事卡已儲存，可在後續步驟隨時調整。</p>
+
+          {/* Phase 3: Co-create badge — 有 humanInput 時顯示共創標記 */}
+          {isCoCreated && (
+            <div className="inline-flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-700 px-4 py-2 rounded-full text-sm font-semibold mb-4">
+              <Star size={14} className="fill-amber-400 text-amber-400" />
+              {sa.coCreate.badge}
+              {coCreateNote && <span className="text-xs font-normal text-amber-600 ml-1">· {coCreateNote.slice(0, 20)}{coCreateNote.length > 20 ? '…' : ''}</span>}
+            </div>
+          )}
+
+          {/* 角色摘要 */}
+          {characters.length > 0 && (
+            <div className="flex flex-wrap gap-2 justify-center mb-4">
+              {characters.slice(0, 4).map(c => (
+                <span key={c.id} className="inline-flex items-center gap-1 bg-violet-50 text-violet-700 px-3 py-1 rounded-full text-xs">
+                  <Users size={10} /> {c.name_i18n['zh-HK']}
+                </span>
+              ))}
+              {storyCards.length > 0 && (
+                <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs">
+                  <Film size={10} /> {storyCards.length} 集故事卡
+                </span>
+              )}
+            </div>
+          )}
+
           <button
             onClick={onNext}
             className="flex items-center gap-2 bg-accent text-white px-6 py-3 rounded-xl font-semibold hover:bg-accent/90 transition-colors mx-auto"
