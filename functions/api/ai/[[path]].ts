@@ -1,7 +1,7 @@
 /**
  * Cloudflare Pages Function: /api/ai/*
  * All OpenRouter calls are proxied here — the API key never leaves the server.
- * Env bindings: OPENROUTER_API_KEY (secret), DB (D1), FILES (R2)
+ * Env bindings: OPENROUTER_API_KEY (secret), DB (D1)
  */
 import { Hono } from 'hono';
 import { handle } from 'hono/cloudflare-pages';
@@ -67,7 +67,7 @@ async function recordGenJob(
 }
 
 // ── Hono app ──────────────────────────────────────────────────────────────────
-type Env = { Bindings: { OPENROUTER_API_KEY: string; DB: D1Database; FILES: R2Bucket } };
+type Env = { Bindings: { OPENROUTER_API_KEY: string; DB: D1Database } };
 const app = new Hono<Env>();
 app.use('*', cors({ origin: '*' }));
 
@@ -403,123 +403,6 @@ app.get('/api/ai/credits/:userId', async (c) => {
   } catch {
     return c.json({ userId, balance: 0, unit: 'points' });
   }
-});
-
-// ─── File upload → R2 + D1 ────────────────────────────────────────────────────
-// POST /api/upload
-// multipart/form-data fields:
-//   file       : File (required)
-//   projectId  : string (required)
-//   userId     : string (optional, defaults to 'anonymous')
-//   category   : 'character'|'scene'|'prop'|'sponsor'|'audio'|'video'|'other'
-//   label      : string (optional caption)
-app.post('/api/upload', async (c) => {
-  const env = c.env;
-  if (!env.FILES) return c.json({ error: 'Storage not configured' }, 503);
-
-  let formData: FormData;
-  try {
-    formData = await c.req.formData();
-  } catch {
-    return c.json({ error: 'Invalid multipart form data' }, 400);
-  }
-
-  const file       = formData.get('file') as File | null;
-  const projectId  = (formData.get('projectId')  as string | null) ?? 'global';
-  const userId     = (formData.get('userId')      as string | null) ?? 'anonymous';
-  const category   = (formData.get('category')    as string | null) ?? 'other';
-  const label      = (formData.get('label')        as string | null) ?? '';
-
-  if (!file || typeof file === 'string') {
-    return c.json({ error: 'No file provided' }, 400);
-  }
-
-  // 10 MB limit
-  const MAX_BYTES = 10 * 1024 * 1024;
-  if (file.size > MAX_BYTES) {
-    return c.json({ error: 'File too large (max 10 MB)' }, 413);
-  }
-
-  // Sanitise filename
-  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 120);
-  const id       = crypto.randomUUID();
-  // staging prefix so we can distinguish from production objects in the same bucket
-  const r2Key    = `uploads/${projectId}/${id}_${safeName}`;
-
-  const arrayBuf = await file.arrayBuffer();
-
-  try {
-    await env.FILES.put(r2Key, arrayBuf, {
-      httpMetadata: { contentType: file.type || 'application/octet-stream' },
-      customMetadata: { originalName: file.name, userId, projectId, category },
-    });
-  } catch (e) {
-    return c.json({ error: 'R2 write failed', detail: String(e) }, 500);
-  }
-
-  // Public URL — served via /api/assets/file/:key (proxy route below)
-  const fileUrl = `/api/assets/file/${encodeURIComponent(r2Key)}`;
-
-  try {
-    await env.DB.prepare(
-      `INSERT INTO assets (id, project_id, user_id, file_name, file_type, file_size, r2_key, file_url, category, label)
-       VALUES (?,?,?,?,?,?,?,?,?,?)`
-    ).bind(id, projectId, userId, file.name, file.type, file.size, r2Key, fileUrl, category, label).run();
-  } catch (e) {
-    // D1 write failed — object is in R2 but not indexed; non-fatal, return URL anyway
-    console.error('D1 asset insert failed:', e);
-  }
-
-  return c.json({
-    ok: true,
-    id,
-    r2Key,
-    fileUrl,
-    fileName: file.name,
-    fileType: file.type,
-    fileSize: file.size,
-    category,
-    label,
-    uploadedAt: new Date().toISOString(),
-  });
-});
-
-// ─── Asset list for a project ─────────────────────────────────────────────────
-// GET /api/assets?project_id=xxx[&category=scene][&limit=50]
-app.get('/api/assets', async (c) => {
-  const env       = c.env;
-  const projectId = c.req.query('project_id') ?? 'global';
-  const category  = c.req.query('category') ?? '';
-  const limit     = Math.min(Number(c.req.query('limit') ?? 100), 200);
-
-  try {
-    let sql = `SELECT * FROM assets WHERE project_id=?`;
-    const params: (string | number)[] = [projectId];
-    if (category) { sql += ` AND category=?`; params.push(category); }
-    sql += ` ORDER BY uploaded_at DESC LIMIT ?`;
-    params.push(limit);
-
-    const rows = await env.DB.prepare(sql).bind(...params).all();
-    return c.json({ ok: true, assets: rows.results ?? [] });
-  } catch (e) {
-    return c.json({ error: 'DB read failed', detail: String(e) }, 500);
-  }
-});
-
-// ─── R2 file proxy ────────────────────────────────────────────────────────────
-// GET /api/assets/file/:key  — streams R2 object to browser
-app.get('/api/assets/file/:key{.+}', async (c) => {
-  const env    = c.env;
-  const r2Key  = decodeURIComponent(c.req.param('key'));
-  if (!env.FILES) return c.json({ error: 'Storage not configured' }, 503);
-
-  const obj = await env.FILES.get(r2Key);
-  if (!obj) return c.json({ error: 'Not found' }, 404);
-
-  const headers = new Headers();
-  obj.writeHttpMetadata(headers);
-  headers.set('Cache-Control', 'public, max-age=31536000, immutable');
-  return new Response(obj.body, { headers });
 });
 
 export const onRequest = handle(app);
