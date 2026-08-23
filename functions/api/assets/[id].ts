@@ -5,6 +5,10 @@
  * Env bindings required:
  *   DB    — D1Database
  *   FILES — R2Bucket
+ *
+ * Owner check (anti-accidental-delete, not a hard auth boundary):
+ *   - X-User-Role: 'admin' → bypass owner check (can modify any asset)
+ *   - otherwise           → X-User-Id must match assets.user_id; else 403
  */
 
 interface Env {
@@ -20,6 +24,13 @@ const CORS = {
 // ── Allowed metadata fields for PATCH ────────────────────────────────────────
 const PATCHABLE = ['brand', 'model', 'description', 'revenue_rate', 'category', 'label'] as const;
 type PatchField = typeof PATCHABLE[number];
+
+// ── Helper: read caller identity from request headers ─────────────────────────
+function callerIdentity(request: Request): { callerId: string; isAdmin: boolean } {
+  const callerId = request.headers.get('X-User-Id') ?? '';
+  const callerRole = request.headers.get('X-User-Role') ?? '';
+  return { callerId, isAdmin: callerRole === 'admin' };
+}
 
 // ── PATCH: update asset metadata ─────────────────────────────────────────────
 export const onRequestPatch: PagesFunction<Env> = async (ctx) => {
@@ -64,14 +75,22 @@ export const onRequestPatch: PagesFunction<Env> = async (ctx) => {
   }
 
   try {
-    // Confirm asset exists
+    // Fetch asset — need user_id for owner check
     const existing = await ctx.env.DB.prepare(
-      `SELECT id FROM assets WHERE id = ?`
-    ).bind(id).first<{ id: string }>();
+      `SELECT id, user_id FROM assets WHERE id = ?`
+    ).bind(id).first<{ id: string; user_id: string }>();
 
     if (!existing) {
       return new Response(JSON.stringify({ error: 'Asset not found' }), {
         status: 404, headers: CORS,
+      });
+    }
+
+    // ── Owner check ──────────────────────────────────────────────────────────
+    const { callerId, isAdmin } = callerIdentity(ctx.request);
+    if (!isAdmin && existing.user_id !== callerId) {
+      return new Response(JSON.stringify({ error: 'Not owner' }), {
+        status: 403, headers: CORS,
       });
     }
 
@@ -105,14 +124,22 @@ export const onRequestDelete: PagesFunction<Env> = async (ctx) => {
   }
 
   try {
-    // Get r2_key before deletion
+    // Get r2_key + user_id before deletion
     const row = await ctx.env.DB.prepare(
-      `SELECT r2_key FROM assets WHERE id = ?`
-    ).bind(id).first<{ r2_key: string }>();
+      `SELECT r2_key, user_id FROM assets WHERE id = ?`
+    ).bind(id).first<{ r2_key: string; user_id: string }>();
 
     if (!row) {
       return new Response(JSON.stringify({ error: 'Asset not found' }), {
         status: 404, headers: CORS,
+      });
+    }
+
+    // ── Owner check ──────────────────────────────────────────────────────────
+    const { callerId, isAdmin } = callerIdentity(ctx.request);
+    if (!isAdmin && row.user_id !== callerId) {
+      return new Response(JSON.stringify({ error: 'Not owner' }), {
+        status: 403, headers: CORS,
       });
     }
 
@@ -147,6 +174,6 @@ export const onRequestOptions: PagesFunction = async () =>
     headers: {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'PATCH, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
+      'Access-Control-Allow-Headers': 'Content-Type, X-User-Id, X-User-Role',
     },
   });

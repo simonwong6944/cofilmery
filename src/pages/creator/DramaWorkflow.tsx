@@ -754,8 +754,17 @@ function S1AssetBank({ onNext }: { onNext: () => void }) {
   const s1FileRef = useRef<HTMLInputElement>(null);
   const [s1Uploading, setS1Uploading]   = useState(false);
   const [s1UploadErr, setS1UploadErr]   = useState('');
-  const [s1Assets, setS1Assets]         = useState<Array<{ id: string; file_name: string; file_type: string; file_size: number; file_url: string; category: string }>>([]);
+  const [s1Assets, setS1Assets]         = useState<Array<{ id: string; file_name: string; file_type: string; file_size: number; file_url: string; category: string; label: string }>>([]);
   const [s1Loaded, setS1Loaded]         = useState(false);
+  // edit / delete state
+  const [s1EditAsset, setS1EditAsset]   = useState<{ id: string; label: string } | null>(null);
+  const [s1EditLabel, setS1EditLabel]   = useState('');
+  const [s1ActionMsg, setS1ActionMsg]   = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  useEffect(() => {
+    if (!s1ActionMsg) return;
+    const t = setTimeout(() => setS1ActionMsg(null), 3000);
+    return () => clearTimeout(t);
+  }, [s1ActionMsg]);
 
   const fetchS1Assets = useCallback(async () => {
     // 若無 project id，不發 request，直接標記已載入（空列表）
@@ -806,6 +815,65 @@ function S1AssetBank({ onNext }: { onNext: () => void }) {
       setS1UploadErr(err instanceof Error ? err.message : '上傳失敗');
     } finally {
       setS1Uploading(false);
+    }
+  };
+
+  // ── S1 asset delete ──────────────────────────────────────────────────────────
+  const handleS1Delete = async (asset: { id: string; file_name: string }) => {
+    const s1tr = tr.creator.drama.s1;
+    if (!window.confirm(s1tr.s1AssetDeleteConfirm)) return;
+    try {
+      const res = await fetch(`/api/assets/${asset.id}`, {
+        method: 'DELETE',
+        headers: {
+          'X-User-Id':   s1User?.id ?? '',
+          'X-User-Role': s1User?.role ?? 'creator',
+        },
+      });
+      const data = await res.json() as { ok?: boolean; error?: string };
+      if (res.status === 403) {
+        setS1ActionMsg({ type: 'error', text: s1tr.s1AssetNotOwner });
+      } else if (data.ok) {
+        setS1Assets(prev => prev.filter(a => a.id !== asset.id));
+        setS1ActionMsg({ type: 'success', text: s1tr.s1AssetDeleteSuccess });
+      } else {
+        setS1ActionMsg({ type: 'error', text: data.error ?? 'Delete failed' });
+      }
+    } catch (e) {
+      setS1ActionMsg({ type: 'error', text: String(e) });
+    }
+  };
+
+  // ── S1 asset edit (label only) ────────────────────────────────────────────
+  const openS1Edit = (asset: { id: string; label: string }) => {
+    setS1EditAsset(asset);
+    setS1EditLabel(asset.label ?? '');
+  };
+  const handleS1SaveEdit = async () => {
+    if (!s1EditAsset) return;
+    const s1tr = tr.creator.drama.s1;
+    try {
+      const res = await fetch(`/api/assets/${s1EditAsset.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-Id':   s1User?.id ?? '',
+          'X-User-Role': s1User?.role ?? 'creator',
+        },
+        body: JSON.stringify({ label: s1EditLabel }),
+      });
+      const data = await res.json() as { ok?: boolean; asset?: { id: string; file_name: string; file_type: string; file_size: number; file_url: string; category: string; label: string }; error?: string };
+      if (res.status === 403) {
+        setS1ActionMsg({ type: 'error', text: s1tr.s1AssetNotOwner });
+      } else if (data.ok && data.asset) {
+        setS1Assets(prev => prev.map(a => a.id === s1EditAsset.id ? data.asset! : a));
+        setS1ActionMsg({ type: 'success', text: s1tr.s1AssetEditSuccess });
+        setS1EditAsset(null);
+      } else {
+        setS1ActionMsg({ type: 'error', text: data.error ?? 'Update failed' });
+      }
+    } catch (e) {
+      setS1ActionMsg({ type: 'error', text: String(e) });
     }
   };
 
@@ -933,6 +1001,18 @@ function S1AssetBank({ onNext }: { onNext: () => void }) {
           {/* Real uploaded assets preview */}
           <div className="bg-card rounded-xl border border-line p-5 shadow-card">
             <h3 className="font-semibold text-ink text-sm mb-3">{tr.creator.drama.s1.previewTitle}</h3>
+
+            {/* Action feedback banner */}
+            {s1ActionMsg && (
+              <div className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs mb-3 ${
+                s1ActionMsg.type === 'success'
+                  ? 'bg-green-50 border border-green-200 text-green-700'
+                  : 'bg-red-50 border border-red-200 text-red-700'
+              }`}>
+                {s1ActionMsg.text}
+              </div>
+            )}
+
             {!s1Loaded && (
               <p className="text-xs text-muted">載入中…</p>
             )}
@@ -951,8 +1031,25 @@ function S1AssetBank({ onNext }: { onNext: () => void }) {
                         <span className="truncate w-full text-center">{asset.file_name}</span>
                       </div>
                     )}
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 rounded-lg flex items-center justify-center transition-opacity">
-                      <span className="text-white text-xs truncate px-1">{asset.file_name}</span>
+                    {/* Hover overlay: filename + edit/delete buttons */}
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 rounded-lg flex flex-col items-center justify-center gap-1.5 transition-opacity px-1">
+                      <span className="text-white text-[10px] truncate w-full text-center leading-tight">{asset.label || asset.file_name}</span>
+                      <div className="flex gap-1">
+                        <button
+                          onClick={e => { e.stopPropagation(); openS1Edit(asset); }}
+                          title={tr.creator.drama.s1.s1AssetEditLabel}
+                          className="bg-white/20 hover:bg-white/40 text-white rounded p-1 transition-colors"
+                        >
+                          <Edit3 size={12} />
+                        </button>
+                        <button
+                          onClick={e => { e.stopPropagation(); handleS1Delete(asset); }}
+                          title={tr.creator.drama.s1.s1AssetDeleteConfirm}
+                          className="bg-white/20 hover:bg-red-500/80 text-white rounded p-1 transition-colors"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -964,6 +1061,43 @@ function S1AssetBank({ onNext }: { onNext: () => void }) {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ── S1 Edit Label Modal ───────────────────────────────────────────────── */}
+      {s1EditAsset && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+          onClick={() => setS1EditAsset(null)}
+        >
+          <div
+            className="bg-card rounded-2xl shadow-xl w-80 p-6 flex flex-col gap-4"
+            onClick={e => e.stopPropagation()}
+          >
+            <h3 className="font-bold text-ink text-base">{tr.creator.drama.s1.s1AssetEditLabel}</h3>
+            <input
+              type="text"
+              value={s1EditLabel}
+              onChange={e => setS1EditLabel(e.target.value)}
+              className="border border-line rounded-lg px-3 py-2 text-sm text-ink focus:outline-none focus:border-primary w-full"
+              placeholder={tr.creator.drama.s1.s1AssetEditLabel}
+              autoFocus
+            />
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setS1EditAsset(null)}
+                className="px-4 py-2 rounded-lg text-sm text-muted hover:bg-bg-soft transition-colors"
+              >
+                {tr.creator.drama.s1.s1AssetCancelBtn}
+              </button>
+              <button
+                onClick={handleS1SaveEdit}
+                className="px-4 py-2 rounded-lg text-sm bg-primary text-white hover:bg-primary/90 transition-colors"
+              >
+                {tr.creator.drama.s1.s1AssetSaveBtn}
+              </button>
+            </div>
           </div>
         </div>
       )}

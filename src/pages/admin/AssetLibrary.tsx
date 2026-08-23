@@ -248,7 +248,13 @@ export default function AssetLibrary() {
     if (!window.confirm(atr.deleteConfirm)) return;
     setDeletingId(asset.id);
     try {
-      const res = await fetch(`/api/assets/${asset.id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/assets/${asset.id}`, {
+        method: 'DELETE',
+        headers: {
+          'X-User-Id':   user?.id ?? '',
+          'X-User-Role': 'admin',
+        },
+      });
       const data = await res.json() as { ok?: boolean; error?: string };
       if (data.ok) {
         setAssets(prev => prev.filter(a => a.id !== asset.id));
@@ -291,7 +297,11 @@ export default function AssetLibrary() {
       };
       const res = await fetch(`/api/assets/${editAsset.id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-Id':   user?.id ?? '',
+          'X-User-Role': 'admin',
+        },
         body: JSON.stringify(body),
       });
       const data = await res.json() as { ok?: boolean; asset?: Asset; error?: string };
