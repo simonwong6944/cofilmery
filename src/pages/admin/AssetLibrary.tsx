@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Library, Plus, Trash2, Upload, Filter, Tag, ImageIcon } from 'lucide-react';
+import { Library, Plus, Trash2, Upload, Filter, Tag, ImageIcon, Pencil, X } from 'lucide-react';
 import { AdminSidebar } from '@/components/layout/AdminSidebar';
 import { cn } from '@/lib/utils';
 import { t } from '@/i18n';
@@ -31,6 +31,15 @@ interface Asset {
   model: string;
   description: string;
   revenue_rate: number;
+}
+
+interface EditDraft {
+  brand: string;
+  model: string;
+  description: string;
+  revenue_rate: string;
+  category: string;
+  label: string;
 }
 
 // ─── Helper ───────────────────────────────────────────────────────────────────
@@ -83,6 +92,15 @@ export default function AssetLibrary() {
   const [assetsError, setAssetsError] = useState('');
   const [filterCat, setFilterCat] = useState('');
 
+  // ── Asset action feedback ─────────────────────────────────────────────────
+  const [actionMsg, setActionMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // ── Edit modal state ──────────────────────────────────────────────────────
+  const [editAsset, setEditAsset] = useState<Asset | null>(null);
+  const [editDraft, setEditDraft] = useState<EditDraft>({ brand: '', model: '', description: '', revenue_rate: '', category: '', label: '' });
+  const [saving, setSaving] = useState(false);
+
   // ── Load categories ───────────────────────────────────────────────────────
   const loadCategories = async () => {
     setCatLoading(true);
@@ -127,6 +145,13 @@ export default function AssetLibrary() {
     loadCategories();
     loadAssets('');
   }, []);
+
+  // ── Auto-clear action message after 3s ───────────────────────────────────
+  useEffect(() => {
+    if (!actionMsg) return;
+    const timer = setTimeout(() => setActionMsg(null), 3000);
+    return () => clearTimeout(timer);
+  }, [actionMsg]);
 
   // ── Add category ──────────────────────────────────────────────────────────
   const handleAddCategory = async () => {
@@ -215,6 +240,72 @@ export default function AssetLibrary() {
       setUploadMsg({ type: 'error', text: String(e) });
     } finally {
       setUploading(false);
+    }
+  };
+
+  // ── Delete asset ──────────────────────────────────────────────────────────
+  const handleDeleteAsset = async (asset: Asset) => {
+    if (!window.confirm(atr.deleteConfirm)) return;
+    setDeletingId(asset.id);
+    try {
+      const res = await fetch(`/api/assets/${asset.id}`, { method: 'DELETE' });
+      const data = await res.json() as { ok?: boolean; error?: string };
+      if (data.ok) {
+        setAssets(prev => prev.filter(a => a.id !== asset.id));
+        setActionMsg({ type: 'success', text: atr.deleteSuccess });
+      } else {
+        setActionMsg({ type: 'error', text: data.error ?? 'Delete failed' });
+      }
+    } catch (e) {
+      setActionMsg({ type: 'error', text: String(e) });
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  // ── Open edit modal ───────────────────────────────────────────────────────
+  const openEdit = (asset: Asset) => {
+    setEditAsset(asset);
+    setEditDraft({
+      brand: asset.brand ?? '',
+      model: asset.model ?? '',
+      description: asset.description ?? '',
+      revenue_rate: asset.revenue_rate > 0 ? String(asset.revenue_rate) : '',
+      category: asset.category ?? '',
+      label: asset.label ?? '',
+    });
+  };
+
+  // ── Save edit ─────────────────────────────────────────────────────────────
+  const handleSaveEdit = async () => {
+    if (!editAsset) return;
+    setSaving(true);
+    try {
+      const body: Record<string, string | number> = {
+        brand: editDraft.brand,
+        model: editDraft.model,
+        description: editDraft.description,
+        revenue_rate: parseFloat(editDraft.revenue_rate) || 0,
+        category: editDraft.category,
+        label: editDraft.label,
+      };
+      const res = await fetch(`/api/assets/${editAsset.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json() as { ok?: boolean; asset?: Asset; error?: string };
+      if (data.ok && data.asset) {
+        setAssets(prev => prev.map(a => a.id === editAsset.id ? (data.asset as Asset) : a));
+        setEditAsset(null);
+        setActionMsg({ type: 'success', text: atr.updateSuccess });
+      } else {
+        setActionMsg({ type: 'error', text: data.error ?? 'Update failed' });
+      }
+    } catch (e) {
+      setActionMsg({ type: 'error', text: String(e) });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -452,33 +543,41 @@ export default function AssetLibrary() {
                     {!assetsLoading && <span className="text-xs text-muted font-normal ml-1">({assets.length})</span>}
                   </h2>
 
-                  {/* Category filter */}
-                  <div className="flex gap-1.5 flex-wrap">
-                    <button
-                      onClick={() => handleFilterChange('')}
-                      className={cn(
-                        'px-3 py-1 rounded-full text-xs font-medium transition-colors border',
-                        filterCat === ''
-                          ? 'bg-primary text-white border-primary'
-                          : 'bg-card text-ink border-line hover:border-primary/50'
-                      )}
-                    >
-                      {atr.filterAll}
-                    </button>
-                    {categories.map(cat => (
+                  <div className="flex items-center gap-3">
+                    {/* Action feedback */}
+                    {actionMsg && (
+                      <span className={cn('text-xs font-medium', actionMsg.type === 'success' ? 'text-green-600' : 'text-red-500')}>
+                        {actionMsg.text}
+                      </span>
+                    )}
+                    {/* Category filter */}
+                    <div className="flex gap-1.5 flex-wrap">
                       <button
-                        key={cat.id}
-                        onClick={() => handleFilterChange(cat.slug)}
+                        onClick={() => handleFilterChange('')}
                         className={cn(
                           'px-3 py-1 rounded-full text-xs font-medium transition-colors border',
-                          filterCat === cat.slug
+                          filterCat === ''
                             ? 'bg-primary text-white border-primary'
                             : 'bg-card text-ink border-line hover:border-primary/50'
                         )}
                       >
-                        {cat.name}
+                        {atr.filterAll}
                       </button>
-                    ))}
+                      {categories.map(cat => (
+                        <button
+                          key={cat.id}
+                          onClick={() => handleFilterChange(cat.slug)}
+                          className={cn(
+                            'px-3 py-1 rounded-full text-xs font-medium transition-colors border',
+                            filterCat === cat.slug
+                              ? 'bg-primary text-white border-primary'
+                              : 'bg-card text-ink border-line hover:border-primary/50'
+                          )}
+                        >
+                          {cat.name}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
@@ -496,7 +595,7 @@ export default function AssetLibrary() {
                         className="flex flex-col rounded-xl border border-line overflow-hidden bg-bg-soft hover:border-primary/40 transition-colors group"
                       >
                         {/* Thumbnail */}
-                        <div className="w-full h-28 bg-line/40 flex items-center justify-center overflow-hidden">
+                        <div className="w-full h-28 bg-line/40 flex items-center justify-center overflow-hidden relative">
                           {isImage(asset.file_type) ? (
                             <img
                               src={asset.file_url}
@@ -507,6 +606,24 @@ export default function AssetLibrary() {
                           ) : (
                             <ImageIcon size={28} className="text-muted/40" />
                           )}
+                          {/* Action buttons overlay */}
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center gap-1.5 opacity-0 group-hover:opacity-100">
+                            <button
+                              onClick={e => { e.stopPropagation(); openEdit(asset); }}
+                              className="w-7 h-7 bg-white/90 rounded-full flex items-center justify-center text-ink hover:bg-primary hover:text-white transition-colors"
+                              title={atr.editBtn}
+                            >
+                              <Pencil size={13} />
+                            </button>
+                            <button
+                              onClick={e => { e.stopPropagation(); handleDeleteAsset(asset); }}
+                              disabled={deletingId === asset.id}
+                              className="w-7 h-7 bg-white/90 rounded-full flex items-center justify-center text-red-500 hover:bg-red-500 hover:text-white transition-colors disabled:opacity-40"
+                              title={atr.deleteBtn}
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
                         </div>
                         {/* Info */}
                         <div className="px-2 py-2 flex flex-col gap-0.5">
@@ -540,6 +657,120 @@ export default function AssetLibrary() {
           )}
         </main>
       </div>
+
+      {/* ── Edit Modal ─────────────────────────────────────────────────────── */}
+      {editAsset && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4"
+          onClick={e => { if (e.target === e.currentTarget) setEditAsset(null); }}
+        >
+          <div className="bg-card rounded-2xl shadow-xl w-full max-w-lg border border-line overflow-hidden">
+            {/* Modal header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-line">
+              <h3 className="text-base font-semibold text-ink">{atr.editModalTitle}</h3>
+              <button
+                onClick={() => setEditAsset(null)}
+                className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-bg-soft text-muted transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Modal body */}
+            <div className="p-5 space-y-3">
+              {/* Category */}
+              <div>
+                <label className="text-xs text-muted mb-1 block">{atr.uploadCategoryLabel}</label>
+                <select
+                  value={editDraft.category}
+                  onChange={e => setEditDraft(d => ({ ...d, category: e.target.value }))}
+                  className="w-full border border-line rounded-lg px-3 py-2 text-sm bg-bg-soft focus:outline-none focus:border-primary"
+                >
+                  <option value="">— {atr.uploadCategoryLabel} —</option>
+                  {categories.map(cat => (
+                    <option key={cat.id} value={cat.slug}>{cat.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Label */}
+              <div>
+                <label className="text-xs text-muted mb-1 block">{atr.uploadLabelPlaceholder}</label>
+                <input
+                  type="text"
+                  value={editDraft.label}
+                  onChange={e => setEditDraft(d => ({ ...d, label: e.target.value }))}
+                  className="w-full border border-line rounded-lg px-3 py-2 text-sm bg-bg-soft focus:outline-none focus:border-primary"
+                />
+              </div>
+
+              {/* Brand + Model */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-muted mb-1 block">{atr.uploadBrandLabel}</label>
+                  <input
+                    type="text"
+                    value={editDraft.brand}
+                    onChange={e => setEditDraft(d => ({ ...d, brand: e.target.value }))}
+                    className="w-full border border-line rounded-lg px-3 py-2 text-sm bg-bg-soft focus:outline-none focus:border-primary"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted mb-1 block">{atr.uploadModelLabel}</label>
+                  <input
+                    type="text"
+                    value={editDraft.model}
+                    onChange={e => setEditDraft(d => ({ ...d, model: e.target.value }))}
+                    className="w-full border border-line rounded-lg px-3 py-2 text-sm bg-bg-soft focus:outline-none focus:border-primary"
+                  />
+                </div>
+              </div>
+
+              {/* Revenue rate */}
+              <div>
+                <label className="text-xs text-muted mb-1 block">{atr.uploadRevenueLabel}</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={editDraft.revenue_rate}
+                  onChange={e => setEditDraft(d => ({ ...d, revenue_rate: e.target.value }))}
+                  placeholder="0.00"
+                  className="w-full border border-line rounded-lg px-3 py-2 text-sm bg-bg-soft focus:outline-none focus:border-primary"
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="text-xs text-muted mb-1 block">{atr.uploadDescLabel}</label>
+                <textarea
+                  value={editDraft.description}
+                  onChange={e => setEditDraft(d => ({ ...d, description: e.target.value }))}
+                  rows={3}
+                  className="w-full border border-line rounded-lg px-3 py-2 text-sm bg-bg-soft focus:outline-none focus:border-primary resize-none"
+                />
+              </div>
+            </div>
+
+            {/* Modal footer */}
+            <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-line bg-bg-soft">
+              <button
+                onClick={() => setEditAsset(null)}
+                className="px-4 py-2 rounded-lg text-sm border border-line hover:bg-line transition-colors"
+              >
+                {atr.cancelBtn}
+              </button>
+              <button
+                onClick={handleSaveEdit}
+                disabled={saving}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm bg-primary text-white font-semibold hover:bg-primary/90 disabled:opacity-50 transition-colors"
+              >
+                {saving ? tr.common.loading : atr.saveBtn}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
