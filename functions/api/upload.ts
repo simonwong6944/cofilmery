@@ -36,10 +36,17 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   }
 
   const file      = formData.get('file') as File | null;
-  const projectId = (formData.get('projectId') as string | null) ?? 'global';
-  const userId    = (formData.get('userId')    as string | null) ?? 'anonymous';
-  const category  = (formData.get('category')  as string | null) ?? 'other';
-  const label     = (formData.get('label')     as string | null) ?? '';
+  const projectId = (formData.get('projectId')    as string | null) ?? 'global';
+  const userId    = (formData.get('userId')        as string | null) ?? 'anonymous';
+  const category  = (formData.get('category')      as string | null) ?? 'other';
+  const label     = (formData.get('label')         as string | null) ?? '';
+
+  // New metadata fields
+  const brand       = (formData.get('brand')        as string | null) ?? '';
+  const model       = (formData.get('model')        as string | null) ?? '';
+  const description = (formData.get('description')  as string | null) ?? '';
+  const revenueRateRaw = parseFloat((formData.get('revenue_rate') as string | null) ?? '0');
+  const revenue_rate = isFinite(revenueRateRaw) && revenueRateRaw >= 0 ? revenueRateRaw : 0;
 
   if (!file || typeof file === 'string') {
     return new Response(JSON.stringify({ error: 'No file provided' }), {
@@ -81,9 +88,13 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   try {
     await env.DB.prepare(
       `INSERT INTO assets
-         (id, project_id, user_id, file_name, file_type, file_size, r2_key, file_url, category, label)
-       VALUES (?,?,?,?,?,?,?,?,?,?)`
-    ).bind(id, projectId, userId, file.name, file.type, file.size, r2Key, fileUrl, category, label).run();
+         (id, project_id, user_id, file_name, file_type, file_size, r2_key, file_url,
+          category, label, brand, model, description, revenue_rate)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
+    ).bind(
+      id, projectId, userId, file.name, file.type, file.size, r2Key, fileUrl,
+      category, label, brand, model, description, revenue_rate
+    ).run();
   } catch (e) {
     console.error('D1 asset insert failed:', e);
   }
@@ -98,6 +109,10 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     fileSize: file.size,
     category,
     label,
+    brand,
+    model,
+    description,
+    revenue_rate,
     uploadedAt: new Date().toISOString(),
   }), { status: 200, headers: corsHeaders });
 };

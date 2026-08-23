@@ -27,6 +27,10 @@ interface Asset {
   category: string;
   label: string | null;
   uploaded_at: string;
+  brand: string;
+  model: string;
+  description: string;
+  revenue_rate: number;
 }
 
 // ─── Helper ───────────────────────────────────────────────────────────────────
@@ -66,6 +70,10 @@ export default function AssetLibrary() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadCategory, setUploadCategory] = useState('');
   const [uploadLabel, setUploadLabel] = useState('');
+  const [uploadBrand, setUploadBrand] = useState('');
+  const [uploadModel, setUploadModel] = useState('');
+  const [uploadDescription, setUploadDescription] = useState('');
+  const [uploadRevenueRate, setUploadRevenueRate] = useState('');
   const [uploading, setUploading] = useState(false);
   const [uploadMsg, setUploadMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -182,6 +190,10 @@ export default function AssetLibrary() {
     form.append('userId', user?.id ?? 'admin');
     form.append('category', uploadCategory);
     form.append('label', uploadLabel);
+    form.append('brand', uploadBrand);
+    form.append('model', uploadModel);
+    form.append('description', uploadDescription);
+    form.append('revenue_rate', uploadRevenueRate || '0');
 
     try {
       const res = await fetch('/api/upload', { method: 'POST', body: form });
@@ -190,6 +202,10 @@ export default function AssetLibrary() {
         setUploadMsg({ type: 'success', text: atr.uploadSuccess });
         setSelectedFile(null);
         setUploadLabel('');
+        setUploadBrand('');
+        setUploadModel('');
+        setUploadDescription('');
+        setUploadRevenueRate('');
         if (fileInputRef.current) fileInputRef.current.value = '';
         await loadAssets(filterCat);
       } else {
@@ -355,6 +371,56 @@ export default function AssetLibrary() {
                       className="w-full border border-line rounded-lg px-3 py-2 text-sm bg-bg-soft focus:outline-none focus:border-primary"
                     />
                   </div>
+
+                  {/* Brand input */}
+                  <div>
+                    <label className="text-xs text-muted mb-1 block">{atr.uploadBrandLabel}</label>
+                    <input
+                      type="text"
+                      value={uploadBrand}
+                      onChange={e => setUploadBrand(e.target.value)}
+                      placeholder={atr.uploadBrandLabel}
+                      className="w-full border border-line rounded-lg px-3 py-2 text-sm bg-bg-soft focus:outline-none focus:border-primary"
+                    />
+                  </div>
+
+                  {/* Model input */}
+                  <div>
+                    <label className="text-xs text-muted mb-1 block">{atr.uploadModelLabel}</label>
+                    <input
+                      type="text"
+                      value={uploadModel}
+                      onChange={e => setUploadModel(e.target.value)}
+                      placeholder={atr.uploadModelLabel}
+                      className="w-full border border-line rounded-lg px-3 py-2 text-sm bg-bg-soft focus:outline-none focus:border-primary"
+                    />
+                  </div>
+
+                  {/* Revenue rate input */}
+                  <div>
+                    <label className="text-xs text-muted mb-1 block">{atr.uploadRevenueLabel}</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={uploadRevenueRate}
+                      onChange={e => setUploadRevenueRate(e.target.value)}
+                      placeholder="0.00"
+                      className="w-full border border-line rounded-lg px-3 py-2 text-sm bg-bg-soft focus:outline-none focus:border-primary"
+                    />
+                  </div>
+                </div>
+
+                {/* Description textarea — full width row */}
+                <div className="mt-3">
+                  <label className="text-xs text-muted mb-1 block">{atr.uploadDescLabel}</label>
+                  <textarea
+                    value={uploadDescription}
+                    onChange={e => setUploadDescription(e.target.value)}
+                    placeholder={atr.uploadDescLabel}
+                    rows={2}
+                    className="w-full border border-line rounded-lg px-3 py-2 text-sm bg-bg-soft focus:outline-none focus:border-primary resize-none"
+                  />
                 </div>
 
                 <div className="flex items-center gap-3 mt-4">
@@ -447,12 +513,22 @@ export default function AssetLibrary() {
                           <p className="text-xs font-medium text-ink line-clamp-1 leading-tight" title={asset.file_name}>
                             {asset.file_name}
                           </p>
+                          {asset.brand && (
+                            <p className="text-xs font-semibold text-primary line-clamp-1">
+                              {asset.brand}{asset.model ? ` · ${asset.model}` : ''}
+                            </p>
+                          )}
                           <div className="flex items-center justify-between gap-1">
                             <span className="text-[10px] text-muted">{asset.category}</span>
                             <span className="text-[10px] text-muted">{formatBytes(asset.file_size)}</span>
                           </div>
                           {asset.label && (
                             <p className="text-[10px] text-primary/70 line-clamp-1">{asset.label}</p>
+                          )}
+                          {asset.revenue_rate > 0 && (
+                            <p className="text-[10px] text-green-600 font-medium">
+                              {atr.assetRevenueUnit.replace('HK$', `HK$${asset.revenue_rate.toFixed(2)}`)}
+                            </p>
                           )}
                         </div>
                       </div>

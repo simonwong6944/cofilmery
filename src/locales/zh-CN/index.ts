@@ -1407,6 +1407,11 @@ export const zhCN = {
       assetLabel: '标签',
       assetSize: '大小',
       assetDate: '上传日期',
+      uploadBrandLabel: '品牌',
+      uploadModelLabel: '型号',
+      uploadDescLabel: '描述',
+      uploadRevenueLabel: '分润率（每次）',
+      assetRevenueUnit: 'HK$ / 次',
     },
   },
 

@@ -1380,6 +1380,11 @@ export const en = {
       assetLabel: 'Label',
       assetSize: 'Size',
       assetDate: 'Upload Date',
+      uploadBrandLabel: 'Brand',
+      uploadModelLabel: 'Model',
+      uploadDescLabel: 'Description',
+      uploadRevenueLabel: 'Revenue Rate (per play)',
+      assetRevenueUnit: 'HK$ / play',
     },
   },
   common: {

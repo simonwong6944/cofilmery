@@ -1633,6 +1633,11 @@ export const zhHK = {
       assetLabel: '標籤',
       assetSize: '大小',
       assetDate: '上傳日期',
+      uploadBrandLabel: '品牌',
+      uploadModelLabel: '型號',
+      uploadDescLabel: '描述',
+      uploadRevenueLabel: '分潤率（每次）',
+      assetRevenueUnit: 'HK$ / 次',
     },
   },
 
