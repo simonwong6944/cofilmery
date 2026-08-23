@@ -23,15 +23,28 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
     'Content-Type': 'application/json',
   };
 
-  const projectId = url.searchParams.get('project_id') ?? 'global';
-  const category  = url.searchParams.get('category')   ?? '';
-  const limit     = Math.min(Number(url.searchParams.get('limit') ?? '100'), 200);
+  const projectIdRaw = url.searchParams.get('project_id') ?? '';
+  const category     = url.searchParams.get('category')   ?? '';
+  const limit        = Math.min(Number(url.searchParams.get('limit') ?? '100'), 200);
+
+  // 'all' 或空值 → 不篩 project_id，返全部；否則 WHERE project_id=?
+  const scopeAll = !projectIdRaw || projectIdRaw === 'all';
 
   try {
-    let sql = `SELECT * FROM assets WHERE project_id=?`;
-    const params: (string | number)[] = [projectId];
-    if (category) { sql += ` AND category=?`; params.push(category); }
-    sql += ` ORDER BY uploaded_at DESC LIMIT ?`;
+    const whereClauses: string[] = [];
+    const params: (string | number)[] = [];
+
+    if (!scopeAll) {
+      whereClauses.push(`project_id = ?`);
+      params.push(projectIdRaw);
+    }
+    if (category) {
+      whereClauses.push(`category = ?`);
+      params.push(category);
+    }
+
+    const whereSQL = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+    const sql = `SELECT * FROM assets ${whereSQL} ORDER BY uploaded_at DESC LIMIT ?`;
     params.push(limit);
 
     const rows = await env.DB.prepare(sql).bind(...params).all();

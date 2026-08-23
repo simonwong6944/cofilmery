@@ -91,6 +91,8 @@ export default function AssetLibrary() {
   const [assetsLoading, setAssetsLoading] = useState(false);
   const [assetsError, setAssetsError] = useState('');
   const [filterCat, setFilterCat] = useState('');
+  // scope: 'global' = 中央庫 only; 'all' = 全部 creator + admin
+  const [assetScope, setAssetScope] = useState<'global' | 'all'>('global');
 
   // ── Asset action feedback ─────────────────────────────────────────────────
   const [actionMsg, setActionMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -121,11 +123,13 @@ export default function AssetLibrary() {
   };
 
   // ── Load assets ───────────────────────────────────────────────────────────
-  const loadAssets = async (catFilter = filterCat) => {
+  const loadAssets = async (catFilter = filterCat, scope = assetScope) => {
     setAssetsLoading(true);
     setAssetsError('');
     try {
-      let url = '/api/assets?project_id=global&limit=200';
+      // scope='all' → project_id=all (後端返全部); scope='global' → project_id=global
+      const projectParam = scope === 'all' ? 'all' : 'global';
+      let url = `/api/assets?project_id=${projectParam}&limit=200`;
       if (catFilter) url += `&category=${encodeURIComponent(catFilter)}`;
       const res = await fetch(url);
       const data = await res.json() as { ok?: boolean; assets?: Asset[]; error?: string };
@@ -322,7 +326,13 @@ export default function AssetLibrary() {
   // ── Filter change ─────────────────────────────────────────────────────────
   const handleFilterChange = (slug: string) => {
     setFilterCat(slug);
-    loadAssets(slug);
+    loadAssets(slug, assetScope);
+  };
+
+  // ── Scope change ──────────────────────────────────────────────────────────
+  const handleScopeChange = (scope: 'global' | 'all') => {
+    setAssetScope(scope);
+    loadAssets(filterCat, scope);
   };
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -560,6 +570,23 @@ export default function AssetLibrary() {
                         {actionMsg.text}
                       </span>
                     )}
+                    {/* Scope toggle: 中央庫 / 全部素材 */}
+                    <div className="flex rounded-lg border border-line overflow-hidden text-xs font-medium">
+                      {(['global', 'all'] as const).map(s => (
+                        <button
+                          key={s}
+                          onClick={() => handleScopeChange(s)}
+                          className={cn(
+                            'px-3 py-1.5 transition-colors',
+                            assetScope === s
+                              ? 'bg-primary text-white'
+                              : 'bg-card text-ink hover:bg-bg-soft'
+                          )}
+                        >
+                          {s === 'global' ? atr.assetScopeGlobal : atr.assetScopeAll}
+                        </button>
+                      ))}
+                    </div>
                     {/* Category filter */}
                     <div className="flex gap-1.5 flex-wrap">
                       <button
@@ -656,6 +683,17 @@ export default function AssetLibrary() {
                             <p className="text-[10px] text-green-600 font-medium">
                               {atr.assetRevenueUnit.replace('HK$', `HK$${asset.revenue_rate.toFixed(2)}`)}
                             </p>
+                          )}
+                          {/* Owner + project info (全部素材模式下輔助辨識) */}
+                          {assetScope === 'all' && (
+                            <div className="mt-0.5 pt-0.5 border-t border-line/50 flex flex-col gap-0.5">
+                              <p className="text-[9px] text-muted truncate" title={asset.user_id}>
+                                <span className="font-medium">{atr.assetOwnerLabel}:</span> {asset.user_id}
+                              </p>
+                              <p className="text-[9px] text-muted truncate" title={asset.project_id}>
+                                <span className="font-medium">{atr.assetProjectLabel}:</span> {asset.project_id?.slice(0, 8) || '—'}
+                              </p>
+                            </div>
                           )}
                         </div>
                       </div>
