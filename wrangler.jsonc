@@ -7,8 +7,8 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "cofilmery-production",
-      "database_id": "762e3f3d-932d-49bd-9bdb-414167f19769"
+      "database_name": "cofilmery-staging",
+      "database_id": "881f5d21-5ba7-4dec-9f81-3cee45e89b0c"
     }
   ],
   "r2_buckets": [
