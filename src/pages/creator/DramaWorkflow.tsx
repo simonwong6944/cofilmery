@@ -1335,14 +1335,26 @@ function CharacterProfileCard({
     ? PERSONALITY_PRESETS_BY_GENDER[gender]
     : tr.creator.drama.shared.traitPresets;
 
+  // 性別聯動外型選項覆蓋清單
+  // 分性別的類別：build / hairLength / face / facial / style（共 5 個）
+  // 共用類別：height / skin / hair / hairColor / eyes / eyewear / posture（共 7 個）
+  const appearanceOptsOverride = gender
+    ? (s2tr.appearanceOptsOverride[gender] as Partial<Record<keyof AppearanceOptions, string[]>>)
+    : null;
+
   // Appearance option rows — from locale so they rebuild on locale change
+  // gender 有值時，5 個分性別 key 用 override opts；其餘 7 個保持共用
   const appearanceRowLabels = tr.creator.drama.s2.appearanceRows;
   const appearanceRowKeys: (keyof AppearanceOptions)[] = [
     'height','build','skin','hair','hairColor','hairLength',
     'face','eyes','eyewear','facial','posture','style',
   ];
   const appearanceRows: { label: string; key: keyof AppearanceOptions; opts: string[] }[] =
-    appearanceRowLabels.map((r, i) => ({ label: r.label, key: appearanceRowKeys[i], opts: r.opts }));
+    appearanceRowLabels.map((r, i) => {
+      const key = appearanceRowKeys[i];
+      const overriddenOpts = appearanceOptsOverride?.[key];
+      return { label: r.label, key, opts: overriddenOpts ?? r.opts };
+    });
 
   const accentColor = mode === 'drama' ? 'primary' : 'accent';
 

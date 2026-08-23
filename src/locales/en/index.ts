@@ -832,6 +832,38 @@ export const en = {
         // ── Save Button ──
         saveCharBtn: 'Save Character',
         saveCharDone: 'Saved ✓',
+        // ── New appearance option strings (used in appearanceOptsOverride) ──
+        appearBuildMuscular: 'Muscular',
+        appearBuildCurvy: 'Curvy',
+        appearBuildVoluptuous: 'Voluptuous',
+        appearFacialLongLashes: 'Fine Brows & Long Lashes',
+        appearStyleSuitJacket: 'Suit Jacket',
+        appearStyleFormalDress: 'Formal Dress',
+        appearStyleElegantDress: 'Elegant Dress',
+        // ── Appearance opts override by gender ──
+        appearanceOptsOverride: {
+          male: {
+            build:      ['Slim', 'Medium', 'Slightly Chubby', 'Heavy', 'Muscular', 'Athletic'],
+            hairLength: ['Very Short', 'Short', 'Medium'],
+            face:       ['Square', 'Long', 'Round', 'Oval'],
+            facial:     ['No Beard', 'Stubble', 'Goatee', 'Moustache', 'Full Beard', 'Prominent Wrinkles'],
+            style:      ['Traditional Mandarin', 'Worker Attire', 'Neat Suit', 'Casual', 'Chef Apron', 'Sportswear', 'Suit Jacket'],
+          },
+          female: {
+            build:      ['Slender', 'Medium', 'Slightly Chubby', 'Curvy', 'Voluptuous'],
+            hairLength: ['Short', 'Medium', 'Long', 'Extra Long'],
+            face:       ['V-Shape', 'Oval', 'Round', 'Long'],
+            facial:     ['No Beard', 'Dimples', 'Prominent Wrinkles', 'Fine Brows & Long Lashes'],
+            style:      ['Cheongsam', 'Casual', 'Chef Apron', 'Formal Dress', 'Sportswear', 'Elegant Dress'],
+          },
+          other: {
+            build:      ['Slim', 'Slender', 'Medium', 'Slightly Chubby', 'Heavy', 'Muscular'],
+            hairLength: ['Very Short', 'Short', 'Medium', 'Long', 'Extra Long'],
+            face:       ['Round', 'Oval', 'Square', 'Long', 'V-Shape'],
+            facial:     ['No Beard', 'Stubble', 'Dimples', 'Prominent Wrinkles'],
+            style:      ['Traditional Mandarin', 'Worker Attire', 'Neat Suit', 'Casual', 'Chef Apron', 'Cheongsam', 'Sportswear'],
+          },
+        },
         appearanceRows: [
           { label: 'Height', opts: ['Short', 'Medium', 'Tall', 'Very Tall'] },
           { label: 'Build', opts: ['Slim', 'Slender', 'Medium', 'Slightly Chubby', 'Heavy', 'Muscular'] },

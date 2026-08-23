@@ -856,6 +856,38 @@ export const zhCN = {
         // ── 保存按钮 ──
         saveCharBtn: '保存角色',
         saveCharDone: '已保存 ✓',
+        // ── 外型选项新增字串（供 appearanceOptsOverride 使用）──
+        appearBuildMuscular: '健硕',
+        appearBuildCurvy: '曲线玲珑',
+        appearBuildVoluptuous: '丰腴',
+        appearFacialLongLashes: '细眉长睫',
+        appearStyleSuitJacket: '西装外套',
+        appearStyleFormalDress: '正式连衣裙',
+        appearStyleElegantDress: '优雅洋装',
+        // ── 外型选项按性别覆盖（key = AppearanceOptions 字段名）──
+        appearanceOptsOverride: {
+          male: {
+            build:      ['瘦削', '适中', '微胖', '肥胖', '壮实', '健硕'],
+            hairLength: ['极短', '短发', '中长'],
+            face:       ['方脸', '长脸', '圆脸', '鹅蛋脸'],
+            facial:     ['无胡须', '短胡须', '山羊胡', '八字胡', '络腮胡', '皱纹明显'],
+            style:      ['传统唐装', '工人装束', '整齐西装', '休闲便服', '厨师围裙', '运动服', '西装外套'],
+          },
+          female: {
+            build:      ['纤细', '适中', '微胖', '曲线玲珑', '丰腴'],
+            hairLength: ['短发', '中长', '长发', '超长'],
+            face:       ['瓜子脸', '鹅蛋脸', '圆脸', '长脸'],
+            facial:     ['无胡须', '酒窝', '皱纹明显', '细眉长睫'],
+            style:      ['旗袍', '休闲便服', '厨师围裙', '正式连衣裙', '运动服', '优雅洋装'],
+          },
+          other: {
+            build:      ['瘦削', '纤细', '适中', '微胖', '肥胖', '壮实'],
+            hairLength: ['极短', '短发', '中长', '长发', '超长'],
+            face:       ['圆脸', '鹅蛋脸', '方脸', '长脸', '瓜子脸'],
+            facial:     ['无胡须', '短胡须', '酒窝', '皱纹明显'],
+            style:      ['传统唐装', '工人装束', '整齐西装', '休闲便服', '厨师围裙', '旗袍', '运动服'],
+          },
+        },
         appearanceRows: [
           { label: '身高', opts: ['矮小', '中等身高', '高挑', '高大'] },
           { label: '体型', opts: ['瘦削', '纤细', '适中', '微胖', '肥胖', '壮实'] },

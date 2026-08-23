@@ -944,6 +944,38 @@ export const zhHK = {
         // ── 保存掣 ──
         saveCharBtn: '保存角色',
         saveCharDone: '已保存 ✓',
+        // ── 外型選項新增字串（供 appearanceOptsOverride 使用）──
+        appearBuildMuscular: '健碩',
+        appearBuildCurvy: '曲線玲瓏',
+        appearBuildVoluptuous: '豐腴',
+        appearFacialLongLashes: '細眉長睫',
+        appearStyleSuitJacket: '西裝褸',
+        appearStyleFormalDress: '正式連身裙',
+        appearStyleElegantDress: '優雅洋裝',
+        // ── 外型選項按性別覆蓋（key = AppearanceOptions 欄位名）──
+        appearanceOptsOverride: {
+          male: {
+            build:      ['瘦削', '適中', '微胖', '肥胖', '壯實', '健碩'],
+            hairLength: ['極短', '短髮', '中長'],
+            face:       ['方臉', '長臉', '圓臉', '鵝蛋臉'],
+            facial:     ['無鬚', '短鬚', '山羊鬚', '八字鬚', '滿臉鬚', '皺紋明顯'],
+            style:      ['傳統唐裝', '工人裝束', '整齊西裝', '休閒便服', '廚師圍裙', '運動服', '西裝褸'],
+          },
+          female: {
+            build:      ['纖細', '適中', '微胖', '曲線玲瓏', '豐腴'],
+            hairLength: ['短髮', '中長', '長髮', '超長'],
+            face:       ['瓜子臉', '鵝蛋臉', '圓臉', '長臉'],
+            facial:     ['無鬚', '酒窩', '皺紋明顯', '細眉長睫'],
+            style:      ['旗袍', '休閒便服', '廚師圍裙', '正式連身裙', '運動服', '優雅洋裝'],
+          },
+          other: {
+            build:      ['瘦削', '纖細', '適中', '微胖', '肥胖', '壯實'],
+            hairLength: ['極短', '短髮', '中長', '長髮', '超長'],
+            face:       ['圓臉', '鵝蛋臉', '方臉', '長臉', '瓜子臉'],
+            facial:     ['無鬚', '短鬚', '酒窩', '皺紋明顯'],
+            style:      ['傳統唐裝', '工人裝束', '整齊西裝', '休閒便服', '廚師圍裙', '旗袍', '運動服'],
+          },
+        },
         appearanceRows: [
           { label: '身高', opts: ['矮小', '中等身高', '高挑', '高大'] },
           { label: '體型', opts: ['瘦削', '纖細', '適中', '微胖', '肥胖', '壯實'] },
