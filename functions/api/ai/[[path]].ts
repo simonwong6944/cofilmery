@@ -245,7 +245,7 @@ app.post('/api/ai/video', async (c) => {
   }
   if (body.inputReferences?.length) {
     payload.input_references = body.inputReferences.map(url => ({
-      type: 'reference', image_url: { url },
+      type: 'image_url', image_url: { url },
     }));
   }
 
@@ -436,7 +436,7 @@ app.post('/api/ai/image-gen', async (c) => {
     aspect_ratio: '3:4',
   };
   if (body.referenceImageUrl) {
-    payload.input_references = [{ type: 'reference', image_url: { url: body.referenceImageUrl } }];
+    payload.input_references = [{ type: 'image_url', image_url: { url: body.referenceImageUrl } }];
   }
 
   // Call OpenRouter images endpoint (NOT /chat/completions)
