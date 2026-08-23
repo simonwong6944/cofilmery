@@ -782,6 +782,7 @@ export const zhCN = {
         uploadPrompt: '点击上传或拖放',
         uploadLoginRequired: '请先登录才能上传素材',
         uploadNoProject: '请先创建或载入项目才能上传素材',
+        s1AssetViewFull: '查看全图',
         s1AssetDeleteConfirm: '确定删除此素材？此操作不可恢复。',
         s1AssetDeleteSuccess: '素材已删除',
         s1AssetEditLabel: '素材名称',

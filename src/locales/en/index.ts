@@ -758,6 +758,7 @@ export const en = {
         uploadPrompt: 'Click to upload or drag & drop',
         uploadLoginRequired: 'Please log in before uploading assets',
         uploadNoProject: 'Please create or load a project before uploading',
+        s1AssetViewFull: 'View full image',
         s1AssetDeleteConfirm: 'Delete this asset? This action cannot be undone.',
         s1AssetDeleteSuccess: 'Asset deleted',
         s1AssetEditLabel: 'Asset label',

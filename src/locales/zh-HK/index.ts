@@ -870,6 +870,7 @@ export const zhHK = {
         uploadPrompt: '點擊上傳或拖放',
         uploadLoginRequired: '請先登入才能上傳素材',
         uploadNoProject: '請先建立或載入項目才能上傳素材',
+        s1AssetViewFull: '睇全相',
         s1AssetDeleteConfirm: '確定刪除此素材？此操作不可復原。',
         s1AssetDeleteSuccess: '素材已刪除',
         s1AssetEditLabel: '素材名稱',

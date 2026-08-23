@@ -1031,9 +1031,8 @@ function S1AssetBank({ onNext }: { onNext: () => void }) {
                       <img
                         src={asset.file_url}
                         alt={asset.file_name}
-                        className="w-full aspect-square object-cover rounded-lg cursor-pointer"
+                        className="w-full aspect-square object-cover rounded-lg"
                         loading="lazy"
-                        onClick={e => { e.stopPropagation(); setLightboxUrl(asset.file_url); }}
                       />
                     ) : (
                       <div className="w-full aspect-square bg-bg-soft rounded-lg flex flex-col items-center justify-center text-xs text-muted gap-1 p-2">
@@ -1041,10 +1040,19 @@ function S1AssetBank({ onNext }: { onNext: () => void }) {
                         <span className="truncate w-full text-center">{asset.file_name}</span>
                       </div>
                     )}
-                    {/* Hover overlay: filename + edit/delete buttons */}
+                    {/* Hover overlay: filename + view/edit/delete buttons */}
                     <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 rounded-lg flex flex-col items-center justify-center gap-1.5 transition-opacity px-1">
                       <span className="text-white text-[10px] truncate w-full text-center leading-tight">{asset.label || asset.file_name}</span>
                       <div className="flex gap-1">
+                        {asset.file_type.startsWith('image/') && (
+                          <button
+                            onClick={e => { e.stopPropagation(); setLightboxUrl(asset.file_url); }}
+                            title={tr.creator.drama.s1.s1AssetViewFull}
+                            className="bg-white/20 hover:bg-white/40 text-white rounded p-1 transition-colors"
+                          >
+                            <Eye size={12} />
+                          </button>
+                        )}
                         <button
                           onClick={e => { e.stopPropagation(); openS1Edit(asset); }}
                           title={tr.creator.drama.s1.s1AssetEditLabel}
