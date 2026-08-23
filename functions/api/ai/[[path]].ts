@@ -283,7 +283,13 @@ app.post('/api/ai/architect', async (c) => {
     const stripped = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
     parsed = JSON.parse(stripped || '{}');
   } catch {
-    return c.json({ error: 'AI returned invalid JSON' }, 502);
+    return c.json({
+      error:        'AI returned invalid JSON',
+      rawPreview:   (data.choices[0]?.message?.content ?? '').slice(0, 1000),
+      finishReason: data.choices[0]?.finish_reason ?? null,
+      tokensUsed:   data.usage?.total_tokens ?? null,
+      usageCost:    data.usage_cost ?? null,
+    }, 502);
   }
 
   const tokens     = data.usage?.total_tokens ?? 0;
