@@ -1982,6 +1982,8 @@ function CharacterProfileCard({
                 setImageGenResult(null);
                 setImageGenError(null);
                 try {
+                  // Merge avatar (img) + refs[], deduplicate, cap at 3
+                  const allRefs = [...new Set([img, ...(refs ?? [])].filter(Boolean))].slice(0, 3);
                   const body: Record<string, unknown> = {
                     appearanceSummary: prompt,
                     charName: name,
@@ -1990,7 +1992,7 @@ function CharacterProfileCard({
                     projectId: projectId ?? 'global',  // Fix 1: needed for R2 key
                     similarity,                        // pass mode so backend adjusts prompt
                   };
-                  if (img) body.referenceImageUrl = img;
+                  if (allRefs.length > 0) body.referenceImageUrls = allRefs;
                   const res = await fetch('/api/ai/image-gen', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
