@@ -1148,17 +1148,27 @@ function buildAppearanceSummary(a: AppearanceOptions): string {
 
 // ── Shared: CharacterProfileCard ────────────────────────────────────────────
 function CharacterProfileCard({
-  img, name, role, age, bg, similarity, setSimilarity, mode,
+  img, refs, name, role, age, bg, similarity, setSimilarity, mode,
   initialTraits, initialAppearance,
   onTraitsChange, onAppearanceChange,
+  onNameChange, onRoleChange, onAgeChange, onBgChange,
+  onImgChange, onRefsChange,
+  projectId,
 }: {
-  img: string; name: string; role: string; age: string; bg: string;
+  img: string; refs?: string[]; name: string; role: string; age: string; bg: string;
   similarity: string; setSimilarity: (v: string) => void;
   mode: 'drama' | 'legacy';
   initialTraits?: string[];
   initialAppearance?: AppearanceOptions;
   onTraitsChange?: (t: string[]) => void;
   onAppearanceChange?: (a: AppearanceOptions) => void;
+  onNameChange?: (v: string) => void;
+  onRoleChange?: (v: string) => void;
+  onAgeChange?: (v: string) => void;
+  onBgChange?: (v: string) => void;
+  onImgChange?: (url: string) => void;
+  onRefsChange?: (urls: string[]) => void;
+  projectId?: string;
 }) {
   const { locale } = useLocaleStore();
   const tr = t();
@@ -1168,6 +1178,51 @@ function CharacterProfileCard({
   const [addingTrait, setAddingTrait] = useState(false);
   const [appearance, setAppearance] = useState<AppearanceOptions>(initialAppearance ?? DEFAULT_APPEARANCE);
   const [showAppearance, setShowAppearance] = useState(false);
+
+  // Upload state
+  const [uploading, setUploading] = useState(false);
+  const [showAssetPicker, setShowAssetPicker] = useState(false);
+  const [assetPickerTarget, setAssetPickerTarget] = useState<'img' | 'refs'>('img');
+  const [s1Assets, setS1Assets] = useState<{ id: string; file_name: string; file_url: string; file_type: string }[]>([]);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const refInputRef = useRef<HTMLInputElement>(null);
+
+  // Upload helper: POST to /api/upload
+  const uploadFile = async (file: File, target: 'img' | 'refs') => {
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('projectId', projectId ?? 'global');
+      fd.append('userId', 'anonymous');
+      fd.append('category', 'character');
+      const res = await fetch('/api/upload', { method: 'POST', body: fd });
+      const data = await res.json() as { ok: boolean; fileUrl: string };
+      if (!data.ok) throw new Error('upload failed');
+      if (target === 'img') {
+        onImgChange?.(data.fileUrl);
+      } else {
+        onRefsChange?.([...(refs ?? []), data.fileUrl]);
+      }
+    } catch (e) {
+      console.error('S2 upload error:', e);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // Fetch S1 assets for picker
+  const openAssetPicker = async (target: 'img' | 'refs') => {
+    setAssetPickerTarget(target);
+    setShowAssetPicker(true);
+    if (s1Assets.length === 0) {
+      try {
+        const res = await fetch(`/api/assets?project_id=${projectId ?? 'global'}&limit=100`);
+        const data = await res.json() as { ok: boolean; assets: typeof s1Assets };
+        if (data.ok) setS1Assets(data.assets);
+      } catch { /* non-blocking */ }
+    }
+  };
 
   const removeTrait = (t: string) => {
     const next = traits.filter(x => x !== t);
@@ -1227,45 +1282,160 @@ function CharacterProfileCard({
 
   return (
     <div className="space-y-4">
+      {/* Hidden file inputs */}
+      <input
+        ref={avatarInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={e => { const f = e.target.files?.[0]; if (f) { uploadFile(f, 'img'); e.target.value = ''; } }}
+      />
+      <input
+        ref={refInputRef}
+        type="file"
+        accept="image/*,video/*"
+        multiple
+        className="hidden"
+        onChange={e => {
+          const files = Array.from(e.target.files ?? []);
+          files.forEach(f => uploadFile(f, 'refs'));
+          e.target.value = '';
+        }}
+      />
+
       {/* Basic info */}
       <div className="bg-card rounded-xl border border-line p-5 shadow-card">
         <div className="flex gap-4 mb-4">
           <div className="relative flex-shrink-0">
-            <img src={img} alt={name} className="w-20 h-20 rounded-xl object-cover" />
-            <button className="absolute -bottom-1 -right-1 bg-white border border-line rounded-full p-1 hover:bg-bg-soft shadow-sm">
-              <Upload size={10} className="text-muted" />
+            {img ? (
+              <img src={img} alt={name} className="w-20 h-20 rounded-xl object-cover" />
+            ) : (
+              <div className="w-20 h-20 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Users size={28} className="text-primary/30" />
+              </div>
+            )}
+            <button
+              onClick={() => avatarInputRef.current?.click()}
+              disabled={uploading}
+              className="absolute -bottom-1 -right-1 bg-white border border-line rounded-full p-1 hover:bg-bg-soft shadow-sm disabled:opacity-50"
+              title="上傳頭像"
+            >
+              {uploading ? <RefreshCw size={10} className="text-muted animate-spin" /> : <Upload size={10} className="text-muted" />}
             </button>
           </div>
           <div className="flex-1 space-y-2">
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="text-xs text-muted">{mode === 'drama' ? s2tr.charNameLabel : tr.creator.legacy.s2.nameLabel}</label>
-                <input className="w-full border border-line rounded px-2 py-1.5 text-sm bg-bg-soft focus:outline-none focus:border-primary" defaultValue={name} />
+                <input
+                  className="w-full border border-line rounded px-2 py-1.5 text-sm bg-bg-soft focus:outline-none focus:border-primary"
+                  value={name}
+                  onChange={e => onNameChange?.(e.target.value)}
+                />
               </div>
               <div>
                 <label className="text-xs text-muted">{mode === 'drama' ? s2tr.charRoleLabel : tr.creator.legacy.s2.roleLabel}</label>
-                <input className="w-full border border-line rounded px-2 py-1.5 text-sm bg-bg-soft focus:outline-none focus:border-primary" defaultValue={role} />
+                <input
+                  className="w-full border border-line rounded px-2 py-1.5 text-sm bg-bg-soft focus:outline-none focus:border-primary"
+                  value={role}
+                  onChange={e => onRoleChange?.(e.target.value)}
+                />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="text-xs text-muted">{s2tr.charAgeLabel}</label>
-                <input className="w-full border border-line rounded px-2 py-1.5 text-sm bg-bg-soft focus:outline-none focus:border-primary" defaultValue={age} />
+                <input
+                  className="w-full border border-line rounded px-2 py-1.5 text-sm bg-bg-soft focus:outline-none focus:border-primary"
+                  value={age}
+                  onChange={e => onAgeChange?.(e.target.value)}
+                />
               </div>
               <div>
                 <label className="text-xs text-muted">{mode === 'drama' ? s2tr.charBgLabel : tr.creator.legacy.s2.bgLabel}</label>
-                <input className="w-full border border-line rounded px-2 py-1.5 text-sm bg-bg-soft focus:outline-none focus:border-primary" defaultValue={bg} />
+                <input
+                  className="w-full border border-line rounded px-2 py-1.5 text-sm bg-bg-soft focus:outline-none focus:border-primary"
+                  value={bg}
+                  onChange={e => onBgChange?.(e.target.value)}
+                />
               </div>
             </div>
           </div>
         </div>
 
-        {/* Upload refs */}
-        <div className="border border-dashed border-line rounded-lg p-3 text-center cursor-pointer hover:border-primary transition-colors">
-          <Upload size={14} className="mx-auto text-muted mb-1" />
-          <p className="text-xs text-muted">{mode === 'drama' ? s2tr.uploadRef : tr.creator.legacy.s2.uploadRef}</p>
+        {/* Upload refs — 參考相 */}
+        <div className="space-y-2">
+          {/* 已上傳參考相預覽 */}
+          {(refs ?? []).length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {(refs ?? []).map((url, i) => (
+                <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden border border-line group">
+                  <img src={url} alt={`ref-${i}`} className="w-full h-full object-cover" />
+                  <button
+                    onClick={() => onRefsChange?.((refs ?? []).filter((_, idx) => idx !== i))}
+                    className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+                  >
+                    <X size={14} className="text-white" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          {/* 上傳 / 從素材庫揀 */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => refInputRef.current?.click()}
+              disabled={uploading}
+              className="flex-1 border border-dashed border-line rounded-lg p-3 text-center hover:border-primary transition-colors disabled:opacity-50"
+            >
+              <Upload size={14} className="mx-auto text-muted mb-1" />
+              <p className="text-xs text-muted">{mode === 'drama' ? s2tr.uploadRef : tr.creator.legacy.s2.uploadRef}</p>
+            </button>
+            <button
+              onClick={() => openAssetPicker('refs')}
+              className="flex-shrink-0 border border-dashed border-line rounded-lg px-3 py-2 text-center hover:border-primary transition-colors"
+              title="從已上傳素材揀選"
+            >
+              <Image size={14} className="mx-auto text-muted mb-1" />
+              <p className="text-[10px] text-muted">素材庫</p>
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* S1 素材庫 Picker Modal */}
+      {showAssetPicker && (
+        <div className="bg-card rounded-xl border border-line p-4 shadow-card">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-semibold text-ink">從已上傳素材揀選</p>
+            <button onClick={() => setShowAssetPicker(false)} className="text-muted hover:text-ink">
+              <X size={16} />
+            </button>
+          </div>
+          {s1Assets.length === 0 ? (
+            <p className="text-xs text-muted text-center py-4">尚無已上傳素材，請先在 S1 上傳。</p>
+          ) : (
+            <div className="grid grid-cols-4 gap-2 max-h-48 overflow-y-auto">
+              {s1Assets.filter(a => a.file_type.startsWith('image')).map(a => (
+                <button
+                  key={a.id}
+                  onClick={() => {
+                    if (assetPickerTarget === 'img') {
+                      onImgChange?.(a.file_url);
+                    } else {
+                      onRefsChange?.([...(refs ?? []), a.file_url]);
+                    }
+                    setShowAssetPicker(false);
+                  }}
+                  className="aspect-square rounded-lg overflow-hidden border-2 border-transparent hover:border-primary transition-all"
+                >
+                  <img src={a.file_url} alt={a.file_name} className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* 性格特質 */}
       <div className="bg-card rounded-xl border border-line p-5 shadow-card">
@@ -1442,7 +1612,8 @@ function CharacterProfileCard({
 // 本地角色草稿類型（含姓名、定位等可編輯欄位）
 type CharDraft = {
   id: string;
-  img: string;
+  img: string;       // 頭像 URL（R2 fileUrl 或 Unsplash，空字串顯示佔位符）
+  refs: string[];    // 參考相 URL 陣列（R2 fileUrl）
   name: string;
   role: string;
   age: string;
@@ -1454,7 +1625,7 @@ type CharDraft = {
 };
 
 const newCharDraft = (id: string, similarity: string): CharDraft => ({
-  id, img: '', name: '', role: '', age: '', bg: '',
+  id, img: '', refs: [], name: '', role: '', age: '', bg: '',
   roleTag: 'support', similarity,
   traits: [], appearance: { ...DEFAULT_APPEARANCE },
 });
@@ -1467,12 +1638,12 @@ function S2CharacterSetup({ onNext }: { onNext: () => void }) {
 
   const { characters: storedCharacters, setCharacters: storeSetCharacters } = useProjectStore();
 
-  // 預設兩個角色（若 store 已有則還原自 store）
+  // 初始角色草稿：store 有資料則還原，否則 live 模式空陣列，mock 模式保留示範
   const buildDefaultDrafts = (): CharDraft[] => {
     if (storedCharacters.length > 0) {
       return storedCharacters.map(c => ({
         id: c.id,
-        img: '',
+        img: (c as CharDraft & { img?: string }).img ?? '',
         name: c.name_i18n['zh-HK'],
         role: c.identityTag_i18n['zh-HK'],
         age: '',
@@ -1481,8 +1652,12 @@ function S2CharacterSetup({ onNext }: { onNext: () => void }) {
         similarity: c.similarityLevel ?? s2tr.simSeventyPct,
         traits: c.personality ?? [],
         appearance: (c.appearanceOptions as AppearanceOptions) ?? { ...DEFAULT_APPEARANCE },
+        refs: [],
       }));
     }
+    // live 模式：開場空白，由用戶自行建立角色
+    if (import.meta.env.VITE_AI_MODE === 'live') return [];
+    // mock/dev 模式：保留示範角色幫助預覽 UI
     return [
       {
         id: 'char-1',
@@ -1491,7 +1666,7 @@ function S2CharacterSetup({ onNext }: { onNext: () => void }) {
         role: '街市豬肉檔主',
         age: '68歲',
         bg: '四十年老街坊，年輕時有廚師夢',
-        roleTag: 'lead',
+        roleTag: 'lead' as const,
         similarity: s2tr.simVeryClose,
         traits: ['重情義', '傳統', '固執', '沉默寡言', '善解人意'],
         appearance: {
@@ -1501,6 +1676,7 @@ function S2CharacterSetup({ onNext }: { onNext: () => void }) {
           facial: '短鬚', posture: '昂首挺胸', style: '廚師圍裙',
           extraNote: '雙手粗糙有力，慣穿藍色圍裙',
         },
+        refs: [],
       },
       {
         id: 'char-2',
@@ -1509,7 +1685,7 @@ function S2CharacterSetup({ onNext }: { onNext: () => void }) {
         role: '廚藝班學員',
         age: '28歲',
         bg: '熱愛烹飪，新開廚藝班',
-        roleTag: 'support',
+        roleTag: 'support' as const,
         similarity: s2tr.simSeventyPct,
         traits: ['開朗樂觀', '勵志', '勇於嘗試', '好勝', '念舊'],
         appearance: {
@@ -1519,38 +1695,17 @@ function S2CharacterSetup({ onNext }: { onNext: () => void }) {
           facial: '無鬚', posture: '輕鬆隨意', style: '廚師圍裙',
           extraNote: '手腕有小廚刀紋身',
         },
+        refs: [],
       },
     ];
   };
 
   const [drafts, setDrafts] = useState<CharDraft[]>(buildDefaultDrafts);
-  const [activeId, setActiveId] = useState<string>(drafts[0]?.id ?? '');
+  const [activeId, setActiveId] = useState<string>(() => buildDefaultDrafts()[0]?.id ?? '');
 
-  // 每個角色卡的 traits / appearance / similarity — 由 CharacterProfileCard 回調更新至 drafts
-  const updateDraft = (id: string, patch: Partial<CharDraft>) => {
-    setDrafts(prev => prev.map(d => d.id === id ? { ...d, ...patch } : d));
-  };
-
-  const addCharacter = () => {
-    const id = `char-${Date.now()}`;
-    const newDraft = newCharDraft(id, s2tr.simSeventyPct);
-    setDrafts(prev => [...prev, newDraft]);
-    setActiveId(id);
-  };
-
-  const deleteCharacter = (id: string) => {
-    setDrafts(prev => {
-      const next = prev.filter(d => d.id !== id);
-      if (activeId === id && next.length > 0) setActiveId(next[0].id);
-      return next;
-    });
-  };
-
-  const { user: authUser } = useAuthStore();
-  const { projectId: pid, projectTitle: ptitle, outline: storedOutline } = useProjectStore();
-
-  const handleSaveAndNext = () => {
-    const chars: CharacterCard[] = drafts.map(d => ({
+  // 將 drafts 陣列轉換為 CharacterCard[] 寫入 store（即時同步）
+  const draftsToCards = (ds: CharDraft[]): CharacterCard[] =>
+    ds.map(d => ({
       id: d.id,
       name_i18n: { 'zh-HK': d.name, en: d.name, 'zh-CN': d.name },
       identityTag_i18n: { 'zh-HK': d.role, en: d.role, 'zh-CN': d.role },
@@ -1560,11 +1715,48 @@ function S2CharacterSetup({ onNext }: { onNext: () => void }) {
       speechStyle_i18n: { 'zh-HK': '', en: '', 'zh-CN': '' },
       relations_i18n: { 'zh-HK': '', en: '', 'zh-CN': '' },
       appearancePrompt_zh: buildAppearanceSummary(d.appearance),
+      appearancePrompt_en: buildAppearanceSummary(d.appearance), // Fix 6: 補 en 欄位
       personality: d.traits,
       appearanceOptions: d.appearance,
       similarityLevel: d.similarity,
       humanEdited: false,
     }));
+
+  // 每個角色卡的欄位回調更新至 drafts state + 即時同步 projectStore
+  const updateDraft = (id: string, patch: Partial<CharDraft>) => {
+    setDrafts(prev => {
+      const next = prev.map(d => d.id === id ? { ...d, ...patch } : d);
+      storeSetCharacters(draftsToCards(next)); // Fix 3: 即時同步
+      return next;
+    });
+  };
+
+  const addCharacter = () => {
+    const id = `char-${Date.now()}`;
+    const newDraft = newCharDraft(id, s2tr.simSeventyPct);
+    setDrafts(prev => {
+      const next = [...prev, newDraft];
+      storeSetCharacters(draftsToCards(next)); // Fix 3: 即時同步
+      return next;
+    });
+    setActiveId(id);
+  };
+
+  const deleteCharacter = (id: string) => {
+    setDrafts(prev => {
+      const next = prev.filter(d => d.id !== id);
+      if (activeId === id && next.length > 0) setActiveId(next[0].id);
+      storeSetCharacters(draftsToCards(next)); // Fix 3: 即時同步
+      return next;
+    });
+  };
+
+  const { user: authUser } = useAuthStore();
+  const { projectId: pid, projectTitle: ptitle, outline: storedOutline } = useProjectStore();
+
+  const handleSaveAndNext = () => {
+    // draftsToCards 已包含所有欄位（含 appearancePrompt_en）
+    const chars = draftsToCards(drafts);
     storeSetCharacters(chars);
     // 非同步存 D1（non-blocking）
     void saveProjectToD1({
@@ -1698,6 +1890,7 @@ function S2CharacterSetup({ onNext }: { onNext: () => void }) {
           </div>
           <CharacterProfileCard
             img={activeDraft.img}
+            refs={activeDraft.refs}
             name={activeDraft.name}
             role={activeDraft.role}
             age={activeDraft.age}
@@ -1709,6 +1902,13 @@ function S2CharacterSetup({ onNext }: { onNext: () => void }) {
             initialAppearance={activeDraft.appearance}
             onTraitsChange={ts => updateDraft(activeDraft.id, { traits: ts })}
             onAppearanceChange={ap => updateDraft(activeDraft.id, { appearance: ap })}
+            onNameChange={v => updateDraft(activeDraft.id, { name: v })}
+            onRoleChange={v => updateDraft(activeDraft.id, { role: v })}
+            onAgeChange={v => updateDraft(activeDraft.id, { age: v })}
+            onBgChange={v => updateDraft(activeDraft.id, { bg: v })}
+            onImgChange={url => updateDraft(activeDraft.id, { img: url })}
+            onRefsChange={urls => updateDraft(activeDraft.id, { refs: urls })}
+            projectId={pid}
           />
         </div>
       )}
