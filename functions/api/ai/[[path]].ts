@@ -407,11 +407,37 @@ app.post('/api/ai/image-gen', async (c) => {
     referenceImageUrl?: string;
     projectId?: string;
     userId?: string;
+    similarity?: string;   // '極似' | '70%' | '神韻' — visual similarity mode
   }>();
 
   if (!body.appearanceSummary) {
     return c.json({ ok: false, error: 'appearanceSummary is required' }, 400);
   }
+
+  // Map similarity mode → English prompt directive.
+  // The directive is always appended to the prompt so the model knows the intent
+  // even if no reference image is available (e.g. 神韻 still shapes the output style).
+  // '極似' / '70%' lean heavily on the reference; '神韻' captures vibe only.
+  const hasRef = !!body.referenceImageUrl; // true if reference image was provided
+  const simDirective = (() => {
+    const s = body.similarity ?? '';
+    if (s.includes('極似')) {
+      // Only meaningful with a reference; without one, still ask for high realism
+      return hasRef
+        ? 'IMPORTANT: The generated face must exactly match the reference image — identical facial features, same person, minimal variation.'
+        : 'IMPORTANT: Render the character with high photographic realism, strictly faithful to the appearance description.';
+    }
+    if (s.includes('70')) {
+      return hasRef
+        ? 'Keep the main identity and key features consistent with the reference, but allow natural variation in expression, angle, and minor details.'
+        : 'Render the character with good fidelity to the appearance description; allow natural lighting and expression variation.';
+    }
+    if (s.includes('神韻')) {
+      // Spirit mode: reference is a loose inspiration, not a hard constraint
+      return 'Capture the overall temperament, demeanor and vibe of the character; the exact facial features may differ from the reference.';
+    }
+    return ''; // no directive for unknown / unset values
+  })();
 
   // Build prompt — Chinese for accuracy, English appended for model comprehension
   const parts = [
@@ -420,6 +446,7 @@ app.post('/api/ai/image-gen', async (c) => {
     body.age      ? `Age: ${body.age}.`                  : '',
     body.role     ? `Role: ${body.role}.`                : '',
     `Appearance: ${body.appearanceSummary}.`,
+    simDirective,   // similarity mode directive (empty string filtered out below)
     'Half-body portrait, natural lighting, cinematic realism, clear facial features, 3:4 ratio.',
   ].filter(Boolean).join(' ');
 

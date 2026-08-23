@@ -1940,6 +1940,7 @@ function CharacterProfileCard({
                     age,
                     role,                              // Fix 1: pass role for better prompt
                     projectId: projectId ?? 'global',  // Fix 1: needed for R2 key
+                    similarity,                        // pass mode so backend adjusts prompt
                   };
                   if (img) body.referenceImageUrl = img;
                   const res = await fetch('/api/ai/image-gen', {
