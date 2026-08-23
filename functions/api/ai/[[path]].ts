@@ -386,6 +386,94 @@ app.post('/api/ai/project/save', async (c) => {
   }
 });
 
+// ─── Image generation (D3) ────────────────────────────────────────────────────
+// POST /api/ai/image-gen
+// Body: { appearanceSummary, charName?, age?, referenceImageUrl? }
+// Returns: { ok, imageUrl }
+// Uses OpenRouter image generation API (openai/gpt-image-1 or similar)
+app.post('/api/ai/image-gen', async (c) => {
+  const env = c.env;
+  if (!env.OPENROUTER_API_KEY) return c.json({ ok: false, error: 'AI not configured' }, 503);
+
+  const body = await c.req.json<{
+    appearanceSummary: string;
+    charName?: string;
+    age?: string;
+    referenceImageUrl?: string;
+    userId?: string;
+  }>();
+
+  if (!body.appearanceSummary) {
+    return c.json({ ok: false, error: 'appearanceSummary is required' }, 400);
+  }
+
+  const charDesc = [
+    body.charName ? `角色名稱：${body.charName}` : '',
+    body.age ? `年齡：${body.age}` : '',
+    `外貌描述：${body.appearanceSummary}`,
+  ].filter(Boolean).join('，');
+
+  const prompt = `電影級人物角色肖像照，香港寫實風格。${charDesc}。正面半身像，自然光，清晰面部細節，高畫質，電影攝影感。`;
+
+  // Build messages — with reference image if provided
+  type ContentPart = { type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string } };
+  const userContent: ContentPart[] = [{ type: 'text', text: prompt }];
+  if (body.referenceImageUrl) {
+    userContent.push({ type: 'image_url', image_url: { url: body.referenceImageUrl } });
+  }
+
+  const res = await orFetch(env.OPENROUTER_API_KEY, '/chat/completions', {
+    method: 'POST',
+    body: JSON.stringify({
+      model: 'openai/gpt-4o-image-vip',  // OpenRouter image-capable model
+      messages: [
+        {
+          role: 'system',
+          content: '你是一個角色設計師。根據用戶的角色外貌描述，生成一張符合描述的角色肖像圖片URL。只回覆 JSON: {"imageUrl": "..."}',
+        },
+        { role: 'user', content: userContent },
+      ],
+      max_tokens: 500,
+      response_format: { type: 'json_object' },
+    }),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    return c.json({ ok: false, error: 'Image generation failed', detail: errText }, 502);
+  }
+
+  const data = await res.json<{
+    choices: { message: { content: string } }[];
+    usage?: { total_tokens: number };
+    usage_cost?: number;
+  }>();
+
+  let imageUrl = '';
+  try {
+    const parsed = JSON.parse(data.choices[0]?.message?.content ?? '{}') as { imageUrl?: string };
+    imageUrl = parsed.imageUrl ?? '';
+  } catch {
+    return c.json({ ok: false, error: 'AI returned invalid JSON' }, 502);
+  }
+
+  if (!imageUrl) {
+    return c.json({ ok: false, error: 'No image URL returned from AI' }, 502);
+  }
+
+  // Record credits
+  const tokens = data.usage?.total_tokens ?? 0;
+  const costUsd = data.usage_cost ?? (tokens * 0.000002 + 0.04); // image gen costs more
+  const credits = costUsdToCredits(costUsd);
+  const userId = body.userId ?? 'anonymous';
+  const jobId = crypto.randomUUID();
+
+  await recordGenJob(env.DB, jobId, userId, 'image_gen', 'completed', credits, 'openrouter', imageUrl);
+  await recordCreditDebit(env.DB, userId, credits, 'ai_generation', `角色圖像生成`);
+
+  return c.json({ ok: true, imageUrl, creditsConsumed: credits });
+});
+
 // ─── Credits balance ──────────────────────────────────────────────────────────
 app.get('/api/ai/credits/:userId', async (c) => {
   const env    = c.env;

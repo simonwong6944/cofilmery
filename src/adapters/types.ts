@@ -124,6 +124,10 @@ export interface CharacterCard {
   appearanceOptions: CharacterAppearanceOptions; // 外型細節
   similarityLevel: string;         // 極似 / 70% / 神韻
   humanEdited: boolean;
+  // S2 UI 欄位（持久化避免返回時丟失）
+  age?: string;                    // 年齡
+  img?: string;                    // 頭像 URL（R2 fileUrl 或外部 URL）
+  refs?: string[];                 // 參考相 URL 陣列
 }
 
 // 分集故事卡（150–250字）

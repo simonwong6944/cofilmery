@@ -934,7 +934,18 @@ function S1AssetBank({ onNext }: { onNext: () => void }) {
       {/* ── TAB: 贊助商品牌資產庫 ── */}
       {activeTab === 'sponsor' && (
         <div className="space-y-4">
-
+          {/* Fix B: live 模式隱藏寫死的贊助品牌庫，顯示「即將推出」提示 */}
+          {import.meta.env.VITE_AI_MODE === 'live' ? (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 text-center">
+              <Gift size={32} className="mx-auto text-accent mb-3 opacity-50" />
+              <p className="text-sm font-semibold text-amber-800 mb-1">品牌贊助商素材庫即將推出</p>
+              <p className="text-xs text-amber-700">
+                正式品牌合作素材庫正在接洽中。
+                請先使用左方「自有素材」標籤上傳您的場景、道具等素材。
+              </p>
+            </div>
+          ) : (
+            <>
           {/* Info banner */}
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-3">
             <Gift size={18} className="text-accent flex-shrink-0 mt-0.5" />
@@ -1088,6 +1099,8 @@ function S1AssetBank({ onNext }: { onNext: () => void }) {
               </div>
             </div>
           )}
+        </> /* end mock-only sponsor content */
+        )} {/* end VITE_AI_MODE live/mock conditional */}
         </div>
       )}
 
@@ -1186,6 +1199,11 @@ function CharacterProfileCard({
   const [s1Assets, setS1Assets] = useState<{ id: string; file_name: string; file_url: string; file_type: string }[]>([]);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const refInputRef = useRef<HTMLInputElement>(null);
+
+  // D3: AI image generation state
+  const [imageGenLoading, setImageGenLoading] = useState(false);
+  const [imageGenResult, setImageGenResult] = useState<string | null>(null);
+  const [imageGenError, setImageGenError] = useState<string | null>(null);
 
   // Upload helper: POST to /api/upload
   const uploadFile = async (file: File, target: 'img' | 'refs') => {
@@ -1371,12 +1389,22 @@ function CharacterProfileCard({
               {(refs ?? []).map((url, i) => (
                 <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden border border-line group">
                   <img src={url} alt={`ref-${i}`} className="w-full h-full object-cover" />
-                  <button
-                    onClick={() => onRefsChange?.((refs ?? []).filter((_, idx) => idx !== i))}
-                    className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
-                  >
-                    <X size={14} className="text-white" />
-                  </button>
+                  {/* D2: hover overlay — 刪除 or 設為頭像 */}
+                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center gap-1 transition-opacity">
+                    <button
+                      onClick={() => onImgChange?.(url)}
+                      className="text-[9px] text-white bg-primary/80 rounded px-1.5 py-0.5 hover:bg-primary leading-tight"
+                      title="設為頭像"
+                    >
+                      設為頭像
+                    </button>
+                    <button
+                      onClick={() => onRefsChange?.((refs ?? []).filter((_, idx) => idx !== i))}
+                      className="text-[9px] text-white bg-red-500/80 rounded px-1.5 py-0.5 hover:bg-red-600 leading-tight"
+                    >
+                      移除
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -1417,20 +1445,30 @@ function CharacterProfileCard({
           ) : (
             <div className="grid grid-cols-4 gap-2 max-h-48 overflow-y-auto">
               {s1Assets.filter(a => a.file_type.startsWith('image')).map(a => (
-                <button
-                  key={a.id}
-                  onClick={() => {
-                    if (assetPickerTarget === 'img') {
-                      onImgChange?.(a.file_url);
-                    } else {
-                      onRefsChange?.([...(refs ?? []), a.file_url]);
-                    }
-                    setShowAssetPicker(false);
-                  }}
-                  className="aspect-square rounded-lg overflow-hidden border-2 border-transparent hover:border-primary transition-all"
-                >
-                  <img src={a.file_url} alt={a.file_name} className="w-full h-full object-cover" />
-                </button>
+                <div key={a.id} className="relative group">
+                  <button
+                    onClick={() => {
+                      if (assetPickerTarget === 'img') {
+                        onImgChange?.(a.file_url);
+                      } else {
+                        onRefsChange?.([...(refs ?? []), a.file_url]);
+                      }
+                      setShowAssetPicker(false);
+                    }}
+                    className="aspect-square rounded-lg overflow-hidden border-2 border-transparent hover:border-primary transition-all w-full"
+                  >
+                    <img src={a.file_url} alt={a.file_name} className="w-full h-full object-cover" />
+                  </button>
+                  {/* D2: 從素材庫揀時，refs 模式額外顯示「設為頭像」 */}
+                  {assetPickerTarget === 'refs' && (
+                    <button
+                      onClick={() => { onImgChange?.(a.file_url); setShowAssetPicker(false); }}
+                      className="absolute bottom-0.5 left-0.5 right-0.5 text-[9px] text-white bg-primary/80 rounded px-1 py-0.5 opacity-0 group-hover:opacity-100 transition-opacity text-center leading-tight"
+                    >
+                      設為頭像
+                    </button>
+                  )}
+                </div>
               ))}
             </div>
           )}
@@ -1567,37 +1605,128 @@ function CharacterProfileCard({
         )}
       </div>
 
-      {/* 身份視覺一致性 */}
+      {/* D3: AI 角色一致性圖像生成（替代舊有相似度設定） */}
       <div className="bg-card rounded-xl border border-line p-5 shadow-card">
-        <div className="flex items-center justify-between mb-1">
-          <label className="text-sm font-semibold text-ink">{s2tr.similarityTitle}</label>
+        <div className="flex items-center gap-2 mb-1">
+          <Sparkles size={15} className="text-primary" />
+          <label className="text-sm font-semibold text-ink">AI 生成一致性角色圖</label>
         </div>
-        <p className="text-xs text-muted mb-3">{mode === 'drama' ? s2tr.similaritySubtitle : tr.creator.legacy.s2.similaritySubtitle}</p>
-        <div className="grid grid-cols-3 gap-2">
-          {similarityLabels.map(s => (
+        <p className="text-xs text-muted mb-3">
+          根據角色外貌設定，以 AI 生成符合視覺一致性的角色圖，生成後可直接設為頭像。
+        </p>
+
+        {/* Current avatar preview + generate button */}
+        <div className="flex gap-3 items-start mb-3">
+          <div className="w-16 h-16 rounded-xl overflow-hidden border border-line flex-shrink-0 bg-primary/5 flex items-center justify-center">
+            {img ? (
+              <img src={img} alt="current avatar" className="w-full h-full object-cover" />
+            ) : (
+              <Users size={22} className="text-primary/30" />
+            )}
+          </div>
+          <div className="flex-1 space-y-2">
+            <p className="text-[11px] text-muted leading-snug">
+              {buildAppearanceSummary(appearance) || '請先在「外型設定」填寫角色外貌特徵，再生成圖像。'}
+            </p>
             <button
-              key={s.id}
-              onClick={() => setSimilarity(s.id)}
-              className={`p-3 rounded-xl border-2 text-left transition-all ${
-                similarity === s.id
-                  ? `${s.border} ${s.bg}`
-                  : 'border-line hover:border-primary/40 bg-bg-soft'
-              }`}
+              onClick={async () => {
+                const prompt = buildAppearanceSummary(appearance);
+                if (!prompt) { setImageGenError('請先填寫角色外貌設定。'); return; }
+                setImageGenLoading(true);
+                setImageGenResult(null);
+                setImageGenError(null);
+                try {
+                  const body: Record<string, unknown> = {
+                    appearanceSummary: prompt,
+                    charName: name,
+                    age,
+                  };
+                  if (img) body.referenceImageUrl = img;
+                  const res = await fetch('/api/ai/image-gen', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body),
+                  });
+                  const data = await res.json() as { ok: boolean; imageUrl?: string; error?: string };
+                  if (!data.ok || !data.imageUrl) throw new Error(data.error ?? 'Generation failed');
+                  setImageGenResult(data.imageUrl);
+                } catch (e) {
+                  setImageGenError(e instanceof Error ? e.message : '生成失敗，請稍後再試。');
+                } finally {
+                  setImageGenLoading(false);
+                }
+              }}
+              disabled={imageGenLoading}
+              className="flex items-center gap-1.5 bg-primary text-white text-xs px-3 py-2 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 font-medium"
             >
-              <div className="flex items-center gap-1.5 mb-1">
-                <span className={`w-2.5 h-2.5 rounded-full ${s.color}`} />
-                <span className="font-bold text-sm text-ink">{s.label}</span>
-              </div>
-              <p className="text-[11px] text-muted leading-tight">{s.desc}</p>
+              {imageGenLoading
+                ? <><RefreshCw size={12} className="animate-spin" /> 生成中…</>
+                : <><Sparkles size={12} /> 生成一致性角色圖</>
+              }
             </button>
-          ))}
+          </div>
         </div>
-        <div className="mt-3 text-xs text-muted bg-bg-soft rounded-lg p-2.5">
-          {similarity === s2tr.simVeryClose && (mode === 'drama' ? s2tr.simHintVeryClose : tr.creator.legacy.s2.simHintVeryClose)}
-          {similarity === s2tr.simSeventyPct && (mode === 'drama' ? s2tr.simHint70 : tr.creator.legacy.s2.simHint70)}
-          {similarity === s2tr.simSpirit && (mode === 'drama' ? s2tr.simHintSpirit : tr.creator.legacy.s2.simHintSpirit)}
-          {!similarity && (mode === 'drama' ? s2tr.simHintNone : tr.creator.legacy.s2.simHintNone)}
-        </div>
+
+        {/* Error */}
+        {imageGenError && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-2.5 text-xs text-red-700 flex items-center gap-2 mb-2">
+            <AlertTriangle size={12} className="flex-shrink-0" /> {imageGenError}
+          </div>
+        )}
+
+        {/* Generated result */}
+        {imageGenResult && (
+          <div className="border border-primary/30 rounded-xl overflow-hidden bg-primary/3">
+            <img src={imageGenResult} alt="AI generated character" className="w-full max-h-64 object-contain" />
+            <div className="flex gap-2 p-2">
+              <button
+                onClick={() => { onImgChange?.(imageGenResult); setImageGenResult(null); }}
+                className="flex-1 flex items-center justify-center gap-1.5 bg-primary text-white text-xs py-2 rounded-lg hover:bg-primary/90 transition-colors font-medium"
+              >
+                <Check size={12} /> 設為頭像
+              </button>
+              <button
+                onClick={() => { onRefsChange?.([...(refs ?? []), imageGenResult]); setImageGenResult(null); }}
+                className="flex-1 flex items-center justify-center gap-1.5 bg-bg-soft border border-line text-ink text-xs py-2 rounded-lg hover:border-primary transition-colors"
+              >
+                <Image size={12} /> 加入參考相
+              </button>
+              <button
+                onClick={() => setImageGenResult(null)}
+                className="px-2 text-muted hover:text-red-500 transition-colors"
+                title="棄用"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Similarity preference (compact, kept as metadata) */}
+        <details className="mt-3">
+          <summary className="text-[11px] text-muted cursor-pointer hover:text-ink transition-colors select-none">
+            進階：視覺相似度設定（{similarity || '未設定'}）
+          </summary>
+          <div className="grid grid-cols-3 gap-2 mt-2">
+            {similarityLabels.map(s => (
+              <button
+                key={s.id}
+                onClick={() => setSimilarity(s.id)}
+                className={`p-2 rounded-lg border text-left transition-all ${
+                  similarity === s.id
+                    ? `${s.border} ${s.bg}`
+                    : 'border-line hover:border-primary/40 bg-bg-soft'
+                }`}
+              >
+                <div className="flex items-center gap-1 mb-0.5">
+                  <span className={`w-2 h-2 rounded-full ${s.color}`} />
+                  <span className="font-semibold text-[11px] text-ink">{s.label}</span>
+                </div>
+                <p className="text-[10px] text-muted leading-tight">{s.desc}</p>
+              </button>
+            ))}
+          </div>
+        </details>
       </div>
     </div>
   );
@@ -1643,16 +1772,16 @@ function S2CharacterSetup({ onNext }: { onNext: () => void }) {
     if (storedCharacters.length > 0) {
       return storedCharacters.map(c => ({
         id: c.id,
-        img: (c as CharDraft & { img?: string }).img ?? '',
+        img: c.img ?? '',                                              // Fix C: 讀回頭像
+        refs: c.refs ?? [],                                            // Fix C: 讀回參考相
         name: c.name_i18n['zh-HK'],
         role: c.identityTag_i18n['zh-HK'],
-        age: '',
+        age: c.age ?? '',                                              // Fix C: 讀回年齡
         bg: c.traitsConflict_i18n['zh-HK'],
         roleTag: 'support' as const,
         similarity: c.similarityLevel ?? s2tr.simSeventyPct,
         traits: c.personality ?? [],
         appearance: (c.appearanceOptions as AppearanceOptions) ?? { ...DEFAULT_APPEARANCE },
-        refs: [],
       }));
     }
     // live 模式：開場空白，由用戶自行建立角色
@@ -1662,6 +1791,7 @@ function S2CharacterSetup({ onNext }: { onNext: () => void }) {
       {
         id: 'char-1',
         img: 'https://images.unsplash.com/photo-1546961342-ea5f62d5a27b?w=200&h=200&fit=crop',
+        refs: [],
         name: '陳伯（陳錦榮）',
         role: '街市豬肉檔主',
         age: '68歲',
@@ -1676,11 +1806,11 @@ function S2CharacterSetup({ onNext }: { onNext: () => void }) {
           facial: '短鬚', posture: '昂首挺胸', style: '廚師圍裙',
           extraNote: '雙手粗糙有力，慣穿藍色圍裙',
         },
-        refs: [],
       },
       {
         id: 'char-2',
         img: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop',
+        refs: [],
         name: '阿明（李志明）',
         role: '廚藝班學員',
         age: '28歲',
@@ -1695,7 +1825,6 @@ function S2CharacterSetup({ onNext }: { onNext: () => void }) {
           facial: '無鬚', posture: '輕鬆隨意', style: '廚師圍裙',
           extraNote: '手腕有小廚刀紋身',
         },
-        refs: [],
       },
     ];
   };
@@ -1715,11 +1844,14 @@ function S2CharacterSetup({ onNext }: { onNext: () => void }) {
       speechStyle_i18n: { 'zh-HK': '', en: '', 'zh-CN': '' },
       relations_i18n: { 'zh-HK': '', en: '', 'zh-CN': '' },
       appearancePrompt_zh: buildAppearanceSummary(d.appearance),
-      appearancePrompt_en: buildAppearanceSummary(d.appearance), // Fix 6: 補 en 欄位
+      appearancePrompt_en: buildAppearanceSummary(d.appearance),
       personality: d.traits,
       appearanceOptions: d.appearance,
       similarityLevel: d.similarity,
       humanEdited: false,
+      age: d.age,       // Fix C: 持久化年齡
+      img: d.img,       // Fix C: 持久化頭像
+      refs: d.refs,     // Fix C: 持久化參考相
     }));
 
   // 每個角色卡的欄位回調更新至 drafts state + 即時同步 projectStore
@@ -1871,6 +2003,24 @@ function S2CharacterSetup({ onNext }: { onNext: () => void }) {
               {roleTagLabels[activeDraft.roleTag]}
             </span>
             <span className="text-sm font-semibold text-ink">{activeDraft.name || '未命名角色'}</span>
+            {/* D1: 個別角色儲存按鈕 */}
+            <button
+              onClick={() => {
+                const chars = draftsToCards(drafts);
+                storeSetCharacters(chars);
+                void saveProjectToD1({
+                  projectId: pid,
+                  userId: authUser?.id ?? 'anonymous',
+                  title: ptitle || '未命名劇集',
+                  characters: chars,
+                  outline: storedOutline,
+                });
+              }}
+              className="flex items-center gap-1 text-[10px] bg-primary/10 text-primary px-2 py-1 rounded-lg hover:bg-primary/20 transition-colors font-medium"
+              title="儲存此角色至 D1"
+            >
+              <Save size={10} /> 儲存此角色
+            </button>
             {/* 定位切換 */}
             <div className="ml-auto flex gap-1">
               {(['lead', 'support', 'extra'] as const).map(rt => (
@@ -1928,7 +2078,7 @@ function S2CharacterSetup({ onNext }: { onNext: () => void }) {
           className="shrink-0 flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors whitespace-nowrap"
         >
           <ChevronRight size={15} />
-          {s2tr.saveChar}
+          儲存全部角色並繼續下一步
         </button>
       </div>
     </div>
