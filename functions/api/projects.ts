@@ -57,7 +57,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
 export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   const env = ctx.env;
 
-  let body: { id?: string; title?: string; mode?: string; creator_id?: string; description?: string };
+  let body: { id?: string; title?: string; mode?: string; creator_id?: string; description?: string; story_material?: string; series_context?: string };
   try {
     body = await ctx.request.json();
   } catch {
@@ -66,7 +66,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     });
   }
 
-  const { id: bodyId, title, mode, creator_id, description } = body;
+  const { id: bodyId, title, mode, creator_id, description, story_material, series_context } = body;
 
   if (!title || !creator_id) {
     return new Response(JSON.stringify({ error: 'title and creator_id are required' }), {
@@ -84,14 +84,16 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     // Preserves created_at, status, episode counts etc. on conflict; only updates
     // mutable fields (title, mode, description, updated_at).
     await env.DB.prepare(
-      `INSERT INTO projects (id, title, mode, status, creator_id, description, created_at, updated_at)
-       VALUES (?, ?, ?, 'draft', ?, ?, ?, ?)
+      `INSERT INTO projects (id, title, mode, status, creator_id, description, story_material, series_context, created_at, updated_at)
+       VALUES (?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?)
        ON CONFLICT(id) DO UPDATE SET
-         title       = excluded.title,
-         mode        = excluded.mode,
-         description = excluded.description,
-         updated_at  = excluded.updated_at`
-    ).bind(id, title, validMode, creator_id, description ?? null, now, now).run();
+         title          = excluded.title,
+         mode           = excluded.mode,
+         description    = excluded.description,
+         story_material = excluded.story_material,
+         series_context = excluded.series_context,
+         updated_at     = excluded.updated_at`
+    ).bind(id, title, validMode, creator_id, description ?? null, story_material ?? null, series_context ?? null, now, now).run();
 
     // Re-read the row so the response always reflects what is actually stored
     const project = await env.DB.prepare(

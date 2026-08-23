@@ -28,7 +28,8 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
     const row = await env.DB.prepare(
       `SELECT id, title, mode, status, creator_id, description, tags,
               episode_count, completed_episodes, thumbnail_url,
-              total_views, esg_score, published_at, created_at, updated_at
+              total_views, esg_score, published_at, created_at, updated_at,
+              story_material, series_context
        FROM projects WHERE id = ?`
     ).bind(id).first();
 

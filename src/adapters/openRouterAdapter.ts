@@ -225,6 +225,8 @@ export async function saveProjectToD1(params: {
   userId: string;
   title: string;
   mode?: string;
+  storyMaterial?: string;
+  seriesContext?: string;
   characters?: CharacterCard[];
   storyCards?: EpisodeStoryCard[];
   outline?: { episodeNumber: number; title_i18n: { 'zh-HK': string; en: string; 'zh-CN': string }; oneLine_i18n: { 'zh-HK': string; en: string; 'zh-CN': string } }[];
@@ -233,10 +235,12 @@ export async function saveProjectToD1(params: {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      id:         params.projectId,
-      title:      params.title,
-      mode:       params.mode ?? 'drama',
-      creator_id: params.userId,
+      id:             params.projectId,
+      title:          params.title,
+      mode:           params.mode ?? 'drama',
+      creator_id:     params.userId,
+      story_material: params.storyMaterial ?? null,
+      series_context: params.seriesContext ?? null,
     }),
   });
   if (!res.ok) {

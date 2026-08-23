@@ -36,12 +36,13 @@ export default function CreatorWorks() {
   void locale;
 
   // ── State ────────────────────────────────────────────────────────
-  const [projects, setProjects]   = useState<ProjectRow[]>([]);
-  const [loading, setLoading]     = useState(true);
-  const [error, setError]         = useState('');
-  const [activeTab, setActiveTab] = useState('all');
-  const [search, setSearch]       = useState('');
-  const [deleting, setDeleting]   = useState<string | null>(null);
+  const [projects, setProjects]     = useState<ProjectRow[]>([]);
+  const [loading, setLoading]       = useState(true);
+  const [error, setError]           = useState('');
+  const [activeTab, setActiveTab]   = useState('all');
+  const [search, setSearch]         = useState('');
+  const [deleting, setDeleting]     = useState<string | null>(null);
+  const [continuing, setContinuing] = useState<string | null>(null); // loading state for handleContinue
 
   // ── Dialog state (新增短劇) ──────────────────────────────────────
   const [showDialog, setShowDialog]   = useState(false);
@@ -72,9 +73,28 @@ export default function CreatorWorks() {
 
   useEffect(() => { fetchProjects(); }, [fetchProjects]);
 
-  // ── Continue (loadProject + navigate) ───────────────────────────
-  const handleContinue = (proj: ProjectRow) => {
-    loadProject({ id: proj.id, title: proj.title, mode: proj.mode });
+  // ── Continue (async: fetch full project row from D1 to restore story_material / series_context) ──
+  const handleContinue = async (proj: ProjectRow) => {
+    setContinuing(proj.id);
+    try {
+      const res  = await fetch(`/api/projects/${encodeURIComponent(proj.id)}`);
+      const data = await res.json() as {
+        ok: boolean;
+        project?: ProjectRow & { story_material?: string | null; series_context?: string | null };
+        error?: string;
+      };
+      if (data.ok && data.project) {
+        loadProject(data.project);
+      } else {
+        // Fallback: at least restore id + title so the user isn't stuck
+        loadProject({ id: proj.id, title: proj.title, mode: proj.mode });
+      }
+    } catch {
+      // Network error fallback — proceed with id + title only
+      loadProject({ id: proj.id, title: proj.title, mode: proj.mode });
+    } finally {
+      setContinuing(null);
+    }
     navigate('/creator/drama');
   };
 
@@ -262,9 +282,12 @@ export default function CreatorWorks() {
                     <div className="mt-3 pt-3 border-t border-line flex gap-2">
                       <button
                         onClick={() => handleContinue(project)}
-                        className="flex-1 text-center text-sm text-primary hover:underline font-medium"
+                        disabled={continuing === project.id}
+                        className="flex-1 flex items-center justify-center gap-1.5 text-sm text-primary hover:underline font-medium disabled:opacity-60 disabled:cursor-not-allowed"
                       >
-                        {tr.creator.works.continueEdit}
+                        {continuing === project.id
+                          ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> 載入中…</>
+                          : tr.creator.works.continueEdit}
                       </button>
                       <button
                         onClick={() => handleDelete(project.id)}

@@ -284,6 +284,8 @@ function S0SeriesSetup({ onNext }: { onNext: () => void }) {
                 userId: user?.id ?? 'demo-user',
                 title,
                 mode: 'drama',
+                storyMaterial: '',           // S0 無 storyMaterial；PlanOverview(route 1)才輸入
+                seriesContext: JSON.stringify(ctx),
               });
               onNext();
             } catch (e) {
@@ -321,16 +323,32 @@ function PlanOverview({ onNext }: { onNext: () => void }) {
   void locale;
   const po = tr.creator.drama.planOverview;
 
-  const { storyMaterial, setStoryMaterial } = useProjectStore();
+  const { storyMaterial, setStoryMaterial, projectId: poProjectId, context: poContext } = useProjectStore();
+  const { user: poUser } = useAuthStore();
   const [localMaterial, setLocalMaterial] = useState(storyMaterial);
+
+  // 非同步存 D1 story_material（non-blocking，失敗只 warn）
+  const persistMaterial = (material: string) => {
+    if (!poProjectId) return;
+    saveProjectToD1({
+      projectId: poProjectId,
+      userId: poUser?.id ?? 'demo-user',
+      title: poContext?.seriesTitle ?? '未命名劇集',
+      mode: 'drama',
+      storyMaterial: material,
+      seriesContext: poContext ? JSON.stringify(poContext) : undefined,
+    }).catch(e => console.warn('[PlanOverview] D1 story_material save failed:', e));
+  };
 
   const handleConfirm = () => {
     setStoryMaterial(localMaterial);
+    persistMaterial(localMaterial);
     onNext();
   };
 
   const handleSaveDraft = () => {
     setStoryMaterial(localMaterial);
+    persistMaterial(localMaterial);
   };
 
   return (

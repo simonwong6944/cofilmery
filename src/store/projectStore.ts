@@ -51,8 +51,18 @@ interface ProjectState {
   setCurrentEpisode: (ep: number) => void;
   getStoryCard: (episodeNumber: number) => EpisodeStoryCard | null;
   reset: () => void;
-  /** 載入既有 project，填充 store（從 ProjectHub 點選繼續） */
-  loadProject: (project: { id: string; title: string; mode?: string; description?: string }) => void;
+  /** 載入既有 project，填充 store（從 ProjectHub 點選繼續）
+   *  接受從 GET /api/projects/:id 取得的完整 row，含 story_material / series_context。
+   *  順序：先以 INITIAL 重置，再覆蓋 D1 回傳的值，避免殘留舊 state。
+   */
+  loadProject: (project: {
+    id: string;
+    title: string;
+    mode?: string;
+    description?: string;
+    story_material?: string | null;
+    series_context?: string | null;
+  }) => void;
   /** 重置 store 並生成新 projectId（從 ProjectHub 建立新項目後呼叫） */
   startNewProject: () => void;
 }
@@ -118,11 +128,21 @@ export const useProjectStore = create<ProjectState>()(
 
       reset: () => set({ ...INITIAL }),
 
-      loadProject: (project) => set({
-        ...INITIAL,
-        projectId: project.id,
-        projectTitle: project.title,
-      }),
+      loadProject: (project) => {
+        // Parse series_context JSON back to SeriesContext
+        let parsedContext: SeriesContext | null = null;
+        if (project.series_context) {
+          try { parsedContext = JSON.parse(project.series_context) as SeriesContext; }
+          catch { /* 格式損壞則維持 null */ }
+        }
+        set({
+          ...INITIAL,
+          projectId:     project.id,
+          projectTitle:  project.title,
+          storyMaterial: project.story_material ?? '',
+          context:       parsedContext,
+        });
+      },
 
       startNewProject: () => set({
         ...INITIAL,
