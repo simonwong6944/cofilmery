@@ -28,6 +28,37 @@ import {
 } from 'lucide-react';
 
 // ─────────────────────────────────────────
+// Shared: ImageLightbox
+// ─────────────────────────────────────────
+function ImageLightbox({ url, onClose }: { url: string; onClose: () => void }) {
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onClose]);
+  return (
+    <div
+      className="fixed inset-0 z-[9999] bg-black/85 flex items-center justify-center"
+      onClick={onClose}
+    >
+      <button
+        onClick={onClose}
+        className="absolute top-4 right-4 text-white/80 hover:text-white transition-colors"
+        aria-label="Close"
+      >
+        <X size={28} />
+      </button>
+      <img
+        src={url}
+        alt=""
+        className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl"
+        onClick={e => e.stopPropagation()}
+      />
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────
 // S0: 系列設定
 // ─────────────────────────────────────────
 function S0SeriesSetup({ onNext }: { onNext: () => void }) {
@@ -656,6 +687,7 @@ function S1AssetBank({ onNext }: { onNext: () => void }) {
   const [activeTab, setActiveTab] = useState<'own' | 'sponsor'>('own');
   const [selectedSponsorAssets, setSelectedSponsorAssets] = useState<SelectedSponsorAsset[]>(storedSponsorAssets);
   const [showSponsorInfo, setShowSponsorInfo] = useState(false);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   // ── 真實中央庫 state ─────────────────────────────────────────────────────
   const [globalAssets, setGlobalAssets]         = useState<GlobalAsset[]>([]);
@@ -996,7 +1028,13 @@ function S1AssetBank({ onNext }: { onNext: () => void }) {
                 {s1Assets.map(asset => (
                   <div key={asset.id} className="relative group">
                     {asset.file_type.startsWith('image/') ? (
-                      <img src={asset.file_url} alt={asset.file_name} className="w-full aspect-square object-cover rounded-lg" loading="lazy" />
+                      <img
+                        src={asset.file_url}
+                        alt={asset.file_name}
+                        className="w-full aspect-square object-cover rounded-lg cursor-pointer"
+                        loading="lazy"
+                        onClick={e => { e.stopPropagation(); setLightboxUrl(asset.file_url); }}
+                      />
                     ) : (
                       <div className="w-full aspect-square bg-bg-soft rounded-lg flex flex-col items-center justify-center text-xs text-muted gap-1 p-2">
                         {asset.file_type.startsWith('video/') ? <Film size={20} /> : <Music size={20} />}
@@ -1280,6 +1318,7 @@ function S1AssetBank({ onNext }: { onNext: () => void }) {
           </p>
         )}
       </div>
+      {lightboxUrl && <ImageLightbox url={lightboxUrl} onClose={() => setLightboxUrl(null)} />}
     </div>
   );
 }
@@ -1369,6 +1408,7 @@ function CharacterProfileCard({
   const [imageGenLoading, setImageGenLoading] = useState(false);
   const [imageGenResult, setImageGenResult] = useState<string | null>(null);
   const [imageGenError, setImageGenError] = useState<string | null>(null);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   // Upload helper: POST to /api/upload
   const uploadFile = async (file: File, target: 'img' | 'refs') => {
@@ -1978,7 +2018,12 @@ function CharacterProfileCard({
         {/* Generated result */}
         {imageGenResult && (
           <div className="border border-primary/30 rounded-xl overflow-hidden bg-primary/3">
-            <img src={imageGenResult} alt="AI generated character" className="w-full max-h-64 object-contain" />
+            <img
+              src={imageGenResult}
+              alt="AI generated character"
+              className="w-full max-h-64 object-contain cursor-pointer"
+              onClick={() => setLightboxUrl(imageGenResult)}
+            />
             <div className="flex gap-2 p-2">
               <button
                 onClick={() => { onImgChange?.(imageGenResult); setImageGenResult(null); }}
@@ -2029,6 +2074,7 @@ function CharacterProfileCard({
           </div>
         </details>
       </div>
+      {lightboxUrl && <ImageLightbox url={lightboxUrl} onClose={() => setLightboxUrl(null)} />}
     </div>
   );
 }
