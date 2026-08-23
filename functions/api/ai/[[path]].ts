@@ -435,8 +435,46 @@ app.post('/api/ai/image-gen', async (c) => {
     prompt: parts,
     aspect_ratio: '3:4',
   };
+  // ── Reference image: resolve R2 key → read bytes → base64 data URL ─────────
+  // referenceImageUrl is a relative path /api/assets/file/<urlencoded-r2-key>.
+  // Gemini requires base64 data URLs or absolute HTTP/HTTPS URLs; relative paths
+  // cause a 400 "Unsupported image URL scheme" error. We read the bytes directly
+  // from R2 to avoid any external fetch and encode them as a data URL.
+  let referenceSkipped = false;
   if (body.referenceImageUrl) {
-    payload.input_references = [{ type: 'image_url', image_url: { url: body.referenceImageUrl } }];
+    try {
+      // Extract the urlencoded r2_key from the path suffix after /api/assets/file/
+      const prefix = '/api/assets/file/';
+      const encodedKey = body.referenceImageUrl.startsWith(prefix)
+        ? body.referenceImageUrl.slice(prefix.length)
+        : body.referenceImageUrl;
+      const r2Key = decodeURIComponent(encodedKey);
+
+      const obj = await env.FILES.get(r2Key);
+      if (obj) {
+        const buf = await obj.arrayBuffer();
+        const contentType = obj.httpMetadata?.contentType ?? 'image/jpeg';
+
+        // Chunked btoa to avoid stack overflow on large buffers (8 KB chunks)
+        const bytes = new Uint8Array(buf);
+        const CHUNK = 8192;
+        let b64 = '';
+        for (let i = 0; i < bytes.length; i += CHUNK) {
+          b64 += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+        }
+        const dataUrl = `data:${contentType};base64,${btoa(b64)}`;
+
+        payload.input_references = [{ type: 'image_url', image_url: { url: dataUrl } }];
+      } else {
+        // R2 object not found (orphan/dead link) — skip reference, fall back to text-only
+        console.warn('[image-gen] R2 object not found for key:', r2Key, '— skipping reference');
+        referenceSkipped = true;
+      }
+    } catch (refErr) {
+      // Any read/encode failure — skip reference gracefully, still attempt generation
+      console.error('[image-gen] Failed to load reference image from R2:', refErr);
+      referenceSkipped = true;
+    }
   }
 
   // Call OpenRouter images endpoint (NOT /chat/completions)
@@ -528,7 +566,7 @@ app.post('/api/ai/image-gen', async (c) => {
   await recordGenJob(env.DB, jobId, userId, 'image_gen', 'completed', credits, 'google/gemini-2.5-flash-image', fileUrl);
   await recordCreditDebit(env.DB, userId, credits, 'ai_generation', `角色圖像生成 (AI generated)`);
 
-  return c.json({ ok: true, fileUrl, assetId, creditsConsumed: credits });
+  return c.json({ ok: true, fileUrl, assetId, creditsConsumed: credits, ...(referenceSkipped ? { referenceSkipped: true } : {}) });
 });
 
 // ─── Credits balance ──────────────────────────────────────────────────────────
