@@ -208,7 +208,18 @@ export const openRouterAdapter: AIAdapter = {
   },
 };
 
-// ── Architect save helper (persist to D1) ─────────────────────────────────────
+// ── Architect save helper (persist to D1 projects table) ─────────────────────
+/**
+ * saveProjectToD1 — ensures a row exists in the D1 `projects` table.
+ *
+ * Calls POST /api/projects with the caller-supplied projectId so the backend
+ * can do an upsert (INSERT … ON CONFLICT(id) DO UPDATE).
+ * characters / storyCards / outline remain in localStorage via projectStore
+ * persist; only the project row itself is written to D1 here.
+ *
+ * Returns { ok: true, project } on success, throws on network/DB error so
+ * callers can surface failures instead of silently dropping them.
+ */
 export async function saveProjectToD1(params: {
   projectId: string;
   userId: string;
@@ -217,10 +228,20 @@ export async function saveProjectToD1(params: {
   characters?: CharacterCard[];
   storyCards?: EpisodeStoryCard[];
   outline?: { episodeNumber: number; title_i18n: { 'zh-HK': string; en: string; 'zh-CN': string }; oneLine_i18n: { 'zh-HK': string; en: string; 'zh-CN': string } }[];
-}): Promise<void> {
-  try {
-    await post('/project/save', params);
-  } catch (e) {
-    console.warn('[openRouterAdapter] D1 save failed (non-blocking):', e);
+}): Promise<{ ok: boolean; project?: unknown }> {
+  const res = await fetch('/api/projects', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      id:         params.projectId,
+      title:      params.title,
+      mode:       params.mode ?? 'drama',
+      creator_id: params.userId,
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.json<{ error?: string; detail?: string }>().catch(() => ({}));
+    throw new Error(err.error ?? `HTTP ${res.status}`);
   }
+  return res.json();
 }

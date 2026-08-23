@@ -57,7 +57,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
 export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   const env = ctx.env;
 
-  let body: { title?: string; mode?: string; creator_id?: string; description?: string };
+  let body: { id?: string; title?: string; mode?: string; creator_id?: string; description?: string };
   try {
     body = await ctx.request.json();
   } catch {
@@ -66,7 +66,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     });
   }
 
-  const { title, mode, creator_id, description } = body;
+  const { id: bodyId, title, mode, creator_id, description } = body;
 
   if (!title || !creator_id) {
     return new Response(JSON.stringify({ error: 'title and creator_id are required' }), {
@@ -75,27 +75,31 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   }
 
   const validMode = (mode === 'drama' || mode === 'legacy') ? mode : 'drama';
-  const id = crypto.randomUUID();
+  // Use caller-supplied id (for upsert from store) or generate a new one
+  const id  = bodyId?.trim() || crypto.randomUUID();
   const now = new Date().toISOString();
 
   try {
+    // INSERT ... ON CONFLICT(id) DO UPDATE — SQLite upsert
+    // Preserves created_at, status, episode counts etc. on conflict; only updates
+    // mutable fields (title, mode, description, updated_at).
     await env.DB.prepare(
       `INSERT INTO projects (id, title, mode, status, creator_id, description, created_at, updated_at)
-       VALUES (?, ?, ?, 'draft', ?, ?, ?, ?)`
+       VALUES (?, ?, ?, 'draft', ?, ?, ?, ?)
+       ON CONFLICT(id) DO UPDATE SET
+         title       = excluded.title,
+         mode        = excluded.mode,
+         description = excluded.description,
+         updated_at  = excluded.updated_at`
     ).bind(id, title, validMode, creator_id, description ?? null, now, now).run();
 
-    const project = {
-      id, title,
-      mode: validMode,
-      status: 'draft',
-      creator_id,
-      description: description ?? null,
-      episode_count: 0,
-      completed_episodes: 0,
-      thumbnail_url: null,
-      created_at: now,
-      updated_at: now,
-    };
+    // Re-read the row so the response always reflects what is actually stored
+    const project = await env.DB.prepare(
+      `SELECT id, title, mode, status, creator_id, description,
+              episode_count, completed_episodes, thumbnail_url,
+              total_views, esg_score, created_at, updated_at
+       FROM projects WHERE id = ?`
+    ).bind(id).first();
 
     return new Response(JSON.stringify({ ok: true, project }), {
       status: 201, headers: CORS,

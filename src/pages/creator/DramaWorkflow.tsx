@@ -41,6 +41,8 @@ function S0SeriesSetup({ onNext }: { onNext: () => void }) {
   const [genre, setGenre] = useState('');
   const [tone, setTone] = useState('');
   const [need, setNeed] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   const genreIcons = ['🌟','💛','👨‍👩‍👧‍👦','🌺','🕰️','🤝'];
   const genres = tr.creator.drama.s0.genres.map((g, i) => ({
@@ -226,7 +228,10 @@ function S0SeriesSetup({ onNext }: { onNext: () => void }) {
         </div>
 
         <button
-          onClick={() => {
+          disabled={saving}
+          onClick={async () => {
+            setSaveError('');
+            setSaving(true);
             // 儲存劇集標題 + 系列上下文到 projectStore
             const title = seriesName.trim() || tr.creator.drama.s0.seriesNameLabel;
             setProjectId(projectId, title);
@@ -240,20 +245,35 @@ function S0SeriesSetup({ onNext }: { onNext: () => void }) {
               mode: 'drama',
             };
             setContext(ctx);
-            // 非同步存 D1（non-blocking）
-            void saveProjectToD1({
-              projectId,
-              userId: user?.id ?? 'anonymous',
-              title,
-              mode: 'drama',
-            });
-            onNext();
+            // 同步寫入 D1 projects 表（upsert），失敗時顯示錯誤不繼續
+            try {
+              await saveProjectToD1({
+                projectId,
+                userId: user?.id ?? 'demo-user',
+                title,
+                mode: 'drama',
+              });
+              onNext();
+            } catch (e) {
+              setSaveError('儲存失敗，請稍後再試：' + (e instanceof Error ? e.message : String(e)));
+            } finally {
+              setSaving(false);
+            }
           }}
-          className="w-full bg-primary text-white py-3 rounded-xl font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
+          className="w-full bg-primary text-white py-3 rounded-xl font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          <ChevronRight size={18} />
-          {tr.creator.drama.s0.confirmBtn}
+          {saving ? (
+            <><RefreshCw size={18} className="animate-spin" /> 儲存中…</>
+          ) : (
+            <><ChevronRight size={18} /> {tr.creator.drama.s0.confirmBtn}</>
+          )}
         </button>
+        {saveError && (
+          <p className="mt-2 text-sm text-red-500 flex items-center gap-1">
+            <AlertTriangle size={14} className="shrink-0" />
+            {saveError}
+          </p>
+        )}
       </div>
     </div>
   );
@@ -1965,14 +1985,14 @@ function S2CharacterSetup({ onNext }: { onNext: () => void }) {
     // draftsToCards 已包含所有欄位（含 appearancePrompt_en）
     const chars = draftsToCards(drafts);
     storeSetCharacters(chars);
-    // 非同步存 D1（non-blocking）
-    void saveProjectToD1({
+    // 非同步存 D1（non-blocking，失敗只 warn 不阻塞 S2 UI）
+    saveProjectToD1({
       projectId: pid,
-      userId: authUser?.id ?? 'anonymous',
+      userId: authUser?.id ?? 'demo-user',
       title: ptitle || '未命名劇集',
       characters: chars,
       outline: storedOutline,
-    });
+    }).catch(e => console.warn('[S2 handleSaveAndNext] D1 save failed:', e));
     onNext();
   };
 
@@ -2083,13 +2103,13 @@ function S2CharacterSetup({ onNext }: { onNext: () => void }) {
               onClick={() => {
                 const chars = draftsToCards(drafts);
                 storeSetCharacters(chars);
-                void saveProjectToD1({
+                saveProjectToD1({
                   projectId: pid,
-                  userId: authUser?.id ?? 'anonymous',
+                  userId: authUser?.id ?? 'demo-user',
                   title: ptitle || '未命名劇集',
                   characters: chars,
                   outline: storedOutline,
-                });
+                }).catch(e => console.warn('[S2 saveChar] D1 save failed:', e));
               }}
               className="flex items-center gap-1 text-[10px] bg-primary/10 text-primary px-2 py-1 rounded-lg hover:bg-primary/20 transition-colors font-medium"
               title="儲存此角色至 D1"
@@ -2271,15 +2291,15 @@ function S3StoryFramework({ onNext }: { onNext: () => void }) {
           onAccept={(cards) => {
             setStoryCards(cards);
             storeSetStoryCards(cards);
-            // 非同步存 D1（non-blocking）
-            void saveProjectToD1({
+            // 非同步存 D1（non-blocking，失敗只 warn 不阻塞 S3 UI）
+            saveProjectToD1({
               projectId: projectId3,
-              userId: authUser3?.id ?? 'anonymous',
+              userId: authUser3?.id ?? 'demo-user',
               title: projectTitle || '未命名劇集',
               characters: storedCharacters,
               storyCards: cards,
               outline: storedOutline3,
-            });
+            }).catch(e => console.warn('[S3 onAccept] D1 save failed:', e));
             setSubStage('done');
           }}
         />
