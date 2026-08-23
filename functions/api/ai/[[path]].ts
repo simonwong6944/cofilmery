@@ -9,7 +9,7 @@ import { cors } from 'hono/cors';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 export const AI_MODELS = {
-  TEXT_MODEL:  'moonshotai/kimi-k2',
+  TEXT_MODEL:  'moonshotai/kimi-k2.5',
   VIDEO_MODEL: 'bytedance/seedance-2.0',
   TTS_MODEL:   'minimax/speech-2.8-hd',
 } as const;
@@ -168,6 +168,89 @@ app.post('/api/ai/architect', async (c) => {
     userPrompt = humanInput ?? `請為 stage="${stage}" 生成合適內容，回傳 JSON。`;
   }
 
+  // ── response_format: outline/episodes 用嚴格 json_schema，其他維持 json_object ──
+  function architectResponseFormat(s: string): Record<string, unknown> {
+    const i18nObj = {
+      type: 'object',
+      properties: {
+        'zh-HK': { type: 'string' },
+        'en':    { type: 'string' },
+        'zh-CN': { type: 'string' },
+      },
+      required: ['zh-HK', 'en', 'zh-CN'],
+      additionalProperties: false,
+    };
+
+    if (s === 'outline') {
+      return {
+        type: 'json_schema',
+        json_schema: {
+          name: 'outline_response',
+          strict: true,
+          schema: {
+            type: 'object',
+            properties: {
+              outline: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    episodeNumber: { type: 'number' },
+                    title_i18n:   i18nObj,
+                    oneLine_i18n: i18nObj,
+                  },
+                  required: ['episodeNumber', 'title_i18n', 'oneLine_i18n'],
+                  additionalProperties: false,
+                },
+              },
+            },
+            required: ['outline'],
+            additionalProperties: false,
+          },
+        },
+      };
+    }
+
+    if (s === 'episodes') {
+      return {
+        type: 'json_schema',
+        json_schema: {
+          name: 'episodes_response',
+          strict: true,
+          schema: {
+            type: 'object',
+            properties: {
+              storyCard: {
+                type: 'object',
+                properties: {
+                  episodeNumber:     { type: 'number' },
+                  title_i18n:        i18nObj,
+                  coreEmotion_i18n:  i18nObj,
+                  hook_i18n:         i18nObj,
+                  body_i18n:         i18nObj,
+                  turningPoint_i18n: i18nObj,
+                  linkPrevNext_i18n: i18nObj,
+                  characterIds:      { type: 'array', items: { type: 'string' } },
+                },
+                required: [
+                  'episodeNumber', 'title_i18n', 'coreEmotion_i18n',
+                  'hook_i18n', 'body_i18n', 'turningPoint_i18n',
+                  'linkPrevNext_i18n', 'characterIds',
+                ],
+                additionalProperties: false,
+              },
+            },
+            required: ['storyCard'],
+            additionalProperties: false,
+          },
+        },
+      };
+    }
+
+    // topic / characters / 其他：維持 json_object
+    return { type: 'json_object' };
+  }
+
   const res = await orFetch(env.OPENROUTER_API_KEY, '/chat/completions', {
     method: 'POST',
     body: JSON.stringify({
@@ -178,7 +261,7 @@ app.post('/api/ai/architect', async (c) => {
       ],
       max_tokens: 4000,
       temperature: 0.85,
-      response_format: { type: 'json_object' },
+      response_format: architectResponseFormat(stage),
     }),
   });
 
@@ -194,8 +277,14 @@ app.post('/api/ai/architect', async (c) => {
   }>();
 
   let parsed: Record<string, unknown> = {};
-  try { parsed = JSON.parse(data.choices[0]?.message?.content ?? '{}'); }
-  catch { return c.json({ error: 'AI returned invalid JSON' }, 502); }
+  try {
+    // Strip possible markdown code fence (```json ... ``` or ``` ... ```)
+    const raw = (data.choices[0]?.message?.content ?? '').trim();
+    const stripped = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
+    parsed = JSON.parse(stripped || '{}');
+  } catch {
+    return c.json({ error: 'AI returned invalid JSON' }, 502);
+  }
 
   const tokens     = data.usage?.total_tokens ?? 0;
   const costUsd    = data.usage_cost ?? (tokens * 0.000002);
