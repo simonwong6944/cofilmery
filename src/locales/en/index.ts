@@ -832,6 +832,7 @@ export const en = {
         // ── Save Button ──
         saveCharBtn: 'Save Character',
         saveCharDone: 'Saved ✓',
+        charNameFallback: 'Unnamed Character',
         // ── New appearance option strings (used in appearanceOptsOverride) ──
         appearBuildMuscular: 'Muscular',
         appearBuildCurvy: 'Curvy',

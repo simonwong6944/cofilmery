@@ -856,6 +856,7 @@ export const zhCN = {
         // ── 保存按钮 ──
         saveCharBtn: '保存角色',
         saveCharDone: '已保存 ✓',
+        charNameFallback: '未命名角色',
         // ── 外型选项新增字串（供 appearanceOptsOverride 使用）──
         appearBuildMuscular: '健硕',
         appearBuildCurvy: '曲线玲珑',

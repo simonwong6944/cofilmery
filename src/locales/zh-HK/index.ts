@@ -944,6 +944,7 @@ export const zhHK = {
         // ── 保存掣 ──
         saveCharBtn: '保存角色',
         saveCharDone: '已保存 ✓',
+        charNameFallback: '未命名角色',
         // ── 外型選項新增字串（供 appearanceOptsOverride 使用）──
         appearBuildMuscular: '健碩',
         appearBuildCurvy: '曲線玲瓏',

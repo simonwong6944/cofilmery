@@ -2127,74 +2127,66 @@ function S2CharacterSetup({ onNext }: { onNext: () => void }) {
         <p className="text-muted text-sm mt-1">{s2tr.subtitle}</p>
       </div>
 
-      {/* ── 角色陣容（頂部橫向卡列表）── */}
+      {/* ── 角色陣容（電影 cast 大頭橫向捲動）── */}
       <div className="bg-card rounded-xl border border-line shadow-card p-4">
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <p className="text-sm font-semibold text-ink">{s2tr.castTitle}</p>
-            <p className="text-xs text-muted mt-0.5">{s2tr.castSubtitle}</p>
-          </div>
-          <button
-            onClick={addCharacter}
-            className="flex items-center gap-1.5 text-xs bg-primary text-white px-3 py-2 rounded-lg hover:bg-primary/90 transition-colors font-semibold"
-          >
-            <Plus size={13} /> {s2tr.addChar}
-          </button>
+        <div className="mb-3">
+          <p className="text-sm font-semibold text-ink">{s2tr.castTitle}</p>
+          <p className="text-xs text-muted mt-0.5">{s2tr.castSubtitle}</p>
         </div>
 
-        {drafts.length === 0 ? (
-          <div className="text-center py-6 text-muted text-sm border-2 border-dashed border-line rounded-xl">
-            {s2tr.noCharHint}
-          </div>
-        ) : (
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {drafts.map(d => {
-              const isActive = d.id === activeId;
-              return (
-                <button
-                  key={d.id}
-                  onClick={() => setActiveId(d.id)}
-                  className={`flex-shrink-0 flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all w-28 relative group ${
-                    isActive
-                      ? 'border-primary bg-primary/5 shadow-sm'
-                      : 'border-line bg-bg-soft hover:border-primary/40'
-                  }`}
-                >
-                  {/* 頭像 */}
-                  <div className="w-12 h-12 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center shrink-0">
-                    {d.img ? (
-                      <img src={d.img} alt={d.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <Users size={20} className="text-primary/40" />
-                    )}
-                  </div>
-                  {/* 角色名稱 */}
-                  <p className="text-xs font-semibold text-ink text-center leading-tight line-clamp-1 w-full">
-                    {d.name || '未命名'}
-                  </p>
-                  {/* 定位標籤 */}
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${roleTagColors[d.roleTag]}`}>
-                    {roleTagLabels[d.roleTag]}
-                  </span>
-                  {/* 視覺一致性檔次 */}
-                  <span className="text-[9px] text-muted border border-line px-1.5 py-0.5 rounded">
-                    {d.similarity || '—'}
-                  </span>
-                  {/* 刪除按鈕 */}
-                  {drafts.length > 1 && (
-                    <button
-                      onClick={e => { e.stopPropagation(); deleteCharacter(d.id); }}
-                      className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
-                      title={s2tr.deleteChar}
-                    >
-                      <X size={10} />
-                    </button>
+        <div className="flex gap-3 overflow-x-auto pb-3">
+          {drafts.map(d => {
+            const isActive = d.id === activeId;
+            return (
+              <button
+                key={d.id}
+                onClick={() => setActiveId(d.id)}
+                className={`flex-shrink-0 flex flex-col rounded-xl border-2 transition-all overflow-hidden relative group cursor-pointer w-36 ${
+                  isActive
+                    ? 'border-primary shadow-md'
+                    : 'border-line hover:border-primary/40'
+                }`}
+              >
+                {/* 大頭肖像圖 */}
+                <div className="w-full h-44 bg-bg-soft flex items-center justify-center overflow-hidden">
+                  {d.img ? (
+                    <img src={d.img} alt={d.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <Users size={36} className="text-muted/40" />
                   )}
-                </button>
-              );
-            })}
-          </div>
-        )}
+                </div>
+                {/* 角色資料 */}
+                <div className={`px-2 py-2 flex flex-col gap-0.5 ${isActive ? 'bg-primary/5' : 'bg-card'}`}>
+                  <p className="text-sm font-semibold text-ink leading-tight line-clamp-1">
+                    {d.name || s2tr.charNameFallback}
+                  </p>
+                  <p className="text-xs text-muted leading-tight line-clamp-1">
+                    {d.role || roleTagLabels[d.roleTag]}
+                  </p>
+                </div>
+                {/* 刪除按鈕（hover 顯示）*/}
+                {drafts.length > 1 && (
+                  <button
+                    onClick={e => { e.stopPropagation(); deleteCharacter(d.id); }}
+                    className="absolute top-1.5 right-1.5 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                    title={s2tr.deleteChar}
+                  >
+                    <X size={11} />
+                  </button>
+                )}
+              </button>
+            );
+          })}
+
+          {/* ＋ 新增角色卡片 */}
+          <button
+            onClick={addCharacter}
+            className="flex-shrink-0 w-36 h-[calc(11rem+3.5rem)] flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-line hover:border-primary/60 hover:bg-primary/5 transition-all text-muted hover:text-primary cursor-pointer"
+          >
+            <Plus size={24} />
+            <span className="text-xs font-semibold">{s2tr.addChar}</span>
+          </button>
+        </div>
       </div>
 
       {/* ── 完整角色編輯器（顯示目前選中角色）── */}
@@ -2204,7 +2196,7 @@ function S2CharacterSetup({ onNext }: { onNext: () => void }) {
             <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${roleTagColors[activeDraft.roleTag]}`}>
               {roleTagLabels[activeDraft.roleTag]}
             </span>
-            <span className="text-sm font-semibold text-ink">{activeDraft.name || '未命名角色'}</span>
+            <span className="text-sm font-semibold text-ink">{activeDraft.name || s2tr.charNameFallback}</span>
             {/* D1: 個別角色儲存按鈕 */}
             <button
               onClick={() => {
