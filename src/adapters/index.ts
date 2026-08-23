@@ -28,6 +28,8 @@ export {
   saveProjectToD1,
   saveCharactersToD1,
   loadCharactersFromD1,
+  saveSponsorAssetsToD1,
+  loadSponsorAssetsFromD1,
   type VideoJobStatus,
   type VideoSubmitResult,
   type TtsResult,

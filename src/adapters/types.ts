@@ -79,14 +79,15 @@ export interface TopicOption {
   hook_i18n: I18nText;
 }
 
-// S1 資產庫：贊助商已選資產（存 projectStore，供 S3 元素選擇器讀取）
+// S1 資產庫：贊助商已選資產（存 projectStore + D1 project_sponsor_assets 表）
+// 與 DB schema 對齊：project_id 由外層提供，此為 per-asset payload
 export interface SelectedSponsorAsset {
-  brandId: string;
-  assetId: string;
-  category: string;
-  name: string;
-  img: string;
-  tag: string;
+  asset_id:     string;   // assets.id (真實 D1 asset uuid)
+  category:     string;   // asset category slug
+  name:         string;   // asset.label || asset.file_name
+  img:          string;   // asset.file_url
+  brand:        string;   // asset.brand
+  revenue_rate: number;   // asset.revenue_rate
 }
 
 // 角色外型選項（存角色層，供 S4/S5 視覺一致性讀取）

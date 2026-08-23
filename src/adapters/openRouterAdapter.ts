@@ -289,3 +289,44 @@ export async function loadCharactersFromD1(
   const data = await res.json<{ ok: boolean; characters: CharacterCard[] }>();
   return data.characters ?? [];
 }
+
+/**
+ * saveSponsorAssetsToD1 — full overwrite of sponsor asset selections for a project.
+ *
+ * Calls POST /api/project-sponsor-assets with project_id + SelectedSponsorAsset array.
+ * The backend does DELETE + batch-INSERT so D1 rows always match the store.
+ */
+export async function saveSponsorAssetsToD1(
+  projectId: string,
+  assets: import('./types').SelectedSponsorAsset[],
+): Promise<{ ok: boolean; count: number }> {
+  const res = await fetch('/api/project-sponsor-assets', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ project_id: projectId, assets }),
+  });
+  if (!res.ok) {
+    const err = await res.json<{ error?: string; detail?: string }>().catch(() => ({}));
+    throw new Error(err.error ?? `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+/**
+ * loadSponsorAssetsFromD1 — fetch sponsor asset selections for a project from D1.
+ *
+ * Returns an empty array when no rows exist (new project or none selected).
+ * Empty projectId also returns [].
+ */
+export async function loadSponsorAssetsFromD1(
+  projectId: string,
+): Promise<import('./types').SelectedSponsorAsset[]> {
+  if (!projectId) return [];
+  const res = await fetch(`/api/project-sponsor-assets?project_id=${encodeURIComponent(projectId)}`);
+  if (!res.ok) {
+    const err = await res.json<{ error?: string; detail?: string }>().catch(() => ({}));
+    throw new Error(err.error ?? `HTTP ${res.status}`);
+  }
+  const data = await res.json<{ ok: boolean; assets: import('./types').SelectedSponsorAsset[] }>();
+  return data.assets ?? [];
+}

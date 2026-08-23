@@ -16,7 +16,8 @@ import { useLocaleStore } from '@/store/localeStore';
 import { useProjectStore } from '@/store/projectStore';
 import { useAuthStore } from '@/store/authStore';
 import { t } from '@/i18n';
-import { saveProjectToD1, saveCharactersToD1, loadCharactersFromD1 } from '@/adapters';
+import { saveProjectToD1, saveCharactersToD1, loadCharactersFromD1, saveSponsorAssetsToD1, loadSponsorAssetsFromD1 } from '@/adapters';
+import type { SelectedSponsorAsset } from '@/adapters/types';
 import { VideoGenPanel } from '@/components/shared/VideoGenPanel';
 import { useTts } from '@/hooks/useTts';
 import {
@@ -376,99 +377,16 @@ function PlanOverview({ onNext }: { onNext: () => void }) {
 // S1: 資產庫（Asset Bank，綁定 series_id）
 // ─────────────────────────────────────────
 
-// Sponsor brand library data (mock)
-const SPONSOR_BRANDS = {
-  car: [
-    {
-      id: 'lexus', name: 'Lexus', tier: '白金贊助', logo: '🚗',
-      tagline: '追求卓越，感受每一刻',
-      assets: [
-        { id: 'lx-1', name: 'Lexus LX 600（黑）', type: '行政 SUV', img: 'https://images.unsplash.com/photo-1625047509168-a7026f36de04?w=200&h=140&fit=crop', tag: '場景：夜晚接送' },
-        { id: 'lx-2', name: 'Lexus ES 350（珍珠白）', type: '房車', img: 'https://images.unsplash.com/photo-1617788138017-80ad40651399?w=200&h=140&fit=crop', tag: '場景：日常駕駛' },
-        { id: 'lx-3', name: 'Lexus RX 500h（深藍）', type: '油電SUV', img: 'https://images.unsplash.com/photo-1669215420018-e8f5e27a8a8a?w=200&h=140&fit=crop', tag: '場景：郊遊出行' },
-      ],
-    },
-    {
-      id: 'bmw', name: 'BMW', tier: '金牌贊助', logo: '🚙',
-      tagline: '駕駛的樂趣',
-      assets: [
-        { id: 'bm-1', name: 'BMW 5 Series（暗夜藍）', type: '行政房車', img: 'https://images.unsplash.com/photo-1555215695-3004980ad54e?w=200&h=140&fit=crop', tag: '場景：商務出行' },
-        { id: 'bm-2', name: 'BMW X5（礦石白）', type: '豪華SUV', img: 'https://images.unsplash.com/photo-1617654112368-307921291f42?w=200&h=140&fit=crop', tag: '場景：家庭旅遊' },
-      ],
-    },
-    {
-      id: 'toyota', name: 'Toyota', tier: '銀牌贊助', logo: '🚐',
-      tagline: '永遠向前',
-      assets: [
-        { id: 'ty-1', name: 'Toyota Alphard（珍珠白）', type: '豪華廂型車', img: 'https://images.unsplash.com/photo-1609521263047-f8f205293f24?w=200&h=140&fit=crop', tag: '場景：長者接送' },
-      ],
-    },
-  ],
-  restaurant: [
-    {
-      id: 'maxims', name: '美心集團', tier: '白金贊助', logo: '🍽️',
-      tagline: '香港人的家鄉味道',
-      assets: [
-        { id: 'mx-1', name: '美心皇宮中菜廳（銅鑼灣）', type: '中菜廳', img: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=200&h=140&fit=crop', tag: '場景：家庭飯局' },
-        { id: 'mx-2', name: '翠園餐廳（尖沙咀）', type: '粵式點心', img: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=200&h=140&fit=crop', tag: '場景：週末飲茶' },
-        { id: 'mx-3', name: '美心 MX 快餐廳', type: '快餐', img: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=200&h=140&fit=crop', tag: '場景：街坊日常' },
-      ],
-    },
-    {
-      id: 'fortress-hill', name: '香港酒店集團', tier: '金牌贊助', logo: '🏨',
-      tagline: '',
-      assets: [
-        { id: 'fh-1', name: '半島酒店大堂餐廳', type: '高級西餐', img: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=200&h=140&fit=crop', tag: '場景：重要約會' },
-      ],
-    },
-  ],
-  product: [
-    {
-      id: 'mannings', name: '萬寧 Mannings', tier: '白金贊助', logo: '💊',
-      tagline: '守護每一天的健康',
-      assets: [
-        { id: 'mn-1', name: '萬寧保健品系列', type: '保健產品', img: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=140&fit=crop', tag: '道具：長者關節保健' },
-        { id: 'mn-2', name: '萬寧護膚品系列', type: '護膚品', img: 'https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=200&h=140&fit=crop', tag: '道具：日常護理' },
-      ],
-    },
-    {
-      id: 'pricerite', name: '結志街 / 老字號', tier: '銀牌贊助', logo: '🧧',
-      tagline: '香港老字號，歲月留情',
-      assets: [
-        { id: 'pr-1', name: '旗袍 / 長衫（60年代）', type: '服裝道具', img: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200&h=140&fit=crop', tag: '服裝：懷舊年代劇' },
-        { id: 'pr-2', name: '舊式搪瓷茶杯組', type: '年代道具', img: 'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=200&h=140&fit=crop', tag: '道具：60–70年代' },
-      ],
-    },
-  ],
-  location: [
-    {
-      id: 'hk-tourism', name: '香港旅遊發展局', tier: '白金贊助', logo: '🏙️',
-      tagline: '探索香港，發現更多',
-      assets: [
-        { id: 'hk-1', name: '維多利亞港日景', type: '戶外場景', img: 'https://images.unsplash.com/photo-1536599018102-9f803c140fc1?w=200&h=140&fit=crop', tag: '場景：城市背景' },
-        { id: 'hk-2', name: '大澳漁村', type: '特色場景', img: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=200&h=140&fit=crop', tag: '場景：懷舊漁村' },
-        { id: 'hk-3', name: '中環舊街市建築', type: '歷史場景', img: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=200&h=140&fit=crop', tag: '場景：年代背景' },
-      ],
-    },
-    {
-      id: 'kwun-tong', name: '觀塘工廈文創區', tier: '銀牌贊助', logo: '🏭',
-      tagline: '',
-      assets: [
-        { id: 'kt-1', name: '工廈藝術工作室', type: '室內場景', img: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=200&h=140&fit=crop', tag: '場景：藝術創作' },
-      ],
-    },
-  ],
-};
-
-type SponsorCategory = keyof typeof SPONSOR_BRANDS;
-// category 用 string（而非 SponsorCategory）以兼容 projectStore 的 SelectedSponsorAsset 型別
-type SelectedSponsorAsset = { brandId: string; assetId: string; category: string; name: string; img: string; tag: string };
-
-const TIER_COLORS: Record<string, string> = {
-  '白金贊助': 'bg-slate-100 text-slate-700 border-slate-300',
-  '金牌贊助': 'bg-amber-50 text-amber-700 border-amber-300',
-  '銀牌贊助': 'bg-gray-100 text-gray-600 border-gray-300',
-};
+// GlobalAsset — shape returned by GET /api/assets
+interface GlobalAsset {
+  id: string;
+  file_name: string;
+  file_url: string;
+  category: string;
+  label: string;
+  brand: string;
+  revenue_rate: number;
+}
 
 // ─────────────────────────────────────────
 // 全劇美學鎖（修正九：加入參考圖上傳）
@@ -736,17 +654,15 @@ function S1AssetBank({ onNext }: { onNext: () => void }) {
     setSelectedSponsorAssets: storeSetSponsorAssets,
   } = useProjectStore();
   const [activeTab, setActiveTab] = useState<'own' | 'sponsor'>('own');
-  const [sponsorCategory, setSponsorCategory] = useState<SponsorCategory>('car');
-  const [expandedBrand, setExpandedBrand] = useState<string | null>('lexus');
   const [selectedSponsorAssets, setSelectedSponsorAssets] = useState<SelectedSponsorAsset[]>(storedSponsorAssets);
   const [showSponsorInfo, setShowSponsorInfo] = useState(false);
 
-  const sponsorCategories: { id: SponsorCategory; icon: React.ElementType; label: string; desc: string; color: string }[] = [
-    { id: 'car',        icon: Car,            label: tr.creator.drama.s1.catCar,        desc: tr.creator.drama.s1.catCarDesc,        color: 'text-blue-500' },
-    { id: 'restaurant', icon: UtensilsCrossed, label: tr.creator.drama.s1.catRestaurant, desc: tr.creator.drama.s1.catRestaurantDesc, color: 'text-orange-500' },
-    { id: 'product',    icon: ShoppingBag,     label: tr.creator.drama.s1.catProduct,    desc: tr.creator.drama.s1.catProductDesc,    color: 'text-purple-500' },
-    { id: 'location',   icon: MapPin,          label: tr.creator.drama.s1.catLocation,   desc: tr.creator.drama.s1.catLocationDesc,   color: 'text-green-500' },
-  ];
+  // ── 真實中央庫 state ─────────────────────────────────────────────────────
+  const [globalAssets, setGlobalAssets]         = useState<GlobalAsset[]>([]);
+  const [globalCategories, setGlobalCategories] = useState<string[]>([]);
+  const [globalLoading, setGlobalLoading]       = useState(false);
+  const [sponsorMsg, setSponsorMsg]             = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [sponsorSaving, setSponsorSaving]       = useState(false);
 
   // 真實上傳 state
   const { projectId: s1ProjectId } = useProjectStore();
@@ -784,6 +700,55 @@ function S1AssetBank({ onNext }: { onNext: () => void }) {
   }, [s1ProjectId]);
 
   useEffect(() => { fetchS1Assets(); }, [fetchS1Assets]);
+
+  // ── 載入全局贊助商庫 + 分類 ─────────────────────────────────────────────
+  useEffect(() => {
+    let cancelled = false;
+    const fetchGlobalLib = async () => {
+      setGlobalLoading(true);
+      try {
+        const [assetsRes, catsRes] = await Promise.all([
+          fetch('/api/assets?project_id=global&limit=200'),
+          fetch('/api/asset-categories'),
+        ]);
+        if (cancelled) return;
+        if (assetsRes.ok) {
+          const data = await assetsRes.json<{ assets: GlobalAsset[] }>();
+          setGlobalAssets(data.assets ?? []);
+        }
+        if (catsRes.ok) {
+          const data = await catsRes.json<{ categories: { id: string; name: string }[] }>();
+          setGlobalCategories((data.categories ?? []).map(c => c.name));
+        }
+      } catch { /* non-blocking */ } finally {
+        if (!cancelled) setGlobalLoading(false);
+      }
+    };
+    fetchGlobalLib();
+    return () => { cancelled = true; };
+  }, []);
+
+  // ── Mount 時從 D1 還原已揀選的贊助商資產（只有 projectId 且 store 為空時才覆寫）──
+  useEffect(() => {
+    if (!s1ProjectId) return;
+    if (storedSponsorAssets.length > 0) return; // 有本地暫存，唔覆蓋
+    loadSponsorAssetsFromD1(s1ProjectId)
+      .then(dbAssets => {
+        if (dbAssets.length > 0) {
+          setSelectedSponsorAssets(dbAssets);
+          storeSetSponsorAssets(dbAssets);
+        }
+      })
+      .catch(() => { /* non-blocking */ });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [s1ProjectId]);
+
+  // sponsorMsg auto-clear
+  useEffect(() => {
+    if (!sponsorMsg) return;
+    const timer = setTimeout(() => setSponsorMsg(null), 3000);
+    return () => clearTimeout(timer);
+  }, [sponsorMsg]);
 
   const onS1FileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
@@ -892,17 +857,24 @@ function S1AssetBank({ onNext }: { onNext: () => void }) {
     }).length,
   }));
 
-  const toggleAsset = (cat: SponsorCategory, brand: { id: string; name: string }, asset: { id: string; name: string; img: string; tag: string }) => {
+  // toggleAsset — uses real GlobalAsset fields, mapped to SelectedSponsorAsset
+  const toggleAsset = (asset: GlobalAsset) => {
     setSelectedSponsorAssets(prev => {
-      const exists = prev.find(a => a.assetId === asset.id);
-      if (exists) return prev.filter(a => a.assetId !== asset.id);
-      return [...prev, { brandId: brand.id, assetId: asset.id, category: cat, name: asset.name, img: asset.img, tag: asset.tag }];
+      const exists = prev.find(a => a.asset_id === asset.id);
+      if (exists) return prev.filter(a => a.asset_id !== asset.id);
+      return [...prev, {
+        asset_id:     asset.id,
+        category:     asset.category,
+        name:         asset.label || asset.file_name,
+        img:          asset.file_url,
+        brand:        asset.brand,
+        revenue_rate: asset.revenue_rate,
+      }];
     });
   };
 
-  const isSelected = (assetId: string) => selectedSponsorAssets.some(a => a.assetId === assetId);
+  const isSelected = (assetId: string) => selectedSponsorAssets.some(a => a.asset_id === assetId);
 
-  const brands = SPONSOR_BRANDS[sponsorCategory];
   const totalSelected = selectedSponsorAssets.length;
 
   return (
@@ -1102,21 +1074,9 @@ function S1AssetBank({ onNext }: { onNext: () => void }) {
         </div>
       )}
 
-      {/* ── TAB: 贊助商品牌資產庫 ── */}
+      {/* ── TAB: 贊助商品牌資產庫（真實中央庫）── */}
       {activeTab === 'sponsor' && (
         <div className="space-y-4">
-          {/* Fix B: live 模式隱藏寫死的贊助品牌庫，顯示「即將推出」提示 */}
-          {import.meta.env.VITE_AI_MODE === 'live' ? (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 text-center">
-              <Gift size={32} className="mx-auto text-accent mb-3 opacity-50" />
-              <p className="text-sm font-semibold text-amber-800 mb-1">品牌贊助商素材庫即將推出</p>
-              <p className="text-xs text-amber-700">
-                正式品牌合作素材庫正在接洽中。
-                請先使用左方「自有素材」標籤上傳您的場景、道具等素材。
-              </p>
-            </div>
-          ) : (
-            <>
           {/* Info banner */}
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-3">
             <Gift size={18} className="text-accent flex-shrink-0 mt-0.5" />
@@ -1139,122 +1099,137 @@ function S1AssetBank({ onNext }: { onNext: () => void }) {
             </div>
           )}
 
-          {/* Category selector */}
-          <div className="grid grid-cols-4 gap-2">
-            {sponsorCategories.map(cat => (
-              <button
-                key={cat.id}
-                onClick={() => { setSponsorCategory(cat.id); setExpandedBrand(null); }}
-                className={`p-3 rounded-xl border-2 text-center transition-all ${
-                  sponsorCategory === cat.id
-                    ? 'border-accent bg-accent/5'
-                    : 'border-line hover:border-accent/40 bg-card'
-                }`}
-              >
-                <cat.icon size={20} className={`mx-auto mb-1 ${sponsorCategory === cat.id ? 'text-accent' : cat.color}`} />
-                <p className="text-xs font-semibold text-ink leading-tight">{cat.label}</p>
-                <p className="text-[10px] text-muted mt-0.5 leading-tight hidden sm:block">{cat.desc}</p>
-              </button>
-            ))}
-          </div>
+          {/* Sponsor action feedback */}
+          {sponsorMsg && (
+            <div className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs ${
+              sponsorMsg.type === 'success'
+                ? 'bg-green-50 border border-green-200 text-green-700'
+                : 'bg-red-50 border border-red-200 text-red-700'
+            }`}>
+              {sponsorMsg.type === 'success' ? '✅' : '⚠️'} {sponsorMsg.text}
+            </div>
+          )}
 
-          {/* Brand list */}
-          <div className="space-y-3">
-            {brands.map(brand => {
-              const isExpanded = expandedBrand === brand.id;
-              const brandSelectedCount = selectedSponsorAssets.filter(a => a.brandId === brand.id).length;
+          {/* Loading state */}
+          {globalLoading && (
+            <div className="flex items-center justify-center gap-2 py-8 text-muted text-sm">
+              <RefreshCw size={16} className="animate-spin" />
+              {tr.creator.drama.s1.sponsorLoadingLib}
+            </div>
+          )}
+
+          {/* Empty state — lib loaded but 0 assets */}
+          {!globalLoading && globalAssets.length === 0 && (
+            <div className="bg-bg-soft rounded-xl p-8 text-center text-muted">
+              <Package size={28} className="mx-auto mb-3 opacity-40" />
+              <p className="text-sm">{tr.creator.drama.s1.sponsorEmptyLib}</p>
+            </div>
+          )}
+
+          {/* Assets grouped by category */}
+          {!globalLoading && globalAssets.length > 0 && (() => {
+            // Build category order: prefer admin-defined categories, fall back to unique cats in assets
+            const catOrder = globalCategories.length > 0
+              ? globalCategories
+              : [...new Set(globalAssets.map(a => a.category))];
+
+            return catOrder.map(catName => {
+              const catAssets = globalAssets.filter(a => a.category === catName);
+              if (catAssets.length === 0) return null;
+              const catSelectedCount = catAssets.filter(a => isSelected(a.id)).length;
               return (
-                <div key={brand.id} className="bg-card rounded-xl border border-line shadow-card overflow-hidden">
-                  {/* Brand header */}
-                  <button
-                    onClick={() => setExpandedBrand(isExpanded ? null : brand.id)}
-                    className="w-full flex items-center gap-3 p-4 hover:bg-bg-soft transition-colors text-left"
-                  >
-                    <span className="text-2xl flex-shrink-0">{brand.logo}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-bold text-ink text-sm">{brand.name}</span>
-                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${TIER_COLORS[brand.tier]}`}>
-                          {brand.tier}
-                        </span>
-                        {brandSelectedCount > 0 && (
-                          <span className="bg-accent/10 text-accent text-[10px] font-semibold px-2 py-0.5 rounded-full">
-                            已選 {brandSelectedCount} 項
-                          </span>
-                        )}
-                      </div>
-                      {brand.tagline && <p className="text-xs text-muted mt-0.5 truncate">{brand.tagline}</p>}
-                    </div>
-                    <ChevronDown
-                      size={16}
-                      className={`flex-shrink-0 text-muted transition-transform ${isExpanded ? 'rotate-180' : ''}`}
-                    />
-                  </button>
-
+                <div key={catName} className="bg-card rounded-xl border border-line shadow-card overflow-hidden">
+                  {/* Category heading */}
+                  <div className="flex items-center gap-2 px-4 py-3 border-b border-line bg-bg-soft">
+                    <Tag size={14} className="text-accent" />
+                    <span className="font-bold text-sm text-ink">{catName}</span>
+                    <span className="text-xs text-muted ml-1">({catAssets.length})</span>
+                    {catSelectedCount > 0 && (
+                      <span className="ml-auto bg-accent/10 text-accent text-[10px] font-semibold px-2 py-0.5 rounded-full">
+                        {tr.creator.drama.s1.selectedCount} {catSelectedCount}
+                      </span>
+                    )}
+                  </div>
                   {/* Asset grid */}
-                  {isExpanded && (
-                    <div className="px-4 pb-4 border-t border-line pt-3">
-                      <p className="text-xs text-muted mb-3 flex items-center gap-1">
-                        <Package size={11} /> {tr.creator.drama.s1.clickToSelect}
-                      </p>
-                      <div className="grid grid-cols-3 gap-3">
-                        {brand.assets.map(asset => {
-                          const selected = isSelected(asset.id);
-                          return (
-                            <button
-                              key={asset.id}
-                              onClick={() => toggleAsset(sponsorCategory, brand, asset)}
-                              className={`rounded-xl overflow-hidden border-2 transition-all text-left ${
-                                selected
-                                  ? 'border-accent ring-2 ring-accent/20'
-                                  : 'border-line hover:border-accent/40'
-                              }`}
-                            >
-                              <div className="relative">
-                                <img src={asset.img} alt={asset.name} className="w-full h-24 object-cover" />
-                                {selected && (
-                                  <div className="absolute inset-0 bg-accent/20 flex items-center justify-center">
-                                    <div className="bg-accent text-white rounded-full p-1">
-                                      <Check size={14} />
-                                    </div>
+                  <div className="p-4">
+                    <p className="text-xs text-muted mb-3 flex items-center gap-1">
+                      <Package size={11} /> {tr.creator.drama.s1.clickToSelect}
+                    </p>
+                    <div className="grid grid-cols-3 gap-3">
+                      {catAssets.map(asset => {
+                        const selected = isSelected(asset.id);
+                        return (
+                          <button
+                            key={asset.id}
+                            onClick={() => toggleAsset(asset)}
+                            className={`rounded-xl overflow-hidden border-2 transition-all text-left ${
+                              selected
+                                ? 'border-accent ring-2 ring-accent/20'
+                                : 'border-line hover:border-accent/40'
+                            }`}
+                          >
+                            <div className="relative">
+                              {asset.file_url ? (
+                                <img src={asset.file_url} alt={asset.label || asset.file_name} className="w-full h-24 object-cover" />
+                              ) : (
+                                <div className="w-full h-24 bg-bg-soft flex items-center justify-center">
+                                  <Package size={24} className="text-muted opacity-40" />
+                                </div>
+                              )}
+                              {selected && (
+                                <div className="absolute inset-0 bg-accent/20 flex items-center justify-center">
+                                  <div className="bg-accent text-white rounded-full p-1">
+                                    <Check size={14} />
                                   </div>
-                                )}
-                              </div>
-                              <div className="p-2">
-                                <p className="text-xs font-semibold text-ink leading-tight line-clamp-2">{asset.name}</p>
-                                <p className="text-[10px] text-muted mt-0.5">{asset.type}</p>
+                                </div>
+                              )}
+                            </div>
+                            <div className="p-2">
+                              <p className="text-xs font-semibold text-ink leading-tight line-clamp-2">
+                                {asset.label || asset.file_name}
+                              </p>
+                              {asset.brand && (
+                                <p className="text-[10px] text-muted mt-0.5 truncate">{asset.brand}</p>
+                              )}
+                              {asset.revenue_rate > 0 && (
                                 <span className="inline-block mt-1 bg-primary/8 text-primary text-[10px] px-1.5 py-0.5 rounded leading-tight">
-                                  {asset.tag}
+                                  {(asset.revenue_rate * 100).toFixed(0)}% 分成
                                 </span>
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
+                              )}
+                            </div>
+                          </button>
+                        );
+                      })}
                     </div>
-                  )}
+                  </div>
                 </div>
               );
-            })}
-          </div>
+            });
+          })()}
 
           {/* Selected summary */}
           {totalSelected > 0 && (
             <div className="bg-card border border-line rounded-xl p-4">
               <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
                 <Check size={14} className="text-accent" />
-                已選贊助商資產（{totalSelected} 項）
+                {tr.creator.drama.s1.selectedSummaryTitle}（{totalSelected} 項）
               </h4>
               <div className="space-y-2">
                 {selectedSponsorAssets.map(asset => (
-                  <div key={asset.assetId} className="flex items-center gap-3 bg-bg-soft rounded-lg p-2">
-                    <img src={asset.img} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                  <div key={asset.asset_id} className="flex items-center gap-3 bg-bg-soft rounded-lg p-2">
+                    {asset.img ? (
+                      <img src={asset.img} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                    ) : (
+                      <div className="w-10 h-10 rounded-lg bg-bg-soft border border-line flex items-center justify-center flex-shrink-0">
+                        <Package size={14} className="text-muted" />
+                      </div>
+                    )}
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold text-ink truncate">{asset.name}</p>
-                      <p className="text-[10px] text-muted">{asset.tag}</p>
+                      <p className="text-[10px] text-muted">{asset.brand || asset.category}</p>
                     </div>
                     <button
-                      onClick={() => setSelectedSponsorAssets(prev => prev.filter(a => a.assetId !== asset.assetId))}
+                      onClick={() => setSelectedSponsorAssets(prev => prev.filter(a => a.asset_id !== asset.asset_id))}
                       className="flex-shrink-0 text-muted hover:text-red-500 transition-colors"
                     >
                       <X size={14} />
@@ -1270,22 +1245,33 @@ function S1AssetBank({ onNext }: { onNext: () => void }) {
               </div>
             </div>
           )}
-        </> /* end mock-only sponsor content */
-        )} {/* end VITE_AI_MODE live/mock conditional */}
         </div>
       )}
 
       {/* CTA */}
       <div className="mt-6">
         <button
-          onClick={() => {
-            // 存入 projectStore 供 S3 讀取
+          disabled={sponsorSaving}
+          onClick={async () => {
+            // 1. 存入 projectStore 供後續步驟讀取
             storeSetSponsorAssets(selectedSponsorAssets);
+            // 2. 若有 projectId，同步儲存至 D1
+            if (s1ProjectId) {
+              setSponsorSaving(true);
+              try {
+                await saveSponsorAssetsToD1(s1ProjectId, selectedSponsorAssets);
+                setSponsorMsg({ type: 'success', text: tr.creator.drama.s1.sponsorSaveSuccess });
+              } catch {
+                setSponsorMsg({ type: 'error', text: tr.creator.drama.s1.sponsorSaveNoProject });
+              } finally {
+                setSponsorSaving(false);
+              }
+            }
             onNext();
           }}
-          className="w-full bg-primary text-white py-3 rounded-xl font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
+          className="w-full bg-primary text-white py-3 rounded-xl font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          <ChevronRight size={18} />
+          {sponsorSaving ? <RefreshCw size={16} className="animate-spin" /> : <ChevronRight size={18} />}
           {tr.creator.drama.s1.confirmBtn}
         </button>
         {totalSelected > 0 && (
