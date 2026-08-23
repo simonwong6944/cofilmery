@@ -26,6 +26,8 @@ export {
   generateTts,
   fetchCreditsBalance,
   saveProjectToD1,
+  saveCharactersToD1,
+  loadCharactersFromD1,
   type VideoJobStatus,
   type VideoSubmitResult,
   type TtsResult,

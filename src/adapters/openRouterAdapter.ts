@@ -245,3 +245,47 @@ export async function saveProjectToD1(params: {
   }
   return res.json();
 }
+
+// ── Character D1 helpers ──────────────────────────────────────────────────────
+
+/**
+ * saveCharactersToD1 — full overwrite of characters for a project in D1.
+ *
+ * Calls POST /api/characters with project_id + full CharacterCard array.
+ * The backend does DELETE + batch-INSERT so the D1 rows always match the store.
+ *
+ * Throws on network / DB error so callers can surface failures.
+ */
+export async function saveCharactersToD1(
+  projectId: string,
+  characters: CharacterCard[],
+): Promise<{ ok: boolean; count: number }> {
+  const res = await fetch('/api/characters', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ project_id: projectId, characters }),
+  });
+  if (!res.ok) {
+    const err = await res.json<{ error?: string; detail?: string }>().catch(() => ({}));
+    throw new Error(err.error ?? `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+/**
+ * loadCharactersFromD1 — fetch all character cards for a project from D1.
+ *
+ * Returns an empty array when no rows exist (new project).
+ * Throws on network / DB error.
+ */
+export async function loadCharactersFromD1(
+  projectId: string,
+): Promise<CharacterCard[]> {
+  const res = await fetch(`/api/characters?project_id=${encodeURIComponent(projectId)}`);
+  if (!res.ok) {
+    const err = await res.json<{ error?: string; detail?: string }>().catch(() => ({}));
+    throw new Error(err.error ?? `HTTP ${res.status}`);
+  }
+  const data = await res.json<{ ok: boolean; characters: CharacterCard[] }>();
+  return data.characters ?? [];
+}

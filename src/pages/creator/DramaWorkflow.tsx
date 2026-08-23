@@ -16,7 +16,7 @@ import { useLocaleStore } from '@/store/localeStore';
 import { useProjectStore } from '@/store/projectStore';
 import { useAuthStore } from '@/store/authStore';
 import { t } from '@/i18n';
-import { saveProjectToD1 } from '@/adapters';
+import { saveProjectToD1, saveCharactersToD1, loadCharactersFromD1 } from '@/adapters';
 import { VideoGenPanel } from '@/components/shared/VideoGenPanel';
 import { useTts } from '@/hooks/useTts';
 import {
@@ -1997,6 +1997,7 @@ function S2CharacterSetup({ onNext }: { onNext: () => void }) {
 
   const [drafts, setDrafts] = useState<CharDraft[]>(buildDefaultDrafts);
   const [activeId, setActiveId] = useState<string>(() => buildDefaultDrafts()[0]?.id ?? '');
+  const [saveCharError, setSaveCharError] = useState<string>('');
 
   // 將 drafts 陣列轉換為 CharacterCard[] 寫入 store（即時同步）
   const draftsToCards = (ds: CharDraft[]): CharacterCard[] =>
@@ -2053,6 +2054,37 @@ function S2CharacterSetup({ onNext }: { onNext: () => void }) {
   const { user: authUser } = useAuthStore();
   const { projectId: pid, projectTitle: ptitle, outline: storedOutline } = useProjectStore();
 
+  // S2 mount 時：如果 store characters 空，從 D1 拉返（换機登入場景）
+  // 不覆蓋已有資料（storedCharacters.length > 0 則 buildDefaultDrafts 已還原）
+  useEffect(() => {
+    if (!pid || storedCharacters.length > 0) return; // 已有資料，不重複載入
+    loadCharactersFromD1(pid)
+      .then(chars => {
+        if (chars.length > 0) {
+          storeSetCharacters(chars);
+          // 換機返回：用 D1 chars 重建 drafts state
+          const restoredDrafts: CharDraft[] = chars.map(c => ({
+            id: c.id,
+            img: c.img ?? '',
+            refs: c.refs ?? [],
+            name: c.name_i18n['zh-HK'],
+            role: c.identityTag_i18n['zh-HK'],
+            age: c.age ?? '',
+            gender: c.gender,
+            bg: c.traitsConflict_i18n['zh-HK'],
+            roleTag: 'support' as const,
+            similarity: c.similarityLevel ?? s2tr.simSeventyPct,
+            traits: c.personality ?? [],
+            appearance: (c.appearanceOptions as AppearanceOptions) ?? { ...DEFAULT_APPEARANCE },
+          }));
+          setDrafts(restoredDrafts);
+          setActiveId(restoredDrafts[0]?.id ?? '');
+        }
+      })
+      .catch(e => console.warn('[S2 mount] loadCharactersFromD1 failed:', e));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pid]); // 只在 pid 變時觸發一次
+
   const handleSaveAndNext = () => {
     // draftsToCards 已包含所有欄位（含 appearancePrompt_en）
     const chars = draftsToCards(drafts);
@@ -2065,6 +2097,9 @@ function S2CharacterSetup({ onNext }: { onNext: () => void }) {
       characters: chars,
       outline: storedOutline,
     }).catch(e => console.warn('[S2 handleSaveAndNext] D1 save failed:', e));
+    // 非同步存全部角色至 D1（non-blocking）
+    saveCharactersToD1(pid, chars)
+      .catch(e => console.warn('[S2 handleSaveAndNext] saveCharactersToD1 failed:', e));
     onNext();
   };
 
@@ -2227,12 +2262,27 @@ function S2CharacterSetup({ onNext }: { onNext: () => void }) {
             onBgChange={v => updateDraft(activeDraft.id, { bg: v })}
             onImgChange={url => updateDraft(activeDraft.id, { img: url })}
             onRefsChange={urls => updateDraft(activeDraft.id, { refs: urls })}
-            onSaveChar={() => {
+            onSaveChar={async () => {
               const chars = draftsToCards(drafts);
               storeSetCharacters(chars);
+              setSaveCharError('');
+              try {
+                await saveCharactersToD1(pid, chars);
+              } catch (e) {
+                setSaveCharError(e instanceof Error ? e.message : '保存失敗，請稍後重試');
+              }
             }}
             projectId={pid}
           />
+        </div>
+      )}
+
+      {/* 保存角色 D1 error banner */}
+      {saveCharError && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-3 flex items-center gap-2 text-xs text-red-700">
+          <AlertTriangle size={14} className="flex-shrink-0" />
+          <span>{saveCharError}</span>
+          <button onClick={() => setSaveCharError('')} className="ml-auto text-red-400 hover:text-red-600"><X size={12} /></button>
         </div>
       )}
 
