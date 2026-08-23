@@ -20,6 +20,7 @@ import Pricing from '@/pages/public/Pricing';
 import CreatorDashboard from '@/pages/creator/CreatorDashboard';
 import CreatorWorks from '@/pages/creator/CreatorWorks';
 import ModeSelect from '@/pages/creator/ModeSelect';
+import ProjectHub from '@/pages/creator/ProjectHub';
 import DramaWorkflow from '@/pages/creator/DramaWorkflow';
 import LegacyWorkflow from '@/pages/creator/LegacyWorkflow';
 import ScriptEditor from '@/pages/creator/ScriptEditor';
@@ -81,6 +82,7 @@ export default function App() {
           <Route path="/creator" element={<CreatorDashboard />} />
           <Route path="/creator/works" element={<CreatorWorks />} />
           <Route path="/creator/new" element={<ModeSelect />} />
+          <Route path="/creator/projects" element={<ProjectHub />} />
           <Route path="/creator/drama/:step?" element={<DramaWorkflow />} />
           <Route path="/creator/legacy/:step?" element={<LegacyWorkflow />} />
           <Route path="/creator/script/:id?" element={<ScriptEditor />} />

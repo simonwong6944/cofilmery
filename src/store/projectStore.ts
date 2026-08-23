@@ -51,14 +51,19 @@ interface ProjectState {
   setCurrentEpisode: (ep: number) => void;
   getStoryCard: (episodeNumber: number) => EpisodeStoryCard | null;
   reset: () => void;
+  /** 載入既有 project，填充 store（從 ProjectHub 點選繼續） */
+  loadProject: (project: { id: string; title: string; mode?: string; description?: string }) => void;
+  /** 重置 store 並生成新 projectId（從 ProjectHub 建立新項目後呼叫） */
+  startNewProject: () => void;
 }
 
 const INITIAL: Omit<ProjectState,
   'setProjectId' | 'setStoryMaterial' | 'setContext' | 'setSelectedTopic' | 'setOutline' |
   'setCharacters' | 'setStoryCards' | 'setAestheticLock' | 'setSelectedSponsorAssets' |
-  'setCoCreated' | 'setCurrentEpisode' | 'getStoryCard' | 'reset'
+  'setCoCreated' | 'setCurrentEpisode' | 'getStoryCard' | 'reset' |
+  'loadProject' | 'startNewProject'
 > = {
-  projectId: crypto.randomUUID(),
+  projectId: '',  // 空字串 = 未選項目，workflow 頁面應 redirect 去 ProjectHub
   projectTitle: '',
   storyMaterial: '',
   context: null,
@@ -112,6 +117,17 @@ export const useProjectStore = create<ProjectState>()(
       },
 
       reset: () => set({ ...INITIAL }),
+
+      loadProject: (project) => set({
+        ...INITIAL,
+        projectId: project.id,
+        projectTitle: project.title,
+      }),
+
+      startNewProject: () => set({
+        ...INITIAL,
+        projectId: crypto.randomUUID(),
+      }),
     }),
     {
       name: 'cofilmery-project',

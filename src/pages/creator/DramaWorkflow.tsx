@@ -6,7 +6,7 @@ import {
 } from '@/components/shared/StoryArchitect';
 import type { CharacterCard, EpisodeStoryCard, SeriesContext } from '@/adapters/types';
 import { Layers } from 'lucide-react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Navigate } from 'react-router-dom';
 import { CreatorSidebar } from '@/components/layout/CreatorSidebar';
 import { StepNavigation } from '@/components/shared/StepNavigation';
 import { AIAssistantPanel } from '@/components/shared/AIAssistantPanel';
@@ -3078,7 +3078,13 @@ export default function DramaWorkflow() {
   const goNext = () => navigate(`/creator/drama/${Math.min(routeStep + 1, 11)}`);
 
   // Determine series title for header
-  const { projectTitle } = useProjectStore();
+  const { projectTitle, projectId: currentProjectId } = useProjectStore();
+
+  // 未選項目時 redirect 回 ProjectHub
+  if (!currentProjectId) {
+    return <Navigate to="/creator/projects" replace />;
+  }
+
   const headerTitle = routeStep === 0 ? tr.creator.modeSelect.dramaTitle : (projectTitle || tr.creator.modeSelect.dramaTitle);
 
   const stepNavProps = {
