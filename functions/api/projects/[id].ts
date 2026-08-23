@@ -48,12 +48,43 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   }
 };
 
+export const onRequestDelete: PagesFunction<Env> = async (ctx) => {
+  const env = ctx.env;
+  const id  = ctx.params['id'] as string;
+
+  if (!id) {
+    return new Response(JSON.stringify({ error: 'Project id is required' }), {
+      status: 400, headers: CORS,
+    });
+  }
+
+  try {
+    const result = await env.DB.prepare(
+      `DELETE FROM projects WHERE id = ?`
+    ).bind(id).run();
+
+    if (result.meta.changes === 0) {
+      return new Response(JSON.stringify({ error: 'Project not found' }), {
+        status: 404, headers: CORS,
+      });
+    }
+
+    return new Response(JSON.stringify({ ok: true }), {
+      status: 200, headers: CORS,
+    });
+  } catch (e) {
+    return new Response(JSON.stringify({ error: 'DB delete failed', detail: String(e) }), {
+      status: 500, headers: CORS,
+    });
+  }
+};
+
 export const onRequestOptions: PagesFunction = async () =>
   new Response(null, {
     status: 204,
     headers: {
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Methods': 'GET, DELETE, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type',
     },
   });
