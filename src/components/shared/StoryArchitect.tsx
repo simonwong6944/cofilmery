@@ -284,16 +284,27 @@ export function S1bOutline({ context, selectedTopic, onAccept }: S1bOutlineProps
   const [editIdx, setEditIdx] = useState<number | null>(null);
   const [editVal, setEditVal] = useState('');
   const [coCreateNote, setCoCreateNote] = useState('');
+  const [genError, setGenError] = useState<string | null>(null);
 
   const generate = async (isRegenerate = false) => {
     setLoading(true);
+    setGenError(null);
     try {
       const res = await aiAdapter.generateArchitect({ stage: 'outline', context, selectedTopic });
-      setOutline((res.outline ?? []) as OutlineItem[]);
+      const items = (res.outline ?? []) as OutlineItem[];
+      if (items.length === 0) {
+        setGenError('生成結果為空，請重試（或確認故事原材料已填寫）');
+      } else {
+        setOutline(items);
+      }
       void recordAction({
         project_id: projectId, stage: 'outline',
         action: isRegenerate ? 'regenerate' : 'generate', actor: 'ai',
       });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      // 嘗試解析後端回傳的 JSON error方便顯示根因
+      setGenError(`生成失敗：${msg}`);
     } finally {
       setLoading(false);
     }
@@ -346,6 +357,12 @@ export function S1bOutline({ context, selectedTopic, onAccept }: S1bOutlineProps
               {loading ? <Loader2 size={16} className="animate-spin" /> : <BookOpen size={16} />}
               {loading ? '生成中…' : `AI 生成全劇大綱（${CREDIT.architectOutline} 積分）`}
             </button>
+            {genError && (
+              <div className="mt-4 flex items-start gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-left max-w-sm mx-auto">
+                <AlertCircle size={15} className="text-red-500 shrink-0 mt-0.5" />
+                <p className="text-sm text-red-700 leading-relaxed">{genError}</p>
+              </div>
+            )}
           </div>
         ) : (
           <div className="space-y-3">

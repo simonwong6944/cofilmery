@@ -251,6 +251,13 @@ app.post('/api/ai/architect', async (c) => {
     return { type: 'json_object' };
   }
 
+  // ── max_tokens 依 stage 調整：outline 30 集三語需 ~12-15k output tokens ──
+  function architectMaxTokens(s: string): number {
+    if (s === 'outline')  return 16000;
+    if (s === 'episodes') return 8000;
+    return 4000; // topic / characters / 其他
+  }
+
   const res = await orFetch(env.OPENROUTER_API_KEY, '/chat/completions', {
     method: 'POST',
     body: JSON.stringify({
@@ -259,7 +266,7 @@ app.post('/api/ai/architect', async (c) => {
         { role: 'system', content: systemPrompt },
         { role: 'user',   content: userPrompt },
       ],
-      max_tokens: 4000,
+      max_tokens: architectMaxTokens(stage),
       temperature: 0.85,
       response_format: architectResponseFormat(stage),
     }),
@@ -271,10 +278,19 @@ app.post('/api/ai/architect', async (c) => {
   }
 
   const data = await res.json<{
-    choices: { message: { content: string } }[];
+    choices: { message: { content: string }; finish_reason?: string }[];
     usage: { total_tokens: number };
     usage_cost?: number;
   }>();
+
+  // ── finish_reason 檢查：若被截斷則直接回 502，不進入 parse ──
+  const finishReason = data.choices[0]?.finish_reason ?? null;
+  if (finishReason === 'length') {
+    return c.json({
+      error: 'AI 生成內容過長被截斷，請重試或縮短故事原材料',
+      finishReason: 'length',
+    }, 502);
+  }
 
   let parsed: Record<string, unknown> = {};
   try {
@@ -284,11 +300,8 @@ app.post('/api/ai/architect', async (c) => {
     parsed = JSON.parse(stripped || '{}');
   } catch {
     return c.json({
-      error:        'AI returned invalid JSON',
-      rawPreview:   (data.choices[0]?.message?.content ?? '').slice(0, 1000),
-      finishReason: data.choices[0]?.finish_reason ?? null,
-      tokensUsed:   data.usage?.total_tokens ?? null,
-      usageCost:    data.usage_cost ?? null,
+      error: 'AI returned invalid JSON',
+      finishReason,
     }, 502);
   }
 
