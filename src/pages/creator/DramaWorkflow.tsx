@@ -750,6 +750,7 @@ function S1AssetBank({ onNext }: { onNext: () => void }) {
 
   // 真實上傳 state
   const { projectId: s1ProjectId } = useProjectStore();
+  const { user: s1User } = useAuthStore();
   const s1FileRef = useRef<HTMLInputElement>(null);
   const [s1Uploading, setS1Uploading]   = useState(false);
   const [s1UploadErr, setS1UploadErr]   = useState('');
@@ -757,8 +758,14 @@ function S1AssetBank({ onNext }: { onNext: () => void }) {
   const [s1Loaded, setS1Loaded]         = useState(false);
 
   const fetchS1Assets = useCallback(async () => {
+    // 若無 project id，不發 request，直接標記已載入（空列表）
+    if (!s1ProjectId) {
+      setS1Assets([]);
+      setS1Loaded(true);
+      return;
+    }
     try {
-      const res = await fetch(`/api/assets?project_id=${s1ProjectId || 'global'}&limit=100`);
+      const res = await fetch(`/api/assets?project_id=${s1ProjectId}&limit=100`);
       if (!res.ok) return;
       const data = await res.json<{ assets: typeof s1Assets }>();
       setS1Assets(data.assets ?? []);
@@ -773,13 +780,23 @@ function S1AssetBank({ onNext }: { onNext: () => void }) {
     const files = Array.from(e.target.files ?? []);
     e.target.value = '';
     if (!files.length) return;
+    // 前置驗證：需有登入用戶及 project id
+    const s1tr = tr.creator.drama.s1;
+    if (!s1User?.id) {
+      setS1UploadErr(s1tr.uploadLoginRequired);
+      return;
+    }
+    if (!s1ProjectId) {
+      setS1UploadErr(s1tr.uploadNoProject);
+      return;
+    }
     setS1Uploading(true); setS1UploadErr('');
     try {
       for (const file of files) {
         const fd = new FormData();
         fd.append('file', file);
-        fd.append('projectId', s1ProjectId || 'global');
-        fd.append('userId', 'creator-local');
+        fd.append('projectId', s1ProjectId);
+        fd.append('userId', s1User.id);
         fd.append('category', file.type.startsWith('audio/') ? 'audio' : file.type.startsWith('video/') ? 'video' : 'other');
         const res = await fetch('/api/upload', { method: 'POST', body: fd });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);

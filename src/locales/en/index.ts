@@ -756,6 +756,8 @@ export const en = {
         uploadedCount: ' uploaded',
         deleteLabel: 'Delete',
         uploadPrompt: 'Click to upload or drag & drop',
+        uploadLoginRequired: 'Please log in before uploading assets',
+        uploadNoProject: 'Please create or load a project before uploading',
         confirmBtn: 'Confirm Assets, Set Up Characters',
         confirmNote: 'Bound',
         confirmNote2: 'sponsor assets to this series for S4 storyboard generation',

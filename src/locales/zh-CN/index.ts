@@ -780,6 +780,8 @@ export const zhCN = {
         uploadedCount: '个已上传',
         deleteLabel: '删除',
         uploadPrompt: '点击上传或拖放',
+        uploadLoginRequired: '请先登录才能上传素材',
+        uploadNoProject: '请先创建或载入项目才能上传素材',
         confirmBtn: '资产库确认，进入角色设置',
         confirmNote: '已为此系列绑定',
         confirmNote2: '个赞助商资产，将用于 S4 分镜生成',

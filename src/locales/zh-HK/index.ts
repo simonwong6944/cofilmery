@@ -868,6 +868,8 @@ export const zhHK = {
         uploadedCount: '個已上傳',
         deleteLabel: '刪除',
         uploadPrompt: '點擊上傳或拖放',
+        uploadLoginRequired: '請先登入才能上傳素材',
+        uploadNoProject: '請先建立或載入項目才能上傳素材',
         confirmBtn: '資產庫確認，進入角色設定',
         confirmNote: '已為此系列綁定',
         confirmNote2: '個贊助商資產，將用於 S4 分鏡生成',
