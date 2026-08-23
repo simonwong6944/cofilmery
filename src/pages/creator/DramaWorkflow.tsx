@@ -659,7 +659,7 @@ function S1AssetBank({ onNext }: { onNext: () => void }) {
 
   // ── 真實中央庫 state ─────────────────────────────────────────────────────
   const [globalAssets, setGlobalAssets]         = useState<GlobalAsset[]>([]);
-  const [globalCategories, setGlobalCategories] = useState<string[]>([]);
+  const [globalCategories, setGlobalCategories] = useState<{ slug: string; name: string }[]>([]);
   const [globalLoading, setGlobalLoading]       = useState(false);
   const [sponsorMsg, setSponsorMsg]             = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [sponsorSaving, setSponsorSaving]       = useState(false);
@@ -717,8 +717,8 @@ function S1AssetBank({ onNext }: { onNext: () => void }) {
           setGlobalAssets(data.assets ?? []);
         }
         if (catsRes.ok) {
-          const data = await catsRes.json<{ categories: { id: string; name: string }[] }>();
-          setGlobalCategories((data.categories ?? []).map(c => c.name));
+          const data = await catsRes.json<{ categories: { id: string; name: string; slug: string }[] }>();
+          setGlobalCategories((data.categories ?? []).map(c => ({ slug: c.slug, name: c.name })));
         }
       } catch { /* non-blocking */ } finally {
         if (!cancelled) setGlobalLoading(false);
@@ -1128,21 +1128,21 @@ function S1AssetBank({ onNext }: { onNext: () => void }) {
 
           {/* Assets grouped by category */}
           {!globalLoading && globalAssets.length > 0 && (() => {
-            // Build category order: prefer admin-defined categories, fall back to unique cats in assets
-            const catOrder = globalCategories.length > 0
+            // Build category order: prefer admin-defined categories (slug + name), fall back to unique slugs in assets
+            const catOrder: { slug: string; name: string }[] = globalCategories.length > 0
               ? globalCategories
-              : [...new Set(globalAssets.map(a => a.category))];
+              : [...new Set(globalAssets.map(a => a.category))].map(s => ({ slug: s, name: s }));
 
-            return catOrder.map(catName => {
-              const catAssets = globalAssets.filter(a => a.category === catName);
+            return catOrder.map(cat => {
+              const catAssets = globalAssets.filter(a => a.category === cat.slug);
               if (catAssets.length === 0) return null;
               const catSelectedCount = catAssets.filter(a => isSelected(a.id)).length;
               return (
-                <div key={catName} className="bg-card rounded-xl border border-line shadow-card overflow-hidden">
+                <div key={cat.slug} className="bg-card rounded-xl border border-line shadow-card overflow-hidden">
                   {/* Category heading */}
                   <div className="flex items-center gap-2 px-4 py-3 border-b border-line bg-bg-soft">
                     <Tag size={14} className="text-accent" />
-                    <span className="font-bold text-sm text-ink">{catName}</span>
+                    <span className="font-bold text-sm text-ink">{cat.name}</span>
                     <span className="text-xs text-muted ml-1">({catAssets.length})</span>
                     {catSelectedCount > 0 && (
                       <span className="ml-auto bg-accent/10 text-accent text-[10px] font-semibold px-2 py-0.5 rounded-full">
