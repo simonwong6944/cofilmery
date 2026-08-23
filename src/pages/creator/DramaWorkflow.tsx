@@ -23,7 +23,7 @@ import {
   AlertTriangle, RefreshCw, Check, Mic, Save, ChevronDown, ChevronRight,
   Sparkles, Image, Film, Music, Edit3, Upload, Zap, Eye, Send,
   Heart, Clock, Star, Users, BookOpen, Camera, Car, UtensilsCrossed,
-  ShoppingBag, MapPin, Gift, Plus, X, Info, Tag, Building2, Package
+  ShoppingBag, MapPin, Gift, Plus, X, Info, Tag, Building2, Package, Trash2
 } from 'lucide-react';
 
 // ─────────────────────────────────────────
