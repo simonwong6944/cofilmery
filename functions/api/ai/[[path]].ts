@@ -67,7 +67,7 @@ async function recordGenJob(
 }
 
 // ── Hono app ──────────────────────────────────────────────────────────────────
-type Env = { Bindings: { OPENROUTER_API_KEY: string; DB: D1Database } };
+type Env = { Bindings: { OPENROUTER_API_KEY: string; DB: D1Database; FILES: R2Bucket } };
 const app = new Hono<Env>();
 app.use('*', cors({ origin: '*' }));
 
@@ -388,18 +388,24 @@ app.post('/api/ai/project/save', async (c) => {
 
 // ─── Image generation (D3) ────────────────────────────────────────────────────
 // POST /api/ai/image-gen
-// Body: { appearanceSummary, charName?, age?, referenceImageUrl? }
-// Returns: { ok, imageUrl }
-// Uses OpenRouter image generation API (openai/gpt-image-1 or similar)
+// Body: { appearanceSummary, charName?, age?, role?, referenceImageUrl?, projectId?, userId? }
+// Returns: { ok, fileUrl }  — image stored in R2, served via /api/assets/file/*
+//
+// Uses OpenRouter POST /api/v1/images  (official image gen endpoint).
+// Model: google/gemini-2.5-flash-image (fast, good at character consistency).
+// Response data[0].b64_json → base64 PNG → decode → R2 put → D1 assets row.
 app.post('/api/ai/image-gen', async (c) => {
   const env = c.env;
   if (!env.OPENROUTER_API_KEY) return c.json({ ok: false, error: 'AI not configured' }, 503);
+  if (!env.FILES) return c.json({ ok: false, error: 'Storage not configured' }, 503);
 
   const body = await c.req.json<{
     appearanceSummary: string;
     charName?: string;
     age?: string;
+    role?: string;
     referenceImageUrl?: string;
+    projectId?: string;
     userId?: string;
   }>();
 
@@ -407,35 +413,42 @@ app.post('/api/ai/image-gen', async (c) => {
     return c.json({ ok: false, error: 'appearanceSummary is required' }, 400);
   }
 
-  const charDesc = [
-    body.charName ? `角色名稱：${body.charName}` : '',
-    body.age ? `年齡：${body.age}` : '',
-    `外貌描述：${body.appearanceSummary}`,
-  ].filter(Boolean).join('，');
+  // Build prompt — Chinese for accuracy, English appended for model comprehension
+  const parts = [
+    'Portrait photo of a Hong Kong drama character.',
+    body.charName ? `Character name: ${body.charName}.` : '',
+    body.age      ? `Age: ${body.age}.`                  : '',
+    body.role     ? `Role: ${body.role}.`                : '',
+    `Appearance: ${body.appearanceSummary}.`,
+    'Half-body portrait, natural lighting, cinematic realism, clear facial features, 3:4 ratio.',
+  ].filter(Boolean).join(' ');
 
-  const prompt = `電影級人物角色肖像照，香港寫實風格。${charDesc}。正面半身像，自然光，清晰面部細節，高畫質，電影攝影感。`;
-
-  // Build messages — with reference image if provided
-  type ContentPart = { type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string } };
-  const userContent: ContentPart[] = [{ type: 'text', text: prompt }];
+  // Build request payload for OpenRouter images API
+  type ImagePayload = {
+    model: string;
+    prompt: string;
+    aspect_ratio: string;
+    input_references?: { type: string; image_url: { url: string } }[];
+  };
+  const payload: ImagePayload = {
+    model: 'google/gemini-2.5-flash-image',
+    prompt: parts,
+    aspect_ratio: '3:4',
+  };
   if (body.referenceImageUrl) {
-    userContent.push({ type: 'image_url', image_url: { url: body.referenceImageUrl } });
+    payload.input_references = [{ type: 'reference', image_url: { url: body.referenceImageUrl } }];
   }
 
-  const res = await orFetch(env.OPENROUTER_API_KEY, '/chat/completions', {
+  // Call OpenRouter images endpoint (NOT /chat/completions)
+  const res = await fetch('https://openrouter.ai/api/v1/images', {
     method: 'POST',
-    body: JSON.stringify({
-      model: 'openai/gpt-4o-image-vip',  // OpenRouter image-capable model
-      messages: [
-        {
-          role: 'system',
-          content: '你是一個角色設計師。根據用戶的角色外貌描述，生成一張符合描述的角色肖像圖片URL。只回覆 JSON: {"imageUrl": "..."}',
-        },
-        { role: 'user', content: userContent },
-      ],
-      max_tokens: 500,
-      response_format: { type: 'json_object' },
-    }),
+    headers: {
+      'Authorization': `Bearer ${env.OPENROUTER_API_KEY}`,
+      'Content-Type': 'application/json',
+      'HTTP-Referer': 'https://cofilmery.app',
+      'X-Title': 'CoFilmery',
+    },
+    body: JSON.stringify(payload),
   });
 
   if (!res.ok) {
@@ -443,35 +456,79 @@ app.post('/api/ai/image-gen', async (c) => {
     return c.json({ ok: false, error: 'Image generation failed', detail: errText }, 502);
   }
 
-  const data = await res.json<{
-    choices: { message: { content: string } }[];
-    usage?: { total_tokens: number };
+  // Response shape: { data: [{ b64_json: string, revised_prompt?: string }], usage_cost?: number }
+  const imgData = await res.json<{
+    data: { b64_json?: string; url?: string; revised_prompt?: string }[];
     usage_cost?: number;
   }>();
 
-  let imageUrl = '';
+  const item = imgData.data?.[0];
+  if (!item) {
+    return c.json({ ok: false, error: 'No image returned from OpenRouter' }, 502);
+  }
+
+  // ── Decode base64 → ArrayBuffer → R2 ──────────────────────────────────────
+  let imageBuffer: ArrayBuffer;
+
+  if (item.b64_json) {
+    // base64 PNG/JPEG bytes
+    const b64 = item.b64_json;
+    // atob works in Workers runtime
+    const binary = atob(b64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    imageBuffer = bytes.buffer;
+  } else if (item.url) {
+    // Some models return a URL — fetch and re-store
+    const imgRes = await fetch(item.url);
+    if (!imgRes.ok) return c.json({ ok: false, error: 'Failed to fetch generated image URL' }, 502);
+    imageBuffer = await imgRes.arrayBuffer();
+  } else {
+    return c.json({ ok: false, error: 'Unexpected image response format' }, 502);
+  }
+
+  // ── Store in R2 ───────────────────────────────────────────────────────────
+  const projectId = body.projectId ?? 'global';
+  const userId    = body.userId    ?? 'anonymous';
+  const assetId   = crypto.randomUUID();
+  const r2Key     = `generated/${projectId}/${assetId}.png`;
+
   try {
-    const parsed = JSON.parse(data.choices[0]?.message?.content ?? '{}') as { imageUrl?: string };
-    imageUrl = parsed.imageUrl ?? '';
-  } catch {
-    return c.json({ ok: false, error: 'AI returned invalid JSON' }, 502);
+    await env.FILES.put(r2Key, imageBuffer, {
+      httpMetadata:   { contentType: 'image/png' },
+      customMetadata: { userId, projectId, category: 'character', source: 'ai-generated' },
+    });
+  } catch (e) {
+    return c.json({ ok: false, error: 'R2 write failed', detail: String(e) }, 500);
   }
 
-  if (!imageUrl) {
-    return c.json({ ok: false, error: 'No image URL returned from AI' }, 502);
+  const fileUrl = `/api/assets/file/${encodeURIComponent(r2Key)}`;
+
+  // ── Record in D1 assets ──────────────────────────────────────────────────
+  try {
+    await env.DB.prepare(
+      `INSERT INTO assets
+         (id, project_id, user_id, file_name, file_type, file_size, r2_key, file_url, category, label)
+       VALUES (?,?,?,?,?,?,?,?,?,?)`
+    ).bind(
+      assetId, projectId, userId,
+      `ai-generated-${assetId.slice(0,8)}.png`, 'image/png',
+      imageBuffer.byteLength, r2Key, fileUrl,
+      'character', 'AI generated'
+    ).run();
+  } catch (e) {
+    console.error('D1 asset insert failed (non-fatal):', e);
   }
 
-  // Record credits
-  const tokens = data.usage?.total_tokens ?? 0;
-  const costUsd = data.usage_cost ?? (tokens * 0.000002 + 0.04); // image gen costs more
+  // ── Record credits ────────────────────────────────────────────────────────
+  const costUsd = imgData.usage_cost ?? 0.04; // ~$0.04 per image for gemini flash
   const credits = costUsdToCredits(costUsd);
-  const userId = body.userId ?? 'anonymous';
-  const jobId = crypto.randomUUID();
+  const jobId   = crypto.randomUUID();
 
-  await recordGenJob(env.DB, jobId, userId, 'image_gen', 'completed', credits, 'openrouter', imageUrl);
-  await recordCreditDebit(env.DB, userId, credits, 'ai_generation', `角色圖像生成`);
+  await recordGenJob(env.DB, jobId, userId, 'image_gen', 'completed', credits, 'google/gemini-2.5-flash-image', fileUrl);
+  await recordCreditDebit(env.DB, userId, credits, 'ai_generation', `角色圖像生成 (AI generated)`);
 
-  return c.json({ ok: true, imageUrl, creditsConsumed: credits });
+  return c.json({ ok: true, fileUrl, assetId, creditsConsumed: credits });
 });
 
 // ─── Credits balance ──────────────────────────────────────────────────────────

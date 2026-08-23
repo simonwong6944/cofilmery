@@ -1196,7 +1196,9 @@ function CharacterProfileCard({
   const [uploading, setUploading] = useState(false);
   const [showAssetPicker, setShowAssetPicker] = useState(false);
   const [assetPickerTarget, setAssetPickerTarget] = useState<'img' | 'refs'>('img');
+  const [showAvatarModal, setShowAvatarModal] = useState(false);   // Fix 2: avatar click modal
   const [s1Assets, setS1Assets] = useState<{ id: string; file_name: string; file_url: string; file_type: string }[]>([]);
+  const [assetsLoading, setAssetsLoading] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const refInputRef = useRef<HTMLInputElement>(null);
 
@@ -1229,17 +1231,29 @@ function CharacterProfileCard({
     }
   };
 
-  // Fetch S1 assets for picker
+  // Fetch all assets for picker (no category filter — show everything uploaded)
+  const loadAssets = async () => {
+    if (s1Assets.length > 0) return;
+    setAssetsLoading(true);
+    try {
+      const res = await fetch(`/api/assets?project_id=${projectId ?? 'global'}&limit=200`);
+      const data = await res.json() as { ok: boolean; assets: typeof s1Assets };
+      if (data.ok) setS1Assets(data.assets);
+    } catch { /* non-blocking */ }
+    finally { setAssetsLoading(false); }
+  };
+
+  // Open asset picker for refs
   const openAssetPicker = async (target: 'img' | 'refs') => {
     setAssetPickerTarget(target);
     setShowAssetPicker(true);
-    if (s1Assets.length === 0) {
-      try {
-        const res = await fetch(`/api/assets?project_id=${projectId ?? 'global'}&limit=100`);
-        const data = await res.json() as { ok: boolean; assets: typeof s1Assets };
-        if (data.ok) setS1Assets(data.assets);
-      } catch { /* non-blocking */ }
-    }
+    await loadAssets();
+  };
+
+  // Fix 2: open avatar picker modal
+  const openAvatarModal = async () => {
+    setShowAvatarModal(true);
+    await loadAssets();
   };
 
   const removeTrait = (t: string) => {
@@ -1321,10 +1335,67 @@ function CharacterProfileCard({
         }}
       />
 
+      {/* Fix 2: Avatar picker modal — shows on avatar click */}
+      {showAvatarModal && (
+        <div className="bg-card rounded-xl border border-primary/30 shadow-card p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold text-ink flex items-center gap-2">
+              <Camera size={14} className="text-primary" /> 設定角色頭像
+            </p>
+            <button onClick={() => setShowAvatarModal(false)} className="text-muted hover:text-ink">
+              <X size={16} />
+            </button>
+          </div>
+
+          {/* Option A: Upload new */}
+          <button
+            onClick={() => { setShowAvatarModal(false); avatarInputRef.current?.click(); }}
+            disabled={uploading}
+            className="w-full flex items-center gap-3 p-3 rounded-xl border border-dashed border-line hover:border-primary bg-bg-soft hover:bg-primary/5 transition-all text-left disabled:opacity-50"
+          >
+            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+              <Upload size={16} className="text-primary" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-ink">上傳新相片</p>
+              <p className="text-xs text-muted">從裝置選擇圖片檔案</p>
+            </div>
+          </button>
+
+          {/* Option B: Pick from uploaded assets */}
+          <div>
+            <p className="text-xs font-semibold text-muted mb-2">從已上傳素材揀選</p>
+            {assetsLoading ? (
+              <div className="flex items-center justify-center py-6">
+                <RefreshCw size={16} className="text-muted animate-spin" />
+              </div>
+            ) : s1Assets.filter(a => a.file_type.startsWith('image')).length === 0 ? (
+              <p className="text-xs text-muted text-center py-4 border border-dashed border-line rounded-xl">
+                尚無已上傳圖片，請先在 S1 上傳素材或使用「上傳新相片」。
+              </p>
+            ) : (
+              <div className="grid grid-cols-5 gap-2 max-h-48 overflow-y-auto">
+                {s1Assets.filter(a => a.file_type.startsWith('image')).map(a => (
+                  <button
+                    key={a.id}
+                    onClick={() => { onImgChange?.(a.file_url); setShowAvatarModal(false); }}
+                    className="aspect-square rounded-lg overflow-hidden border-2 border-transparent hover:border-primary transition-all"
+                    title={a.file_name}
+                  >
+                    <img src={a.file_url} alt={a.file_name} className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Basic info */}
       <div className="bg-card rounded-xl border border-line p-5 shadow-card">
         <div className="flex gap-4 mb-4">
-          <div className="relative flex-shrink-0">
+          {/* Fix 2: Avatar — entire area is clickable, opens avatar picker modal */}
+          <div className="relative flex-shrink-0 group cursor-pointer" onClick={openAvatarModal}>
             {img ? (
               <img src={img} alt={name} className="w-20 h-20 rounded-xl object-cover" />
             ) : (
@@ -1332,14 +1403,16 @@ function CharacterProfileCard({
                 <Users size={28} className="text-primary/30" />
               </div>
             )}
-            <button
-              onClick={() => avatarInputRef.current?.click()}
-              disabled={uploading}
-              className="absolute -bottom-1 -right-1 bg-white border border-line rounded-full p-1 hover:bg-bg-soft shadow-sm disabled:opacity-50"
-              title="上傳頭像"
-            >
-              {uploading ? <RefreshCw size={10} className="text-muted animate-spin" /> : <Upload size={10} className="text-muted" />}
-            </button>
+            {/* Hover overlay */}
+            <div className="absolute inset-0 rounded-xl bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+              {uploading
+                ? <RefreshCw size={16} className="text-white animate-spin" />
+                : <Camera size={16} className="text-white" />
+              }
+            </div>
+            <div className="absolute -bottom-1 -right-1 bg-primary text-white rounded-full p-1 shadow-sm">
+              <Camera size={9} />
+            </div>
           </div>
           <div className="flex-1 space-y-2">
             <div className="grid grid-cols-2 gap-2">
@@ -1640,6 +1713,8 @@ function CharacterProfileCard({
                     appearanceSummary: prompt,
                     charName: name,
                     age,
+                    role,                              // Fix 1: pass role for better prompt
+                    projectId: projectId ?? 'global',  // Fix 1: needed for R2 key
                   };
                   if (img) body.referenceImageUrl = img;
                   const res = await fetch('/api/ai/image-gen', {
@@ -1647,9 +1722,9 @@ function CharacterProfileCard({
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(body),
                   });
-                  const data = await res.json() as { ok: boolean; imageUrl?: string; error?: string };
-                  if (!data.ok || !data.imageUrl) throw new Error(data.error ?? 'Generation failed');
-                  setImageGenResult(data.imageUrl);
+                  const data = await res.json() as { ok: boolean; fileUrl?: string; error?: string };
+                  if (!data.ok || !data.fileUrl) throw new Error(data.error ?? 'Generation failed');
+                  setImageGenResult(data.fileUrl);  // Fix 1: use fileUrl (R2-backed)
                 } catch (e) {
                   setImageGenError(e instanceof Error ? e.message : '生成失敗，請稍後再試。');
                 } finally {
