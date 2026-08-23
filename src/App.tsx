@@ -56,6 +56,7 @@ import Redlines from '@/pages/admin/Redlines';
 import AIAdapters from '@/pages/admin/AIAdapters';
 import Analytics from '@/pages/admin/Analytics';
 import SystemSettings from '@/pages/admin/SystemSettings';
+import AssetLibrary from '@/pages/admin/AssetLibrary';
 
 // Sponsor
 import SponsorDashboard from '@/pages/sponsor/SponsorDashboard';
@@ -122,6 +123,7 @@ export default function App() {
           <Route path="/admin/adapters" element={<AIAdapters />} />
           <Route path="/admin/analytics" element={<Analytics />} />
           <Route path="/admin/settings" element={<SystemSettings />} />
+          <Route path="/admin/assets" element={<AssetLibrary />} />
         </Route>
 
         {/* ── Sponsor Routes — requires sponsor role ── */}

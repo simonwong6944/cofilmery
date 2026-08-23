@@ -5,7 +5,7 @@ import { LocaleSwitcher } from '@/components/shared/LocaleSwitcher';
 import {
   LayoutDashboard, ListVideo, PlaySquare, Users, UserCheck,
   ShieldAlert, Coins, Megaphone, Leaf, Building2, Heart,
-  AlertTriangle, Cpu, BarChart3, Settings, Menu, X
+  AlertTriangle, Cpu, BarChart3, Settings, Menu, X, Library
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useLocaleStore } from '@/store/localeStore';
@@ -35,6 +35,7 @@ export function AdminSidebar() {
     { path: '/admin/adapters',             icon: Cpu,             label: tr.admin.sidebar.adapters },
     { path: '/admin/analytics',            icon: BarChart3,       label: tr.admin.sidebar.analytics },
     { path: '/admin/settings',             icon: Settings,        label: tr.admin.sidebar.settings },
+    { path: '/admin/assets',               icon: Library,         label: tr.admin.sidebar.assetLibrary },
   ];
 
   const NavList = ({ onClose }: { onClose?: () => void }) => (
