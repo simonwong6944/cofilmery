@@ -931,6 +931,19 @@ export const zhHK = {
         simHint70: '✦ AI 保持主要特徵（體型、臉型、髮型），允許光線/角度差異。適合配角。',
         simHintSpirit: '◈ AI 捕捉角色氣質與神態，不強求形似。適合群眾角色或寫意風格。',
         simHintNone: '請選擇一致性程度',
+        // ── 性別選擇 ──
+        genderLabel: '性別',
+        genderMale: '男',
+        genderFemale: '女',
+        genderOther: '其他',
+        // ── 性格預設（按性別）──
+        personalityPresetsLabel: '快速選擇性格：',
+        personalityPresetsMale: ['重情義', '沉默寡言', '固執', '豪爽', '嚴肅', '保護欲強', '幽默', '勤力', '理性', '豁達', '勇敢', '念舊', '好勝', '傳統', '親切'],
+        personalityPresetsFemale: ['善解人意', '溫柔體貼', '堅強獨立', '細心', '直率', '聰慧', '勤勉', '感性', '包容', '開朗樂觀', '堅毅', '俏皮', '知性優雅', '勇敢', '樂於助人'],
+        personalityPresetsOther: ['開朗樂觀', '沉穩', '好奇心強', '創意十足', '自由奔放', '勤力', '體貼', '幽默', '細心', '勇於嘗試', '獨立', '直率', '溫和', '熱情', '念舊'],
+        // ── 保存掣 ──
+        saveCharBtn: '保存角色',
+        saveCharDone: '已保存 ✓',
         appearanceRows: [
           { label: '身高', opts: ['矮小', '中等身高', '高挑', '高大'] },
           { label: '體型', opts: ['瘦削', '纖細', '適中', '微胖', '肥胖', '壯實'] },

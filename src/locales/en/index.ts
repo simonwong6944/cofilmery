@@ -819,6 +819,19 @@ export const en = {
         simHint70: '✦ AI maintains key features (build, face, hair), allows lighting/angle variation. Best for supporting roles.',
         simHintSpirit: '◈ AI captures character essence and expression, not strict resemblance. Best for crowd roles or artistic style.',
         simHintNone: 'Please select a consistency level',
+        // ── Gender Selection ──
+        genderLabel: 'Gender',
+        genderMale: 'Male',
+        genderFemale: 'Female',
+        genderOther: 'Other',
+        // ── Personality Presets (by gender) ──
+        personalityPresetsLabel: 'Quick-add personality:',
+        personalityPresetsMale: ['Loyal', 'Reserved', 'Stubborn', 'Straightforward', 'Serious', 'Protective', 'Humorous', 'Hardworking', 'Rational', 'Easygoing', 'Brave', 'Nostalgic', 'Competitive', 'Traditional', 'Warm'],
+        personalityPresetsFemale: ['Empathetic', 'Gentle', 'Independent', 'Attentive', 'Frank', 'Intelligent', 'Diligent', 'Sensitive', 'Tolerant', 'Optimistic', 'Resilient', 'Playful', 'Sophisticated', 'Brave', 'Helpful'],
+        personalityPresetsOther: ['Optimistic', 'Calm', 'Curious', 'Creative', 'Free-spirited', 'Hardworking', 'Caring', 'Humorous', 'Attentive', 'Adventurous', 'Independent', 'Frank', 'Gentle', 'Enthusiastic', 'Nostalgic'],
+        // ── Save Button ──
+        saveCharBtn: 'Save Character',
+        saveCharDone: 'Saved ✓',
         appearanceRows: [
           { label: 'Height', opts: ['Short', 'Medium', 'Tall', 'Very Tall'] },
           { label: 'Build', opts: ['Slim', 'Slender', 'Medium', 'Slightly Chubby', 'Heavy', 'Muscular'] },

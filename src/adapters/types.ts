@@ -126,6 +126,7 @@ export interface CharacterCard {
   humanEdited: boolean;
   // S2 UI 欄位（持久化避免返回時丟失）
   age?: string;                    // 年齡
+  gender?: 'male' | 'female' | 'other'; // 性別
   img?: string;                    // 頭像 URL（R2 fileUrl 或外部 URL）
   refs?: string[];                 // 參考相 URL 陣列
 }

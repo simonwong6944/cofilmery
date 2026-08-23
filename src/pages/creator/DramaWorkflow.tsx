@@ -1182,15 +1182,19 @@ function buildAppearanceSummary(a: AppearanceOptions): string {
 // ── Shared: CharacterProfileCard ────────────────────────────────────────────
 function CharacterProfileCard({
   img, refs, name, role, age, bg, similarity, setSimilarity, mode,
+  gender, onGenderChange,
   initialTraits, initialAppearance,
   onTraitsChange, onAppearanceChange,
   onNameChange, onRoleChange, onAgeChange, onBgChange,
   onImgChange, onRefsChange,
+  onSaveChar,
   projectId,
 }: {
   img: string; refs?: string[]; name: string; role: string; age: string; bg: string;
   similarity: string; setSimilarity: (v: string) => void;
   mode: 'drama' | 'legacy';
+  gender?: 'male' | 'female' | 'other';
+  onGenderChange?: (g: 'male' | 'female' | 'other' | undefined) => void;
   initialTraits?: string[];
   initialAppearance?: AppearanceOptions;
   onTraitsChange?: (t: string[]) => void;
@@ -1201,6 +1205,7 @@ function CharacterProfileCard({
   onBgChange?: (v: string) => void;
   onImgChange?: (url: string) => void;
   onRefsChange?: (urls: string[]) => void;
+  onSaveChar?: () => void;
   projectId?: string;
 }) {
   const { locale } = useLocaleStore();
@@ -1211,6 +1216,7 @@ function CharacterProfileCard({
   const [addingTrait, setAddingTrait] = useState(false);
   const [appearance, setAppearance] = useState<AppearanceOptions>(initialAppearance ?? DEFAULT_APPEARANCE);
   const [showAppearance, setShowAppearance] = useState(false);
+  const [saveCharSaved, setSaveCharSaved] = useState(false);
 
   // Upload state
   const [uploading, setUploading] = useState(false);
@@ -1319,7 +1325,15 @@ function CharacterProfileCard({
     { id: s2tr.simSpirit, label: s2tr.simSpirit, desc: s2tr.simSpiritDesc, ...simColors[2] },
   ];
 
-  const TRAIT_PRESETS = tr.creator.drama.shared.traitPresets;
+  // 性別聯動性格預設清單
+  const PERSONALITY_PRESETS_BY_GENDER: Record<'male' | 'female' | 'other', string[]> = {
+    male:   s2tr.personalityPresetsMale,
+    female: s2tr.personalityPresetsFemale,
+    other:  s2tr.personalityPresetsOther,
+  };
+  const TRAIT_PRESETS = gender
+    ? PERSONALITY_PRESETS_BY_GENDER[gender]
+    : tr.creator.drama.shared.traitPresets;
 
   // Appearance option rows — from locale so they rebuild on locale change
   const appearanceRowLabels = tr.creator.drama.s2.appearanceRows;
@@ -1470,6 +1484,48 @@ function CharacterProfileCard({
                   onChange={e => onBgChange?.(e.target.value)}
                 />
               </div>
+            </div>
+
+            {/* 性別選擇 + 保存掣（同一行）*/}
+            <div className="flex items-center gap-3 pt-0.5">
+              <div className="flex items-center gap-1.5 flex-1">
+                <label className="text-xs text-muted whitespace-nowrap">{s2tr.genderLabel}：</label>
+                <div className="flex gap-1">
+                  {(['male', 'female', 'other'] as const).map(g => {
+                    const label = g === 'male' ? s2tr.genderMale : g === 'female' ? s2tr.genderFemale : s2tr.genderOther;
+                    const isSelected = gender === g;
+                    return (
+                      <button
+                        key={g}
+                        onClick={() => onGenderChange?.(isSelected ? undefined : g)}
+                        className={`text-xs px-2.5 py-1 rounded-full border transition-all font-medium ${
+                          isSelected
+                            ? 'bg-primary text-white border-primary'
+                            : 'border-line text-muted hover:border-primary hover:text-primary bg-bg-soft'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              {/* 保存角色掣 */}
+              <button
+                onClick={() => {
+                  onSaveChar?.();
+                  setSaveCharSaved(true);
+                  setTimeout(() => setSaveCharSaved(false), 2000);
+                }}
+                className={`flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg border transition-all font-medium flex-shrink-0 ${
+                  saveCharSaved
+                    ? 'bg-green-50 text-green-600 border-green-300'
+                    : 'bg-bg-soft text-ink border-line hover:border-primary hover:text-primary'
+                }`}
+              >
+                <Save size={11} />
+                {saveCharSaved ? s2tr.saveCharDone : s2tr.saveCharBtn}
+              </button>
             </div>
           </div>
         </div>
@@ -1842,6 +1898,7 @@ type CharDraft = {
   role: string;
   age: string;
   bg: string;
+  gender?: 'male' | 'female' | 'other'; // 性別
   roleTag: 'lead' | 'support' | 'extra';
   similarity: string;
   traits: string[];
@@ -1850,6 +1907,7 @@ type CharDraft = {
 
 const newCharDraft = (id: string, similarity: string): CharDraft => ({
   id, img: '', refs: [], name: '', role: '', age: '', bg: '',
+  gender: undefined,
   roleTag: 'support', similarity,
   traits: [], appearance: { ...DEFAULT_APPEARANCE },
 });
@@ -1872,6 +1930,7 @@ function S2CharacterSetup({ onNext }: { onNext: () => void }) {
         name: c.name_i18n['zh-HK'],
         role: c.identityTag_i18n['zh-HK'],
         age: c.age ?? '',                                              // Fix C: 讀回年齡
+        gender: c.gender,                                              // 讀回性別
         bg: c.traitsConflict_i18n['zh-HK'],
         roleTag: 'support' as const,
         similarity: c.similarityLevel ?? s2tr.simSeventyPct,
@@ -1945,6 +2004,7 @@ function S2CharacterSetup({ onNext }: { onNext: () => void }) {
       similarityLevel: d.similarity,
       humanEdited: false,
       age: d.age,       // Fix C: 持久化年齡
+      gender: d.gender, // 性別
       img: d.img,       // Fix C: 持久化頭像
       refs: d.refs,     // Fix C: 持久化參考相
     }));
@@ -2140,6 +2200,8 @@ function S2CharacterSetup({ onNext }: { onNext: () => void }) {
             role={activeDraft.role}
             age={activeDraft.age}
             bg={activeDraft.bg}
+            gender={activeDraft.gender}
+            onGenderChange={g => updateDraft(activeDraft.id, { gender: g })}
             similarity={activeDraft.similarity}
             setSimilarity={v => updateDraft(activeDraft.id, { similarity: v })}
             mode="drama"
@@ -2153,6 +2215,10 @@ function S2CharacterSetup({ onNext }: { onNext: () => void }) {
             onBgChange={v => updateDraft(activeDraft.id, { bg: v })}
             onImgChange={url => updateDraft(activeDraft.id, { img: url })}
             onRefsChange={urls => updateDraft(activeDraft.id, { refs: urls })}
+            onSaveChar={() => {
+              const chars = draftsToCards(drafts);
+              storeSetCharacters(chars);
+            }}
             projectId={pid}
           />
         </div>
