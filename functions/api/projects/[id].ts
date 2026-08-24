@@ -29,7 +29,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
       `SELECT id, title, mode, status, creator_id, description, tags,
               episode_count, completed_episodes, thumbnail_url,
               total_views, esg_score, published_at, created_at, updated_at,
-              story_material, series_context
+              story_material, series_context, series_outline, characters
        FROM projects WHERE id = ?`
     ).bind(id).first();
 
@@ -39,7 +39,21 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
       });
     }
 
-    return new Response(JSON.stringify({ ok: true, project: row }), {
+    // Also fetch episode story_cards so the client can restore S3 state
+    const episodesResult = await env.DB.prepare(
+      `SELECT episode_number, title, story_card
+       FROM episodes
+       WHERE project_id = ? AND story_card IS NOT NULL
+       ORDER BY episode_number ASC`
+    ).bind(id).all();
+
+    const episodes = (episodesResult.results ?? []) as Array<{
+      episode_number: number;
+      title: string;
+      story_card: string | null;
+    }>;
+
+    return new Response(JSON.stringify({ ok: true, project: row, episodes }), {
       status: 200, headers: CORS,
     });
   } catch (e) {

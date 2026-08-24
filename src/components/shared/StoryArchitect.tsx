@@ -7,7 +7,8 @@ import { useState } from 'react';
 import { useLocaleStore } from '@/store/localeStore';
 import { useProjectStore } from '@/store/projectStore';
 import { t } from '@/i18n';
-import { aiAdapter } from '@/adapters';
+import { aiAdapter, saveStoryCardToD1 } from '@/adapters';
+import { useAuthStore } from '@/store/authStore';
 import { CREDIT } from '@/credit-config';
 import type {
   SeriesContext, TopicOption, CharacterCard, EpisodeStoryCard,
@@ -705,6 +706,8 @@ export function S1cEpisodes({ context, outline, characters, sponsorAssets = [], 
   void locale;
   const sa = tr.storyArchitect;
   const projectId = useProjectId();
+  const projectTitle = useProjectStore(s => s.projectTitle);
+  const { user: epUser } = useAuthStore();
   const loc = locale as 'zh-HK' | 'en' | 'zh-CN';
 
   const [cards, setCards] = useState<Record<number, EpisodeStoryCard>>({});
@@ -738,6 +741,13 @@ export function S1cEpisodes({ context, outline, characters, sponsorAssets = [], 
         setCards(prev => ({ ...prev, [epNum]: res.storyCard! }));
         setExpanded(prev => { const s = new Set(prev); s.add(epNum); return s; });
         void recordAction({ project_id: projectId, stage: 'episodes', action: 'generate', actor: 'ai' });
+        // A2 持久化：每集生成成功後即時寫入 D1 episodes.story_card（fire-and-forget）
+        void saveStoryCardToD1({
+          projectId,
+          userId: epUser?.id ?? 'demo-user',
+          title: projectTitle || context.seriesTitle || '未命名劇集',
+          card: res.storyCard,
+        });
       }
     } finally {
       setLoading(prev => ({ ...prev, [epNum]: false }));

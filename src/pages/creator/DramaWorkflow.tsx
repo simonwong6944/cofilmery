@@ -2633,6 +2633,15 @@ function S3StoryFramework({ onNext }: { onNext: () => void }) {
             if (outlineCoCreateNote && outlineCoCreateNote.trim()) {
               setCoCreated(true, outlineCoCreateNote.trim());
             }
+            // A1 持久化：將 30 集 outline 寫入 D1 projects.series_outline（non-blocking）
+            saveProjectToD1({
+              projectId: projectId3,
+              userId: authUser3?.id ?? 'demo-user',
+              title: projectTitle || '未命名劇集',
+              characters: storedCharacters,
+              outline: ol,
+              storyCards: [],
+            }).catch(e => console.warn('[S3 outline onAccept] D1 save failed:', e));
             setSubStage('episodes');
           }}
         />

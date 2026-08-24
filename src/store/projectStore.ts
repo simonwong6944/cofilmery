@@ -52,7 +52,8 @@ interface ProjectState {
   getStoryCard: (episodeNumber: number) => EpisodeStoryCard | null;
   reset: () => void;
   /** 載入既有 project，填充 store（從 ProjectHub 點選繼續）
-   *  接受從 GET /api/projects/:id 取得的完整 row，含 story_material / series_context。
+   *  接受從 GET /api/projects/:id 取得的完整 row，含 story_material / series_context /
+   *  series_outline / characters，以及 episodes 陣列（含 story_card）。
    *  順序：先以 INITIAL 重置，再覆蓋 D1 回傳的值，避免殘留舊 state。
    */
   loadProject: (project: {
@@ -62,7 +63,9 @@ interface ProjectState {
     description?: string;
     story_material?: string | null;
     series_context?: string | null;
-  }) => void;
+    series_outline?: string | null;
+    characters?: string | null;
+  }, episodes?: Array<{ episode_number: number; title: string; story_card: string | null }>) => void;
   /** 重置 store 並生成新 projectId（從 ProjectHub 建立新項目後呼叫） */
   startNewProject: () => void;
   /**
@@ -134,19 +137,50 @@ export const useProjectStore = create<ProjectState>()(
 
       reset: () => set({ ...INITIAL }),
 
-      loadProject: (project) => {
+      loadProject: (project, episodes) => {
         // Parse series_context JSON back to SeriesContext
         let parsedContext: SeriesContext | null = null;
         if (project.series_context) {
           try { parsedContext = JSON.parse(project.series_context) as SeriesContext; }
           catch { /* 格式損壞則維持 null */ }
         }
+
+        // Parse series_outline JSON back to outline array
+        type OutlineItem = { episodeNumber: number; title_i18n: { 'zh-HK': string; en: string; 'zh-CN': string }; oneLine_i18n: { 'zh-HK': string; en: string; 'zh-CN': string } };
+        let parsedOutline: OutlineItem[] = [];
+        if (project.series_outline) {
+          try { parsedOutline = JSON.parse(project.series_outline) as OutlineItem[]; }
+          catch { /* 格式損壞則維持空陣列 */ }
+        }
+
+        // Parse characters JSON
+        let parsedCharacters: CharacterCard[] = [];
+        if (project.characters) {
+          try { parsedCharacters = JSON.parse(project.characters) as CharacterCard[]; }
+          catch { /* ignore */ }
+        }
+
+        // Parse episode story_cards
+        const parsedStoryCards: EpisodeStoryCard[] = [];
+        if (episodes && episodes.length > 0) {
+          for (const ep of episodes) {
+            if (ep.story_card) {
+              try {
+                parsedStoryCards.push(JSON.parse(ep.story_card) as EpisodeStoryCard);
+              } catch { /* skip malformed card */ }
+            }
+          }
+        }
+
         set({
           ...INITIAL,
           projectId:     project.id,
           projectTitle:  project.title,
           storyMaterial: project.story_material ?? '',
           context:       parsedContext,
+          outline:       parsedOutline,
+          characters:    parsedCharacters,
+          storyCards:    parsedStoryCards,
         });
       },
 
@@ -163,10 +197,12 @@ export const useProjectStore = create<ProjectState>()(
             project?: {
               id: string; title: string; mode?: string; description?: string;
               story_material?: string | null; series_context?: string | null;
+              series_outline?: string | null; characters?: string | null;
             };
+            episodes?: Array<{ episode_number: number; title: string; story_card: string | null }>;
           };
           if (data.ok && data.project) {
-            get().loadProject(data.project);
+            get().loadProject(data.project, data.episodes);
             return true;
           }
           return false;

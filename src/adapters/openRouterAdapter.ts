@@ -208,16 +208,18 @@ export const openRouterAdapter: AIAdapter = {
   },
 };
 
-// ── Architect save helper (persist to D1 projects table) ─────────────────────
+// ── Architect save helper (persist to D1 via /api/ai/project/save) ────────────
 /**
- * saveProjectToD1 — ensures a row exists in the D1 `projects` table.
+ * saveProjectToD1 — upserts a project row + episodes.story_card rows in D1.
  *
- * Calls POST /api/projects with the caller-supplied projectId so the backend
- * can do an upsert (INSERT … ON CONFLICT(id) DO UPDATE).
- * characters / storyCards / outline remain in localStorage via projectStore
- * persist; only the project row itself is written to D1 here.
+ * Calls POST /api/ai/project/save (NOT /api/projects) because only that
+ * endpoint writes series_outline + episodes.story_card.  /api/projects only
+ * handles story_material / series_context.
  *
- * Returns { ok: true, project } on success, throws on network/DB error so
+ * Body the backend expects:
+ *   { projectId, userId, title, mode?, characters?, storyCards?, outline? }
+ *
+ * Returns { ok: true, projectId } on success, throws on network/DB error so
  * callers can surface failures instead of silently dropping them.
  */
 export async function saveProjectToD1(params: {
@@ -230,8 +232,10 @@ export async function saveProjectToD1(params: {
   characters?: CharacterCard[];
   storyCards?: EpisodeStoryCard[];
   outline?: { episodeNumber: number; title_i18n: { 'zh-HK': string; en: string; 'zh-CN': string }; oneLine_i18n: { 'zh-HK': string; en: string; 'zh-CN': string } }[];
-}): Promise<{ ok: boolean; project?: unknown }> {
-  const res = await fetch('/api/projects', {
+}): Promise<{ ok: boolean; projectId?: string }> {
+  // Step 1: ensure the project row exists with story_material / series_context
+  // (POST /api/projects handles those two columns)
+  const projRes = await fetch('/api/projects', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -243,11 +247,60 @@ export async function saveProjectToD1(params: {
       series_context: params.seriesContext ?? null,
     }),
   });
+  if (!projRes.ok) {
+    const err = await projRes.json<{ error?: string; detail?: string }>().catch(() => ({}));
+    throw new Error(err.error ?? `HTTP ${projRes.status}`);
+  }
+
+  // Step 2: persist series_outline + episodes.story_card via the dedicated route
+  const res = await fetch('/api/ai/project/save', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      projectId:  params.projectId,
+      userId:     params.userId,
+      title:      params.title,
+      mode:       params.mode ?? 'drama',
+      characters: params.characters ?? [],
+      outline:    params.outline    ?? [],
+      storyCards: params.storyCards ?? [],
+    }),
+  });
   if (!res.ok) {
     const err = await res.json<{ error?: string; detail?: string }>().catch(() => ({}));
     throw new Error(err.error ?? `HTTP ${res.status}`);
   }
   return res.json();
+}
+
+/**
+ * saveStoryCardToD1 — upserts a single episode story_card row.
+ * Called immediately after each episode is generated (expandEpisode success)
+ * so cards are persisted one-by-one without waiting for full batch accept.
+ */
+export async function saveStoryCardToD1(params: {
+  projectId: string;
+  userId: string;
+  title: string;
+  card: EpisodeStoryCard;
+}): Promise<void> {
+  try {
+    await fetch('/api/ai/project/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        projectId:  params.projectId,
+        userId:     params.userId,
+        title:      params.title,
+        mode:       'drama',
+        characters: [],
+        outline:    [],
+        storyCards: [params.card],
+      }),
+    });
+  } catch {
+    // fire-and-forget: single-card save failure is non-blocking
+  }
 }
 
 // ── Character D1 helpers ──────────────────────────────────────────────────────
