@@ -1,5 +1,6 @@
 /**
- * Cloudflare Pages Function: PATCH /api/assets/[id]  — update asset metadata
+ * Cloudflare Pages Function: GET    /api/assets/[id]  — get single asset with media + is_complete
+ *                            PATCH  /api/assets/[id]  — update asset metadata
  *                            DELETE /api/assets/[id]  — delete asset (R2 + D1)
  *
  * Env bindings required:
@@ -9,6 +10,12 @@
  * Owner check (anti-accidental-delete, not a hard auth boundary):
  *   - X-User-Role: 'admin' → bypass owner check (can modify any asset)
  *   - otherwise           → X-User-Id must match assets.user_id; else 403
+ *
+ * Completeness rules (inline, mirrors /api/asset-media):
+ *   character | prop | costume | sponsor  → needs front + side + back
+ *   scene                                 → needs main
+ *   audio                                 → needs primary
+ *   other / anything else                 → needs primary
  */
 
 interface Env {
@@ -16,9 +23,79 @@ interface Env {
   FILES: R2Bucket;
 }
 
+interface AssetMediaRow {
+  id:         string;
+  asset_id:   string;
+  file_url:   string;
+  role:       string;
+  sort_order: number;
+  created_at: string;
+}
+
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Content-Type': 'application/json',
+};
+
+// ── Inline completeness helper (same logic as in assets.ts / asset-media.ts) ──
+function isAssetComplete(category: string, roles: string[]): boolean {
+  const roleSet = new Set(roles);
+  switch (category) {
+    case 'character':
+    case 'prop':
+    case 'costume':
+    case 'sponsor':
+      return roleSet.has('front') && roleSet.has('side') && roleSet.has('back');
+    case 'scene':
+      return roleSet.has('main');
+    case 'audio':
+      return roleSet.has('primary');
+    default:
+      return roleSet.has('primary');
+  }
+}
+
+// ── GET: fetch single asset with media + is_complete ─────────────────────────
+export const onRequestGet: PagesFunction<Env> = async (ctx) => {
+  const id = ctx.params['id'] as string | undefined;
+  if (!id) {
+    return new Response(JSON.stringify({ error: 'Missing asset id' }), {
+      status: 400, headers: CORS,
+    });
+  }
+
+  try {
+    const asset = await ctx.env.DB.prepare(
+      `SELECT * FROM assets WHERE id = ?`
+    ).bind(id).first<Record<string, unknown>>();
+
+    if (!asset) {
+      return new Response(JSON.stringify({ error: 'Asset not found' }), {
+        status: 404, headers: CORS,
+      });
+    }
+
+    // Fetch associated media
+    const mediaResult = await ctx.env.DB.prepare(
+      `SELECT id, asset_id, file_url, role, sort_order, created_at
+         FROM asset_media
+        WHERE asset_id = ?
+        ORDER BY sort_order ASC, created_at ASC`
+    ).bind(id).all<AssetMediaRow>();
+
+    const media = mediaResult.results ?? [];
+    const roles = media.map(m => m.role);
+    const category = (asset['category'] as string) ?? 'other';
+
+    return new Response(JSON.stringify({
+      ok:          true,
+      asset:       { ...asset, media, is_complete: isAssetComplete(category, roles) },
+    }), { status: 200, headers: CORS });
+  } catch (e) {
+    return new Response(JSON.stringify({ error: 'DB read failed', detail: String(e) }), {
+      status: 500, headers: CORS,
+    });
+  }
 };
 
 // ── Allowed metadata fields for PATCH ────────────────────────────────────────
@@ -173,7 +250,7 @@ export const onRequestOptions: PagesFunction = async () =>
     status: 204,
     headers: {
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'PATCH, DELETE, OPTIONS',
+      'Access-Control-Allow-Methods': 'GET, PATCH, DELETE, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, X-User-Id, X-User-Role',
     },
   });

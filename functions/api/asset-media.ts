@@ -1,0 +1,294 @@
+/**
+ * Cloudflare Pages Function: /api/asset-media
+ *
+ * GET  /api/asset-media?asset_id=<id>
+ *   → returns { ok: true, media: AssetMediaRow[] } ordered by sort_order ASC
+ *
+ * POST /api/asset-media
+ *   body (JSON): { asset_id, role, file_url, sort_order? }
+ *     OR body (multipart/form-data): { asset_id, role, file (binary), sort_order? }
+ *   → If multipart, uploads file to R2 (same mechanism as /api/upload) then writes D1.
+ *   → If JSON with file_url, writes D1 directly (caller already has URL).
+ *   → Rejects if asset already has ≥ 8 media rows.
+ *   → returns { ok: true, media: AssetMediaRow }
+ *
+ * DELETE /api/asset-media/:id
+ *   → Deletes the asset_media row (and attempts R2 deletion if r2_key derivable).
+ *   → returns { ok: true, id }
+ *
+ * Env bindings required:
+ *   DB    — D1Database
+ *   FILES — R2Bucket (only needed for multipart POST)
+ *
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Completeness rules  (exported helper — also imported by assets.ts / assets/[id].ts)
+ * ─────────────────────────────────────────────────────────────────────────────
+ * isAssetComplete(category, roles: string[]): boolean
+ *
+ *   category                           required roles
+ *   ──────────────────────────────     ─────────────────────────────
+ *   'character' | 'prop' |             front + side + back (all three)
+ *   'costume'   | 'sponsor'
+ *   'scene'                            main
+ *   'audio'                            primary  (audio file)
+ *   'other' | anything else            primary
+ */
+
+export interface AssetMediaRow {
+  id:         string;
+  asset_id:   string;
+  file_url:   string;
+  role:       string;
+  sort_order: number;
+  created_at: string;
+}
+
+interface Env {
+  DB:    D1Database;
+  FILES: R2Bucket;
+}
+
+const CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Content-Type': 'application/json',
+};
+
+const VALID_ROLES = ['front', 'side', 'back', 'main', 'primary', 'other'] as const;
+type MediaRole = typeof VALID_ROLES[number];
+
+const MAX_MEDIA_PER_ASSET = 8;
+
+// ── Shared completeness helper ────────────────────────────────────────────────
+/**
+ * Given an asset's category and the list of role strings already in asset_media,
+ * returns true iff the asset has all required angles / media.
+ *
+ * Rules:
+ *   character | prop | costume | sponsor  → needs 'front', 'side', 'back'
+ *   scene                                 → needs 'main'
+ *   audio                                 → needs 'primary'
+ *   other / anything else                 → needs 'primary'
+ */
+export function isAssetComplete(category: string, roles: string[]): boolean {
+  const roleSet = new Set(roles);
+  switch (category) {
+    case 'character':
+    case 'prop':
+    case 'costume':
+    case 'sponsor':
+      return roleSet.has('front') && roleSet.has('side') && roleSet.has('back');
+    case 'scene':
+      return roleSet.has('main');
+    case 'audio':
+      return roleSet.has('primary');
+    default:
+      return roleSet.has('primary');
+  }
+}
+
+// ── GET /api/asset-media?asset_id=<id> ───────────────────────────────────────
+export const onRequestGet: PagesFunction<Env> = async (ctx) => {
+  const url     = new URL(ctx.request.url);
+  const assetId = url.searchParams.get('asset_id') ?? '';
+
+  if (!assetId) {
+    return new Response(JSON.stringify({ error: 'asset_id is required' }), {
+      status: 400, headers: CORS,
+    });
+  }
+
+  try {
+    const rows = await ctx.env.DB.prepare(
+      `SELECT id, asset_id, file_url, role, sort_order, created_at
+         FROM asset_media
+        WHERE asset_id = ?
+        ORDER BY sort_order ASC, created_at ASC`
+    ).bind(assetId).all<AssetMediaRow>();
+
+    return new Response(JSON.stringify({ ok: true, media: rows.results ?? [] }), {
+      status: 200, headers: CORS,
+    });
+  } catch (e) {
+    return new Response(JSON.stringify({ error: 'DB read failed', detail: String(e) }), {
+      status: 500, headers: CORS,
+    });
+  }
+};
+
+// ── POST /api/asset-media ─────────────────────────────────────────────────────
+export const onRequestPost: PagesFunction<Env> = async (ctx) => {
+  const contentType = ctx.request.headers.get('content-type') ?? '';
+
+  let assetId:   string;
+  let role:      string;
+  let fileUrl:   string;
+  let sortOrder: number = 0;
+
+  // ── Branch A: multipart/form-data (file upload path) ─────────────────────
+  if (contentType.includes('multipart/form-data')) {
+    if (!ctx.env.FILES) {
+      return new Response(JSON.stringify({ error: 'Storage not configured (FILES binding missing)' }), {
+        status: 503, headers: CORS,
+      });
+    }
+
+    let formData: FormData;
+    try {
+      formData = await ctx.request.formData();
+    } catch {
+      return new Response(JSON.stringify({ error: 'Invalid multipart form data' }), {
+        status: 400, headers: CORS,
+      });
+    }
+
+    assetId   = (formData.get('asset_id')    as string | null) ?? '';
+    role      = (formData.get('role')         as string | null) ?? 'primary';
+    sortOrder = parseInt((formData.get('sort_order') as string | null) ?? '0', 10) || 0;
+    const file = formData.get('file') as File | null;
+
+    if (!assetId) {
+      return new Response(JSON.stringify({ error: 'asset_id is required' }), {
+        status: 400, headers: CORS,
+      });
+    }
+    if (!file || typeof file === 'string') {
+      return new Response(JSON.stringify({ error: 'file is required for multipart upload' }), {
+        status: 400, headers: CORS,
+      });
+    }
+
+    // 10 MB limit
+    if (file.size > 10 * 1024 * 1024) {
+      return new Response(JSON.stringify({ error: 'File too large (max 10 MB)' }), {
+        status: 413, headers: CORS,
+      });
+    }
+
+    const mediaId  = crypto.randomUUID();
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 120);
+    const r2Key    = `asset-media/${assetId}/${mediaId}_${safeName}`;
+    const arrayBuf = await file.arrayBuffer();
+
+    try {
+      await ctx.env.FILES.put(r2Key, arrayBuf, {
+        httpMetadata:   { contentType: file.type || 'application/octet-stream' },
+        customMetadata: { assetId, role },
+      });
+    } catch (e) {
+      return new Response(JSON.stringify({ error: 'R2 write failed', detail: String(e) }), {
+        status: 500, headers: CORS,
+      });
+    }
+
+    fileUrl = `/api/assets/file/${encodeURIComponent(r2Key)}`;
+
+    // Delegate to shared insert logic below
+    return insertMediaRow(ctx.env.DB, mediaId, assetId, fileUrl, role, sortOrder);
+  }
+
+  // ── Branch B: JSON body (file_url already known) ──────────────────────────
+  let body: { asset_id?: string; role?: string; file_url?: string; sort_order?: number };
+  try {
+    body = await ctx.request.json() as typeof body;
+  } catch {
+    return new Response(JSON.stringify({ error: 'Invalid JSON body' }), {
+      status: 400, headers: CORS,
+    });
+  }
+
+  assetId   = body.asset_id ?? '';
+  role      = body.role     ?? 'primary';
+  fileUrl   = body.file_url ?? '';
+  sortOrder = typeof body.sort_order === 'number' ? body.sort_order : 0;
+
+  if (!assetId) {
+    return new Response(JSON.stringify({ error: 'asset_id is required' }), {
+      status: 400, headers: CORS,
+    });
+  }
+  if (!fileUrl) {
+    return new Response(JSON.stringify({ error: 'file_url is required (or use multipart upload)' }), {
+      status: 400, headers: CORS,
+    });
+  }
+
+  const mediaId = crypto.randomUUID();
+  return insertMediaRow(ctx.env.DB, mediaId, assetId, fileUrl, role, sortOrder);
+};
+
+// ── Shared insert helper ──────────────────────────────────────────────────────
+async function insertMediaRow(
+  db:        D1Database,
+  mediaId:   string,
+  assetId:   string,
+  fileUrl:   string,
+  role:      string,
+  sortOrder: number,
+): Promise<Response> {
+  // Validate role
+  if (!(VALID_ROLES as readonly string[]).includes(role)) {
+    return new Response(JSON.stringify({
+      error: `Invalid role '${role}'. Allowed: ${VALID_ROLES.join(', ')}`,
+    }), { status: 400, headers: CORS });
+  }
+
+  try {
+    // Check asset exists
+    const asset = await db.prepare(
+      `SELECT id FROM assets WHERE id = ?`
+    ).bind(assetId).first<{ id: string }>();
+
+    if (!asset) {
+      return new Response(JSON.stringify({ error: 'Asset not found' }), {
+        status: 404, headers: CORS,
+      });
+    }
+
+    // Enforce 8-media cap
+    const countRow = await db.prepare(
+      `SELECT COUNT(*) AS cnt FROM asset_media WHERE asset_id = ?`
+    ).bind(assetId).first<{ cnt: number }>();
+
+    if ((countRow?.cnt ?? 0) >= MAX_MEDIA_PER_ASSET) {
+      return new Response(JSON.stringify({
+        error: `Asset already has ${MAX_MEDIA_PER_ASSET} media items (maximum reached)`,
+      }), { status: 422, headers: CORS });
+    }
+
+    const now = new Date().toISOString();
+
+    await db.prepare(
+      `INSERT INTO asset_media (id, asset_id, file_url, role, sort_order, created_at)
+       VALUES (?, ?, ?, ?, ?, ?)`
+    ).bind(mediaId, assetId, fileUrl, role, sortOrder, now).run();
+
+    const row = await db.prepare(
+      `SELECT id, asset_id, file_url, role, sort_order, created_at
+         FROM asset_media WHERE id = ?`
+    ).bind(mediaId).first<AssetMediaRow>();
+
+    return new Response(JSON.stringify({ ok: true, media: row }), {
+      status: 200, headers: CORS,
+    });
+  } catch (e) {
+    return new Response(JSON.stringify({ error: 'DB write failed', detail: String(e) }), {
+      status: 500, headers: CORS,
+    });
+  }
+}
+
+// ── DELETE /api/asset-media/:id ───────────────────────────────────────────────
+// Note: Cloudflare Pages Functions file-based routing — this handler handles
+// DELETE on /api/asset-media (the id comes from the query param ?id=).
+// The actual DELETE-by-id route is in functions/api/asset-media/[id].ts (sibling file).
+// This export handles OPTIONS for the base route.
+
+export const onRequestOptions: PagesFunction = async () =>
+  new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin':  '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    },
+  });
