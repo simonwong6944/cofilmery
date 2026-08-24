@@ -1,29 +1,35 @@
--- CoFilmery D1 Migration: 0011_asset_media
--- Creates asset_media table for one-to-many media angles per asset.
--- Each asset can have up to 8 media items (enforced at API layer).
--- role values: 'front' | 'side' | 'back' | 'main' | 'primary' | 'other'
+-- CoFilmery D1 Migration: 0011_asset_media (v2 — expanded roles)
+-- DROP + CREATE to update the CHECK constraint with the full 10-role set.
+-- Safe on staging: no production data to lose.
+--
+-- role set (10 slugs):
+--   立體角度: front, three-quarter, side, back, action, detail
+--   場景:     main, alt-angle
+--   通用:     primary, other
 --
 -- Completeness rules (enforced at API layer via isAssetComplete()):
---   character / prop / costume / sponsor product  → needs front + side + back
---   scene                                         → needs main
---   audio (background music)                      → needs primary (audio file)
---   other                                         → needs primary
+--   character / prop / costume / sponsor  → needs front + side + back
+--   scene                                 → needs main
+--   audio / other / anything else         → needs primary
+--   three-quarter: optional (suggested but not required for completeness)
 --
--- assets.file_url is kept as main-image shortcut; this table adds multi-angle support.
--- NOTE: Only ADDs new table; does NOT alter or drop any existing table/column.
+-- assets.file_url kept as main-image shortcut; this table adds multi-angle support.
+-- NOTE: Only ADDs new table / drops own table — does NOT alter assets table.
 
-CREATE TABLE IF NOT EXISTS asset_media (
-  id          TEXT    PRIMARY KEY,                          -- UUID
-  asset_id    TEXT    NOT NULL,                             -- FK concept → assets.id
-  file_url    TEXT    NOT NULL,                             -- R2-served URL
-  role        TEXT    NOT NULL DEFAULT 'primary'
-              CHECK(role IN ('front','side','back','main','primary','other')),
-  sort_order  INTEGER NOT NULL DEFAULT 0,
-  created_at  TEXT    NOT NULL DEFAULT (datetime('now'))
+DROP TABLE IF EXISTS asset_media;
+
+CREATE TABLE asset_media (
+  id          TEXT    PRIMARY KEY,
+  asset_id    TEXT    NOT NULL,
+  file_url    TEXT    NOT NULL,
+  role        TEXT    NOT NULL
+              CHECK(role IN (
+                'front', 'three-quarter', 'side', 'back', 'action', 'detail',
+                'main', 'alt-angle', 'primary', 'other'
+              )),
+  sort_order  INTEGER DEFAULT 0,
+  created_at  TEXT    DEFAULT CURRENT_TIMESTAMP
 );
 
--- Fast lookup by asset_id (the most common query)
-CREATE INDEX IF NOT EXISTS idx_asset_media_asset ON asset_media(asset_id);
-
--- Composite index for ordered listing per asset
-CREATE INDEX IF NOT EXISTS idx_asset_media_asset_sort ON asset_media(asset_id, sort_order);
+CREATE INDEX idx_asset_media_asset_id ON asset_media(asset_id);
+CREATE INDEX idx_asset_media_role     ON asset_media(asset_id, role);

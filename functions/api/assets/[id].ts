@@ -11,11 +11,11 @@
  *   - X-User-Role: 'admin' → bypass owner check (can modify any asset)
  *   - otherwise           → X-User-Id must match assets.user_id; else 403
  *
- * Completeness rules (inline, mirrors /api/asset-media):
+ * Completeness rules (inline, mirrors asset-media.ts — 10-role set):
  *   character | prop | costume | sponsor  → needs front + side + back
  *   scene                                 → needs main
- *   audio                                 → needs primary
- *   other / anything else                 → needs primary
+ *   audio / other / *                     → needs primary
+ *   three-quarter / action / detail / alt-angle: optional, never block completeness
  */
 
 interface Env {

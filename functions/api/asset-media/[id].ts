@@ -2,13 +2,12 @@
  * Cloudflare Pages Function: DELETE /api/asset-media/:id
  *
  * Deletes a single asset_media row by its primary-key id.
- * R2 object deletion is attempted only when the file_url is a local
- * /api/assets/file/<r2key> path (i.e. hosted in our own R2 bucket).
- * If R2 deletion fails we still delete the D1 row (non-fatal).
+ * R2 cleanup is attempted when file_url is a local /api/assets/file/<r2key> path.
+ * R2 failure is non-fatal — D1 row is always deleted.
  *
  * Env bindings required:
  *   DB    — D1Database
- *   FILES — R2Bucket (optional — only needed for R2 cleanup)
+ *   FILES — R2Bucket (optional — only for R2 cleanup)
  */
 
 interface Env {
@@ -30,7 +29,6 @@ export const onRequestDelete: PagesFunction<Env> = async (ctx) => {
   }
 
   try {
-    // Fetch the row first so we can attempt R2 cleanup
     const row = await ctx.env.DB.prepare(
       `SELECT id, file_url FROM asset_media WHERE id = ?`
     ).bind(id).first<{ id: string; file_url: string }>();
@@ -41,7 +39,7 @@ export const onRequestDelete: PagesFunction<Env> = async (ctx) => {
       });
     }
 
-    // Attempt R2 object deletion if the URL is a local /api/assets/file/<key> path
+    // Attempt R2 cleanup for locally-hosted files
     const LOCAL_PREFIX = '/api/assets/file/';
     if (ctx.env.FILES && row.file_url.startsWith(LOCAL_PREFIX)) {
       try {
@@ -52,10 +50,7 @@ export const onRequestDelete: PagesFunction<Env> = async (ctx) => {
       }
     }
 
-    // Delete D1 row
-    await ctx.env.DB.prepare(
-      `DELETE FROM asset_media WHERE id = ?`
-    ).bind(id).run();
+    await ctx.env.DB.prepare(`DELETE FROM asset_media WHERE id = ?`).bind(id).run();
 
     return new Response(JSON.stringify({ ok: true, id }), {
       status: 200, headers: CORS,

@@ -2,36 +2,30 @@
  * Cloudflare Pages Function: /api/asset-media
  *
  * GET  /api/asset-media?asset_id=<id>
- *   → returns { ok: true, media: AssetMediaRow[] } ordered by sort_order ASC
+ *   → { ok, media: AssetMediaRow[] } ordered by sort_order ASC
  *
  * POST /api/asset-media
- *   body (JSON): { asset_id, role, file_url, sort_order? }
- *     OR body (multipart/form-data): { asset_id, role, file (binary), sort_order? }
- *   → If multipart, uploads file to R2 (same mechanism as /api/upload) then writes D1.
- *   → If JSON with file_url, writes D1 directly (caller already has URL).
- *   → Rejects if asset already has ≥ 8 media rows.
- *   → returns { ok: true, media: AssetMediaRow }
+ *   JSON body: { asset_id, role, file_url, sort_order? }
+ *   → writes D1 row directly (caller already has the file_url from R2 upload)
+ *   → rejects if asset already has ≥ 8 media rows
+ *   → returns { ok, media: AssetMediaRow }
  *
- * DELETE /api/asset-media/:id
- *   → Deletes the asset_media row (and attempts R2 deletion if r2_key derivable).
- *   → returns { ok: true, id }
+ * DELETE /api/asset-media/:id  — handled in asset-media/[id].ts
  *
  * Env bindings required:
- *   DB    — D1Database
- *   FILES — R2Bucket (only needed for multipart POST)
+ *   DB — D1Database
  *
  * ─────────────────────────────────────────────────────────────────────────────
- * Completeness rules  (exported helper — also imported by assets.ts / assets/[id].ts)
- * ─────────────────────────────────────────────────────────────────────────────
- * isAssetComplete(category, roles: string[]): boolean
+ * Role set (10 slugs, must match CHECK constraint in migration 0011):
+ *   front | three-quarter | side | back | action | detail
+ *   main  | alt-angle     | primary | other
  *
- *   category                           required roles
- *   ──────────────────────────────     ─────────────────────────────
- *   'character' | 'prop' |             front + side + back (all three)
- *   'costume'   | 'sponsor'
- *   'scene'                            main
- *   'audio'                            primary  (audio file)
- *   'other' | anything else            primary
+ * isAssetComplete(category, roles) — inline helper used by assets.ts too:
+ *   character | prop | costume | sponsor  → needs front + side + back
+ *   scene                                 → needs main
+ *   audio / other / *                     → needs primary
+ *   three-quarter: optional, never blocks completeness
+ * ─────────────────────────────────────────────────────────────────────────────
  */
 
 export interface AssetMediaRow {
@@ -44,7 +38,7 @@ export interface AssetMediaRow {
 }
 
 interface Env {
-  DB:    D1Database;
+  DB: D1Database;
   FILES: R2Bucket;
 }
 
@@ -53,22 +47,17 @@ const CORS = {
   'Content-Type': 'application/json',
 };
 
-const VALID_ROLES = ['front', 'side', 'back', 'main', 'primary', 'other'] as const;
+// Must stay in sync with CHECK constraint in 0011_asset_media.sql
+const VALID_ROLES = [
+  'front', 'three-quarter', 'side', 'back', 'action', 'detail',
+  'main', 'alt-angle', 'primary', 'other',
+] as const;
 type MediaRole = typeof VALID_ROLES[number];
 
 const MAX_MEDIA_PER_ASSET = 8;
 
 // ── Shared completeness helper ────────────────────────────────────────────────
-/**
- * Given an asset's category and the list of role strings already in asset_media,
- * returns true iff the asset has all required angles / media.
- *
- * Rules:
- *   character | prop | costume | sponsor  → needs 'front', 'side', 'back'
- *   scene                                 → needs 'main'
- *   audio                                 → needs 'primary'
- *   other / anything else                 → needs 'primary'
- */
+// Inlined here AND in assets.ts / assets/[id].ts (CF Pages can't cross-import).
 export function isAssetComplete(category: string, roles: string[]): boolean {
   const roleSet = new Set(roles);
   switch (category) {
@@ -81,7 +70,7 @@ export function isAssetComplete(category: string, roles: string[]): boolean {
       return roleSet.has('main');
     case 'audio':
       return roleSet.has('primary');
-    default:
+    default: // 'other' and anything else
       return roleSet.has('primary');
   }
 }
@@ -117,76 +106,6 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
 
 // ── POST /api/asset-media ─────────────────────────────────────────────────────
 export const onRequestPost: PagesFunction<Env> = async (ctx) => {
-  const contentType = ctx.request.headers.get('content-type') ?? '';
-
-  let assetId:   string;
-  let role:      string;
-  let fileUrl:   string;
-  let sortOrder: number = 0;
-
-  // ── Branch A: multipart/form-data (file upload path) ─────────────────────
-  if (contentType.includes('multipart/form-data')) {
-    if (!ctx.env.FILES) {
-      return new Response(JSON.stringify({ error: 'Storage not configured (FILES binding missing)' }), {
-        status: 503, headers: CORS,
-      });
-    }
-
-    let formData: FormData;
-    try {
-      formData = await ctx.request.formData();
-    } catch {
-      return new Response(JSON.stringify({ error: 'Invalid multipart form data' }), {
-        status: 400, headers: CORS,
-      });
-    }
-
-    assetId   = (formData.get('asset_id')    as string | null) ?? '';
-    role      = (formData.get('role')         as string | null) ?? 'primary';
-    sortOrder = parseInt((formData.get('sort_order') as string | null) ?? '0', 10) || 0;
-    const file = formData.get('file') as File | null;
-
-    if (!assetId) {
-      return new Response(JSON.stringify({ error: 'asset_id is required' }), {
-        status: 400, headers: CORS,
-      });
-    }
-    if (!file || typeof file === 'string') {
-      return new Response(JSON.stringify({ error: 'file is required for multipart upload' }), {
-        status: 400, headers: CORS,
-      });
-    }
-
-    // 10 MB limit
-    if (file.size > 10 * 1024 * 1024) {
-      return new Response(JSON.stringify({ error: 'File too large (max 10 MB)' }), {
-        status: 413, headers: CORS,
-      });
-    }
-
-    const mediaId  = crypto.randomUUID();
-    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 120);
-    const r2Key    = `asset-media/${assetId}/${mediaId}_${safeName}`;
-    const arrayBuf = await file.arrayBuffer();
-
-    try {
-      await ctx.env.FILES.put(r2Key, arrayBuf, {
-        httpMetadata:   { contentType: file.type || 'application/octet-stream' },
-        customMetadata: { assetId, role },
-      });
-    } catch (e) {
-      return new Response(JSON.stringify({ error: 'R2 write failed', detail: String(e) }), {
-        status: 500, headers: CORS,
-      });
-    }
-
-    fileUrl = `/api/assets/file/${encodeURIComponent(r2Key)}`;
-
-    // Delegate to shared insert logic below
-    return insertMediaRow(ctx.env.DB, mediaId, assetId, fileUrl, role, sortOrder);
-  }
-
-  // ── Branch B: JSON body (file_url already known) ──────────────────────────
   let body: { asset_id?: string; role?: string; file_url?: string; sort_order?: number };
   try {
     body = await ctx.request.json() as typeof body;
@@ -196,10 +115,10 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     });
   }
 
-  assetId   = body.asset_id ?? '';
-  role      = body.role     ?? 'primary';
-  fileUrl   = body.file_url ?? '';
-  sortOrder = typeof body.sort_order === 'number' ? body.sort_order : 0;
+  const assetId   = body.asset_id ?? '';
+  const role      = body.role     ?? '';
+  const fileUrl   = body.file_url ?? '';
+  const sortOrder = typeof body.sort_order === 'number' ? body.sort_order : 0;
 
   if (!assetId) {
     return new Response(JSON.stringify({ error: 'asset_id is required' }), {
@@ -207,13 +126,18 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     });
   }
   if (!fileUrl) {
-    return new Response(JSON.stringify({ error: 'file_url is required (or use multipart upload)' }), {
+    return new Response(JSON.stringify({ error: 'file_url is required' }), {
       status: 400, headers: CORS,
     });
   }
+  if (!(VALID_ROLES as readonly string[]).includes(role)) {
+    return new Response(JSON.stringify({
+      error: `Invalid role '${role}'. Allowed: ${VALID_ROLES.join(', ')}`,
+    }), { status: 400, headers: CORS });
+  }
 
   const mediaId = crypto.randomUUID();
-  return insertMediaRow(ctx.env.DB, mediaId, assetId, fileUrl, role, sortOrder);
+  return insertMediaRow(ctx.env.DB, mediaId, assetId, fileUrl, role as MediaRole, sortOrder);
 };
 
 // ── Shared insert helper ──────────────────────────────────────────────────────
@@ -225,15 +149,8 @@ async function insertMediaRow(
   role:      string,
   sortOrder: number,
 ): Promise<Response> {
-  // Validate role
-  if (!(VALID_ROLES as readonly string[]).includes(role)) {
-    return new Response(JSON.stringify({
-      error: `Invalid role '${role}'. Allowed: ${VALID_ROLES.join(', ')}`,
-    }), { status: 400, headers: CORS });
-  }
-
   try {
-    // Check asset exists
+    // Verify asset exists
     const asset = await db.prepare(
       `SELECT id FROM assets WHERE id = ?`
     ).bind(assetId).first<{ id: string }>();
@@ -277,12 +194,7 @@ async function insertMediaRow(
   }
 }
 
-// ── DELETE /api/asset-media/:id ───────────────────────────────────────────────
-// Note: Cloudflare Pages Functions file-based routing — this handler handles
-// DELETE on /api/asset-media (the id comes from the query param ?id=).
-// The actual DELETE-by-id route is in functions/api/asset-media/[id].ts (sibling file).
-// This export handles OPTIONS for the base route.
-
+// ── OPTIONS ───────────────────────────────────────────────────────────────────
 export const onRequestOptions: PagesFunction = async () =>
   new Response(null, {
     status: 204,
