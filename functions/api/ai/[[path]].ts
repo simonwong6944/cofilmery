@@ -724,14 +724,17 @@ app.post('/api/ai/image-gen', async (c) => {
 
 // ─── Character angle generation ───────────────────────────────────────────────
 // POST /api/ai/character-angle
-// Body: { assetId, role, referenceImageUrl?, appearanceSummary, projectId, userId }
+// Body: { assetId, role, referenceImageUrl?, appearanceSummary, projectId, userId, similarity? }
 // Returns: { ok, fileUrl, role }
 //
-// Generates a single angle view for a character asset.
+// Model: bytedance-seed/seedream-4.5  (photorealistic, NOT illustration)
 // Roles: front | three-quarter | side | back (mandatory set)
 //        action | detail (optional, user-triggered only)
-// If referenceImageUrl is provided, loads from R2 and passes as input_reference
-// (Path A chaining: front → used as reference for three-quarter/side/back).
+// similarity: 'high' | 'mid' | 'low'  (default 'mid')
+//   high → SAME real person, preserve facial identity
+//   mid  → idealized version of the same person
+//   low  → new character inspired by the same vibe/aura
+// Path A chaining: front output → reference for subsequent angles.
 // Stores result in R2 at generated/{projectId}/{assetId}_{role}.png
 // Writes one row to asset_media; if role=front also updates assets.file_url.
 app.post('/api/ai/character-angle', async (c) => {
@@ -746,9 +749,11 @@ app.post('/api/ai/character-angle', async (c) => {
     appearanceSummary: string;
     projectId: string;
     userId: string;
+    similarity?: 'high' | 'mid' | 'low';
   }>();
 
   const { assetId, role, appearanceSummary, projectId, userId } = body;
+  const similarity: 'high' | 'mid' | 'low' = body.similarity ?? 'mid';
 
   if (!assetId)           return c.json({ ok: false, error: 'assetId is required' }, 400);
   if (!appearanceSummary) return c.json({ ok: false, error: 'appearanceSummary is required' }, 400);
@@ -761,29 +766,49 @@ app.post('/api/ai/character-angle', async (c) => {
     return c.json({ ok: false, error: `Invalid role. Must be one of: ${VALID_ANGLE_ROLES.join(', ')}` }, 400);
   }
 
-  // Angle-specific prompt directive map
+  // ── Angle-specific pose directives (strong wording to override consistency pressure) ──
   const ANGLE_DIRECTIVES: Record<AngleRole, string> = {
-    'front':         'front view, facing camera directly, symmetrical composition',
-    'three-quarter': 'three-quarter view, body turned approximately 45 degrees to the right, face slightly angled',
-    'side':          'profile view, facing left, full side silhouette visible',
-    'back':          'rear view, back of character facing camera, head slightly turned if natural',
-    'action':        'dynamic action pose, full body, movement and energy captured',
-    'detail':        'close-up detail shot, face and upper body, sharp facial features',
+    'front':
+      'facing the camera directly, full frontal view',
+    'three-quarter':
+      'body clearly rotated about 45 degrees, three-quarter angle, one shoulder noticeably closer to camera — distinctly different from a front view',
+    'side':
+      'full profile, body rotated 90 degrees to the side, only one side of the face visible',
+    'back':
+      'back turned to the camera, rear view, showing the back of the head and body',
+    'action':
+      'dynamic full-body action pose',
+    'detail':
+      'close-up on face and upper body, sharp realistic facial detail',
   };
 
-  const angleDirective = ANGLE_DIRECTIVES[role as AngleRole];
+  // ── Similarity directives: controls how closely the output tracks the reference ──
+  const SIMILARITY_DIRECTIVES: Record<'high' | 'mid' | 'low', string> = {
+    high:
+      'This is the SAME real person as the reference photo. Preserve their facial identity, bone structure, and overall likeness faithfully. Apply only the specified appearance settings as light refinements (grooming, styling, wardrobe). A viewer must instantly recognize this as the same individual.',
+    mid:
+      'Base this person on the reference photo but present an improved, idealized version of them. Keep enough of the reference likeness that a viewer can still tell it is clearly based on the same person, while visibly incorporating the specified appearance settings to reshape their look. Recognizable, but a better version of them.',
+    low:
+      'Take only the general vibe, aura, and overall impression from the reference photo. This is a NEW character inspired by that person — not the same individual. Let the specified appearance settings drive the design; the reference only informs the feel and energy, not the exact face.',
+  };
 
-  // Build prompt
+  const angleDirective     = ANGLE_DIRECTIVES[role as AngleRole];
+  const similarityDirective = SIMILARITY_DIRECTIVES[similarity];
+
+  // ── Build photorealistic prompt (no illustration / cartoon language) ──────
   const parts = [
-    'Full-body character reference sheet illustration for a Hong Kong drama character.',
-    `Appearance: ${appearanceSummary}.`,
+    'Photorealistic full-body character portrait for a live-action Hong Kong TV drama.',
+    `Appearance settings to apply: ${appearanceSummary}.`,
+    similarityDirective,
     `Pose/View: ${angleDirective}.`,
-    'Consistent character design, clean background, studio lighting, illustration style suitable for character bible.',
-    'Maintain exact same face, hair, clothing, and physical proportions as the reference.',
+    'Real human being, cinematic photography, natural skin texture and pores, realistic studio lighting, shot on a professional camera, film-still quality, plain neutral background.',
+    'Absolutely NOT illustration, NOT cartoon, NOT anime, NOT 3D render, NOT painting, NOT drawing, NOT stylized.',
     '3:4 aspect ratio.',
   ].filter(Boolean).join(' ');
 
-  // Build OpenRouter images payload
+  // ── Build OpenRouter images payload (bytedance-seed/seedream-4.5) ─────────
+  // Seedream 4.5 supports same /api/v1/images schema as Gemini:
+  //   model, prompt, aspect_ratio, input_references (0-14 refs)
   type ImagePayload = {
     model: string;
     prompt: string;
@@ -791,12 +816,13 @@ app.post('/api/ai/character-angle', async (c) => {
     input_references?: { type: string; image_url: { url: string } }[];
   };
   const payload: ImagePayload = {
-    model: 'google/gemini-2.5-flash-image',
+    model: 'bytedance-seed/seedream-4.5',
     prompt: parts,
     aspect_ratio: '3:4',
   };
 
-  // ── Load reference image from R2 if provided (Path A chaining) ────────────
+  // ── Load reference image from R2 (Path A chaining) ───────────────────────
+  // Only attach reference when one is provided; absent = text-only generation.
   let referenceSkipped = false;
   if (body.referenceImageUrl) {
     try {
@@ -879,16 +905,15 @@ app.post('/api/ai/character-angle', async (c) => {
   try {
     await env.FILES.put(r2Key, imageBuffer, {
       httpMetadata:   { contentType: 'image/png' },
-      customMetadata: { userId, projectId, assetId, role, source: 'character-angle' },
+      customMetadata: { userId, projectId, assetId, role, similarity, source: 'character-angle' },
     });
   } catch (e) {
     return c.json({ ok: false, error: 'R2 write failed', detail: String(e) }, 500);
   }
 
-  // ── Write asset_media row (INSERT OR REPLACE to allow re-generation) ──────
+  // ── Write asset_media row (DELETE+INSERT for idempotent re-generation) ────
   const mediaId = crypto.randomUUID();
   try {
-    // Remove existing row for this asset+role first (re-gen replaces old angle)
     await env.DB.prepare(
       `DELETE FROM asset_media WHERE asset_id = ? AND role = ?`
     ).bind(assetId, role).run();
@@ -921,7 +946,7 @@ app.post('/api/ai/character-angle', async (c) => {
   const credits = costUsdToCredits(costUsd);
   const jobId   = crypto.randomUUID();
 
-  await recordGenJob(env.DB, jobId, userId, 'character_angle', 'completed', credits, 'google/gemini-2.5-flash-image', fileUrl);
+  await recordGenJob(env.DB, jobId, userId, 'character_angle', 'completed', credits, 'bytedance-seed/seedream-4.5', fileUrl);
   await recordCreditDebit(env.DB, userId, credits, 'ai_generation', `角色設定圖生成 — ${role} (${assetId.slice(0, 8)})`);
 
   return c.json({
@@ -929,6 +954,7 @@ app.post('/api/ai/character-angle', async (c) => {
     fileUrl,
     role,
     creditsConsumed: credits,
+    similarity,
     ...(referenceSkipped ? { referenceSkipped: true } : {}),
   });
 });

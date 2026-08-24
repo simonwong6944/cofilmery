@@ -1484,6 +1484,8 @@ function CharacterProfileCard({
   const [angleError, setAngleError] = useState<Record<string, string>>({});
   const [isLoopRunning, setIsLoopRunning] = useState(false);
   const [loopProgress, setLoopProgress] = useState<{ current: number; total: number; roleName: string } | null>(null);
+  // Similarity mode for character-angle API (independent from D3 image-gen similarity)
+  const [angleSimMode, setAngleSimMode] = useState<'high' | 'mid' | 'low'>('mid');
 
   // Load existing asset_media rows on mount / charId change (persistence)
   useEffect(() => {
@@ -1514,7 +1516,8 @@ function CharacterProfileCard({
   const generateOneAngle = async (
     angleRole: CharAngleRole,
     appearanceSummary: string,
-    referenceImageUrl?: string
+    referenceImageUrl?: string,
+    sim?: 'high' | 'mid' | 'low'
   ): Promise<string> => {
     const res = await fetch('/api/ai/character-angle', {
       method: 'POST',
@@ -1526,6 +1529,7 @@ function CharacterProfileCard({
         appearanceSummary,
         projectId: projectId ?? 'global',
         userId: userId ?? 'anonymous',
+        similarity: sim ?? 'mid',
       }),
     });
     const data = await res.json() as { ok: boolean; fileUrl?: string; error?: string };
@@ -1552,7 +1556,7 @@ function CharacterProfileCard({
         const refUrl = r === 'front'
           ? (img || (refs ?? [])[0] || undefined)
           : frontUrl;
-        const fileUrl = await generateOneAngle(r, prompt, refUrl);
+        const fileUrl = await generateOneAngle(r, prompt, refUrl, angleSimMode);
         setAngleMedia(prev => ({ ...prev, [r]: fileUrl }));
         setAngleStatus(prev => ({ ...prev, [r]: 'done' }));
         if (r === 'front') {
@@ -1579,7 +1583,7 @@ function CharacterProfileCard({
       const refUrl = r === 'front'
         ? (img || (refs ?? [])[0] || undefined)
         : (angleMedia['front'] || img || undefined);
-      const fileUrl = await generateOneAngle(r, prompt, refUrl);
+      const fileUrl = await generateOneAngle(r, prompt, refUrl, angleSimMode);
       setAngleMedia(prev => ({ ...prev, [r]: fileUrl }));
       setAngleStatus(prev => ({ ...prev, [r]: 'done' }));
       if (r === 'front') onImgChange?.(fileUrl);
@@ -2290,6 +2294,32 @@ function CharacterProfileCard({
           <p className="text-xs text-muted mb-3">
             自動生成正面、四分三面、側面、背面四個角度；front 將同步設為主頭像。
           </p>
+
+          {/* Similarity three-way selector */}
+          <div className="flex gap-2 mb-3">
+            {([
+              { key: 'high' as const, label: '好像（90%+）', desc: '保留原相面孔', color: 'bg-green-500', border: 'border-green-500', bg: 'bg-green-50' },
+              { key: 'mid'  as const, label: '70%（預設）',   desc: '識出係同一人', color: 'bg-blue-500',  border: 'border-blue-500',  bg: 'bg-blue-50'  },
+              { key: 'low'  as const, label: '神似（50%）',   desc: '同氣質新角色', color: 'bg-purple-500',border: 'border-purple-500',bg: 'bg-purple-50' },
+            ] as const).map(s => (
+              <button
+                key={s.key}
+                onClick={() => setAngleSimMode(s.key)}
+                disabled={isLoopRunning}
+                className={`flex-1 p-2 rounded-lg border text-left transition-all disabled:opacity-50 ${
+                  angleSimMode === s.key
+                    ? `${s.border} ${s.bg}`
+                    : 'border-line hover:border-primary/40 bg-bg-soft'
+                }`}
+              >
+                <div className="flex items-center gap-1 mb-0.5">
+                  <span className={`w-2 h-2 rounded-full ${s.color}`} />
+                  <span className="font-semibold text-[11px] text-ink leading-none">{s.label}</span>
+                </div>
+                <p className="text-[10px] text-muted leading-tight">{s.desc}</p>
+              </button>
+            ))}
+          </div>
 
           {/* Progress bar */}
           {loopProgress && (
