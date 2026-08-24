@@ -28,7 +28,7 @@ interface ProjectRow {
 export default function CreatorWorks() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const { loadProject, startNewProject, setProjectId } = useProjectStore();
+  const { loadProject, openProject, startNewProject, setProjectId } = useProjectStore();
   const { locale } = useLocaleStore();
   const tr = t();
 
@@ -73,25 +73,15 @@ export default function CreatorWorks() {
 
   useEffect(() => { fetchProjects(); }, [fetchProjects]);
 
-  // ── Continue (async: fetch full project row from D1 to restore story_material / series_context) ──
+  // ── Continue (async: fetch full D1 row via shared openProject action) ────────────
   const handleContinue = async (proj: ProjectRow) => {
     setContinuing(proj.id);
     try {
-      const res  = await fetch(`/api/projects/${encodeURIComponent(proj.id)}`);
-      const data = await res.json() as {
-        ok: boolean;
-        project?: ProjectRow & { story_material?: string | null; series_context?: string | null };
-        error?: string;
-      };
-      if (data.ok && data.project) {
-        loadProject(data.project);
-      } else {
-        // Fallback: at least restore id + title so the user isn't stuck
+      const ok = await openProject(proj.id);
+      if (!ok) {
+        // fallback: at least restore id + title so the user isn't stuck
         loadProject({ id: proj.id, title: proj.title, mode: proj.mode });
       }
-    } catch {
-      // Network error fallback — proceed with id + title only
-      loadProject({ id: proj.id, title: proj.title, mode: proj.mode });
     } finally {
       setContinuing(null);
     }

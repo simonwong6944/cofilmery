@@ -65,6 +65,12 @@ interface ProjectState {
   }) => void;
   /** 重置 store 並生成新 projectId（從 ProjectHub 建立新項目後呼叫） */
   startNewProject: () => void;
+  /**
+   * 共用入口：fetch GET /api/projects/:id → loadProject（含 story_material / series_context）。
+   * 所有「繼續編輯」入口（Dashboard / Works / 未來新入口）皆呼叫此 action，確保 D1 資料完整還原。
+   * @returns true 表示成功載入，false 表示網路錯誤或 project 不存在（呼叫端自行 fallback）
+   */
+  openProject: (id: string) => Promise<boolean>;
 }
 
 const INITIAL: Omit<ProjectState,
@@ -148,6 +154,26 @@ export const useProjectStore = create<ProjectState>()(
         ...INITIAL,
         projectId: crypto.randomUUID(),
       }),
+
+      openProject: async (id: string): Promise<boolean> => {
+        try {
+          const res  = await fetch(`/api/projects/${encodeURIComponent(id)}`);
+          const data = await res.json() as {
+            ok: boolean;
+            project?: {
+              id: string; title: string; mode?: string; description?: string;
+              story_material?: string | null; series_context?: string | null;
+            };
+          };
+          if (data.ok && data.project) {
+            get().loadProject(data.project);
+            return true;
+          }
+          return false;
+        } catch {
+          return false;
+        }
+      },
     }),
     {
       name: 'cofilmery-project',

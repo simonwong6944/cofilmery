@@ -31,7 +31,7 @@ interface ProjectRow {
 export default function CreatorDashboard() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const { loadProject, startNewProject, setProjectId } = useProjectStore();
+  const { loadProject, openProject, startNewProject, setProjectId } = useProjectStore();
   const { locale } = useLocaleStore();
   const tr = t();
   const creator = MOCK_CURRENT_CREATOR;
@@ -42,6 +42,7 @@ export default function CreatorDashboard() {
   // ── State ────────────────────────────────────────────────────────
   const [projects, setProjects] = useState<ProjectRow[]>([]);
   const [loading, setLoading]   = useState(true);
+  const [opening, setOpening]   = useState<string | null>(null); // loading state for handleContinue
 
   const creatorId = user?.id ?? 'demo-user';
 
@@ -63,9 +64,18 @@ export default function CreatorDashboard() {
 
   useEffect(() => { fetchProjects(); }, [fetchProjects]);
 
-  // ── Continue project ─────────────────────────────────────────────
-  const handleContinue = (proj: ProjectRow) => {
-    loadProject({ id: proj.id, title: proj.title, mode: proj.mode });
+  // ── Continue project（async: fetch full D1 row via shared openProject action）──
+  const handleContinue = async (proj: ProjectRow) => {
+    setOpening(proj.id);
+    try {
+      const ok = await openProject(proj.id);
+      if (!ok) {
+        // fallback: at least restore id + title so the user isn't stuck
+        loadProject({ id: proj.id, title: proj.title, mode: proj.mode });
+      }
+    } finally {
+      setOpening(null);
+    }
     navigate('/creator/drama');
   };
 
@@ -157,7 +167,8 @@ export default function CreatorDashboard() {
                   <button
                     key={project.id}
                     onClick={() => handleContinue(project)}
-                    className="bg-card rounded-xl overflow-hidden shadow-card hover:shadow-card-hover transition-shadow group text-left"
+                    disabled={opening === project.id}
+                    className="bg-card rounded-xl overflow-hidden shadow-card hover:shadow-card-hover transition-shadow group text-left disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     <div className="relative">
                       {project.thumbnail_url ? (
@@ -177,6 +188,12 @@ export default function CreatorDashboard() {
                       <div className="absolute top-2 right-2">
                         <StatusBadge status={project.status as 'draft' | 'reviewing' | 'published' | 'revision' | 'approved'} />
                       </div>
+                      {/* Loading overlay when opening this project */}
+                      {opening === project.id && (
+                        <div className="absolute inset-0 bg-black/30 flex items-center justify-center rounded-t-xl">
+                          <Loader2 size={20} className="text-white animate-spin" />
+                        </div>
+                      )}
                     </div>
                     <div className="p-3">
                       <div className="flex items-start justify-between gap-1 mb-1">
