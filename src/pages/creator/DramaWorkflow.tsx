@@ -1537,32 +1537,26 @@ function CharacterProfileCard({
     return data.fileUrl;
   };
 
-  // Sequential loop: front → three-quarter → side → back (Path A chaining)
-  const startAngleLoop = async () => {
+  // 串連生成 three-quarter → side → back（front 已由 image-gen 產生並設為頭像）
+  // frontUrl: 一致性角色圖 URL，全部角度都用它做 reference
+  const startRemainingAngles = async (frontUrl: string) => {
+    if (!charId) return;
     const prompt = buildAppearanceSummary(appearance);
-    if (!prompt || !charId) return;
+    if (!prompt) return;
     setIsLoopRunning(true);
     setLoopProgress(null);
-    let frontUrl: string | undefined = angleMedia['front']; // reuse existing front if present
 
-    const ROLES_IN_ORDER: CharAngleRole[] = ['front', 'three-quarter', 'side', 'back'];
-    for (let i = 0; i < ROLES_IN_ORDER.length; i++) {
-      const r = ROLES_IN_ORDER[i];
-      setLoopProgress({ current: i + 1, total: 4, roleName: CHAR_ANGLE_LABELS[r] });
+    const REMAINING_ROLES: CharAngleRole[] = ['three-quarter', 'side', 'back'];
+    for (let i = 0; i < REMAINING_ROLES.length; i++) {
+      const r = REMAINING_ROLES[i];
+      setLoopProgress({ current: i + 1, total: 3, roleName: CHAR_ANGLE_LABELS[r] });
       setAngleStatus(prev => ({ ...prev, [r]: 'loading' }));
       setAngleError(prev => ({ ...prev, [r]: '' }));
       try {
-        // Path A: front uses original img/refs as reference; subsequent use front output
-        const refUrl = r === 'front'
-          ? (img || (refs ?? [])[0] || undefined)
-          : frontUrl;
-        const fileUrl = await generateOneAngle(r, prompt, refUrl, angleSimMode);
+        // 全部角度用 front 做 reference，用 high 盡量跟近 front
+        const fileUrl = await generateOneAngle(r, prompt, frontUrl, 'high');
         setAngleMedia(prev => ({ ...prev, [r]: fileUrl }));
         setAngleStatus(prev => ({ ...prev, [r]: 'done' }));
-        if (r === 'front') {
-          frontUrl = fileUrl;
-          onImgChange?.(fileUrl); // auto-set front as main avatar
-        }
       } catch (e) {
         setAngleStatus(prev => ({ ...prev, [r]: 'error' }));
         setAngleError(prev => ({ ...prev, [r]: e instanceof Error ? e.message : '生成失敗' }));
@@ -1573,17 +1567,19 @@ function CharacterProfileCard({
     setLoopProgress(null);
   };
 
-  // Retry a single failed angle
+  // 个別角度重試（用 front 做 reference）
   const retryAngle = async (r: CharAngleRole) => {
     const prompt = buildAppearanceSummary(appearance);
     if (!prompt || !charId) return;
     setAngleStatus(prev => ({ ...prev, [r]: 'loading' }));
     setAngleError(prev => ({ ...prev, [r]: '' }));
     try {
+      // front retry: 用原相/refs; 其餘角度: 用 front output
       const refUrl = r === 'front'
         ? (img || (refs ?? [])[0] || undefined)
-        : (angleMedia['front'] || img || undefined);
-      const fileUrl = await generateOneAngle(r, prompt, refUrl, angleSimMode);
+        : (angleMedia['front'] || undefined);
+      const sim = r === 'front' ? angleSimMode : 'high';
+      const fileUrl = await generateOneAngle(r, prompt, refUrl, sim);
       setAngleMedia(prev => ({ ...prev, [r]: fileUrl }));
       setAngleStatus(prev => ({ ...prev, [r]: 'done' }));
       if (r === 'front') onImgChange?.(fileUrl);
@@ -2132,17 +2128,43 @@ function CharacterProfileCard({
         )}
       </div>
 
-      {/* D3: AI 角色一致性圖像生成（替代舊有相似度設定） */}
+      {/* D3: AI 角色一致性圖像生成 → 生成 front → 設為頭像自動串連其餘三角度 */}
       <div className="bg-card rounded-xl border border-line p-5 shadow-card">
         <div className="flex items-center gap-2 mb-1">
           <Sparkles size={15} className="text-primary" />
           <label className="text-sm font-semibold text-ink">AI 生成一致性角色圖</label>
         </div>
         <p className="text-xs text-muted mb-3">
-          根據角色外貌設定，以 AI 生成符合視覺一致性的角色圖，生成後可直接設為頭像。
+          根據外貌設定生成一致性 front 圖；設為頭像後自動串連生成四分三面、側面、背面。
         </p>
 
-        {/* Current avatar preview + generate button */}
+        {/* ① 似度三檔掣（控制 front 生成 + 角色設定圖串連） */}
+        <div className="flex gap-2 mb-3">
+          {([
+            { key: 'high' as const, label: '好像（90%+）', desc: '緊貼原相面孔', color: 'bg-green-500', border: 'border-green-500', bg: 'bg-green-50' },
+            { key: 'mid'  as const, label: '70%（預設）',   desc: '識出係同一人', color: 'bg-blue-500',  border: 'border-blue-500',  bg: 'bg-blue-50'  },
+            { key: 'low'  as const, label: '神似（50%）',   desc: '同氣質新角色', color: 'bg-purple-500',border: 'border-purple-500',bg: 'bg-purple-50' },
+          ] as const).map(s => (
+            <button
+              key={s.key}
+              onClick={() => setAngleSimMode(s.key)}
+              disabled={imageGenLoading || isLoopRunning}
+              className={`flex-1 p-2 rounded-lg border text-left transition-all disabled:opacity-50 ${
+                angleSimMode === s.key
+                  ? `${s.border} ${s.bg}`
+                  : 'border-line hover:border-primary/40 bg-bg-soft'
+              }`}
+            >
+              <div className="flex items-center gap-1 mb-0.5">
+                <span className={`w-2 h-2 rounded-full ${s.color}`} />
+                <span className="font-semibold text-[11px] text-ink leading-none">{s.label}</span>
+              </div>
+              <p className="text-[10px] text-muted leading-tight">{s.desc}</p>
+            </button>
+          ))}
+        </div>
+
+        {/* ② 頭像預覽 + 生成按鈕 */}
         <div className="flex gap-3 items-start mb-3">
           <div className="w-16 h-16 rounded-xl overflow-hidden border border-line flex-shrink-0 bg-primary/5 flex items-center justify-center">
             {img ? (
@@ -2163,15 +2185,21 @@ function CharacterProfileCard({
                 setImageGenResult(null);
                 setImageGenError(null);
                 try {
+                  // Map angleSimMode enum → image-gen backend similarity locale strings
+                  const simLocaleMap: Record<'high' | 'mid' | 'low', string> = {
+                    high: '極似',
+                    mid:  '70%',
+                    low:  '神韻',
+                  };
                   // Merge avatar (img) + refs[], deduplicate, cap at 3
                   const allRefs = [...new Set([img, ...(refs ?? [])].filter(Boolean))].slice(0, 3);
                   const body: Record<string, unknown> = {
                     appearanceSummary: prompt,
                     charName: name,
                     age,
-                    role,                              // Fix 1: pass role for better prompt
-                    projectId: projectId ?? 'global',  // Fix 1: needed for R2 key
-                    similarity,                        // pass mode so backend adjusts prompt
+                    role,
+                    projectId: projectId ?? 'global',
+                    similarity: simLocaleMap[angleSimMode], // 傳換算後嘅 locale string
                   };
                   if (allRefs.length > 0) body.referenceImageUrls = allRefs;
                   const res = await fetch('/api/ai/image-gen', {
@@ -2181,14 +2209,14 @@ function CharacterProfileCard({
                   });
                   const data = await res.json() as { ok: boolean; fileUrl?: string; error?: string };
                   if (!data.ok || !data.fileUrl) throw new Error(data.error ?? 'Generation failed');
-                  setImageGenResult(data.fileUrl);  // Fix 1: use fileUrl (R2-backed)
+                  setImageGenResult(data.fileUrl);
                 } catch (e) {
                   setImageGenError(e instanceof Error ? e.message : '生成失敗，請稍後再試。');
                 } finally {
                   setImageGenLoading(false);
                 }
               }}
-              disabled={imageGenLoading}
+              disabled={imageGenLoading || isLoopRunning}
               className="flex items-center gap-1.5 bg-primary text-white text-xs px-3 py-2 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 font-medium"
             >
               {imageGenLoading
@@ -2206,7 +2234,7 @@ function CharacterProfileCard({
           </div>
         )}
 
-        {/* Generated result */}
+        {/* ③ 生成結果：設為頭像觸發串連 */}
         {imageGenResult && (
           <div className="border border-primary/30 rounded-xl overflow-hidden bg-primary/3">
             <img
@@ -2217,14 +2245,37 @@ function CharacterProfileCard({
             />
             <div className="flex gap-2 p-2">
               <button
-                onClick={() => { onImgChange?.(imageGenResult); setImageGenResult(null); }}
+                onClick={async () => {
+                  const frontUrl = imageGenResult;
+                  // (a) 設為主頭像
+                  onImgChange?.(frontUrl);
+                  setImageGenResult(null);
+                  // (b) 即時更新 front 格為 done
+                  setAngleMedia(prev => ({ ...prev, front: frontUrl }));
+                  setAngleStatus(prev => ({ ...prev, front: 'done' }));
+                  // (c) 寫 asset_media(role='front') — 直接 POST，不再 call AI
+                  if (charId) {
+                    fetch('/api/asset-media', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        asset_id: charId,
+                        file_url: frontUrl,
+                        role: 'front',
+                        sort_order: 0,
+                      }),
+                    }).catch(e => console.warn('[setAsAvatar] asset_media front write failed:', e));
+                  }
+                  // (d) 串連生成 three-quarter → side → back
+                  await startRemainingAngles(frontUrl);
+                }}
                 className="flex-1 flex items-center justify-center gap-1.5 bg-primary text-white text-xs py-2 rounded-lg hover:bg-primary/90 transition-colors font-medium"
               >
-                <Check size={12} /> 設為頭像
+                <Check size={12} /> 設為頭像並生成其餘角度
               </button>
               <button
                 onClick={() => { onRefsChange?.([...(refs ?? []), imageGenResult]); setImageGenResult(null); }}
-                className="flex-1 flex items-center justify-center gap-1.5 bg-bg-soft border border-line text-ink text-xs py-2 rounded-lg hover:border-primary transition-colors"
+                className="flex items-center justify-center gap-1.5 bg-bg-soft border border-line text-ink text-xs py-2 px-3 rounded-lg hover:border-primary transition-colors"
               >
                 <Image size={12} /> 加入參考相
               </button>
@@ -2238,169 +2289,120 @@ function CharacterProfileCard({
             </div>
           </div>
         )}
-
-        {/* Similarity preference (compact, kept as metadata) */}
-        <details className="mt-3">
-          <summary className="text-[11px] text-muted cursor-pointer hover:text-ink transition-colors select-none">
-            進階：視覺相似度設定（{similarity || '未設定'}）
-          </summary>
-          <div className="grid grid-cols-3 gap-2 mt-2">
-            {similarityLabels.map(s => (
-              <button
-                key={s.id}
-                onClick={() => setSimilarity(s.id)}
-                className={`p-2 rounded-lg border text-left transition-all ${
-                  similarity === s.id
-                    ? `${s.border} ${s.bg}`
-                    : 'border-line hover:border-primary/40 bg-bg-soft'
-                }`}
-              >
-                <div className="flex items-center gap-1 mb-0.5">
-                  <span className={`w-2 h-2 rounded-full ${s.color}`} />
-                  <span className="font-semibold text-[11px] text-ink">{s.label}</span>
-                </div>
-                <p className="text-[10px] text-muted leading-tight">{s.desc}</p>
-              </button>
-            ))}
-          </div>
-        </details>
       </div>
       {lightboxUrl && <ImageLightbox url={lightboxUrl} onClose={() => setLightboxUrl(null)} />}
 
       {/* ── 角色設定圖（多角度）── */}
       {charId && (
         <div className="bg-card rounded-xl border border-line p-5 shadow-card">
-          <div className="flex items-center justify-between mb-1">
-            <div className="flex items-center gap-2">
-              <Layers size={15} className="text-primary" />
-              <span className="text-sm font-semibold text-ink">角色設定圖</span>
-              {isAngleSetComplete && (
-                <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-semibold flex items-center gap-1">
-                  <Check size={9} /> 完整
-                </span>
-              )}
-            </div>
-            <button
-              onClick={startAngleLoop}
-              disabled={isLoopRunning || !buildAppearanceSummary(appearance)}
-              className="flex items-center gap-1.5 bg-primary text-white text-xs px-3 py-2 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 font-medium"
-            >
-              {isLoopRunning
-                ? <><RefreshCw size={11} className="animate-spin" /> 生成中…</>
-                : <><Sparkles size={11} /> 生成角色設定圖</>
-              }
-            </button>
+          {/* Header — no main generate button; triggered by 設為頭像 in section above */}
+          <div className="flex items-center gap-2 mb-1">
+            <Layers size={15} className="text-primary" />
+            <span className="text-sm font-semibold text-ink">角色設定圖</span>
+            {isAngleSetComplete && (
+              <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-semibold flex items-center gap-1">
+                <Check size={9} /> 完整
+              </span>
+            )}
           </div>
           <p className="text-xs text-muted mb-3">
-            自動生成正面、四分三面、側面、背面四個角度；front 將同步設為主頭像。
+            設為頭像後自動生成四分三面、側面、背面；可個別重試失敗格。
           </p>
 
-          {/* Similarity three-way selector */}
-          <div className="flex gap-2 mb-3">
-            {([
-              { key: 'high' as const, label: '好像（90%+）', desc: '保留原相面孔', color: 'bg-green-500', border: 'border-green-500', bg: 'bg-green-50' },
-              { key: 'mid'  as const, label: '70%（預設）',   desc: '識出係同一人', color: 'bg-blue-500',  border: 'border-blue-500',  bg: 'bg-blue-50'  },
-              { key: 'low'  as const, label: '神似（50%）',   desc: '同氣質新角色', color: 'bg-purple-500',border: 'border-purple-500',bg: 'bg-purple-50' },
-            ] as const).map(s => (
-              <button
-                key={s.key}
-                onClick={() => setAngleSimMode(s.key)}
-                disabled={isLoopRunning}
-                className={`flex-1 p-2 rounded-lg border text-left transition-all disabled:opacity-50 ${
-                  angleSimMode === s.key
-                    ? `${s.border} ${s.bg}`
-                    : 'border-line hover:border-primary/40 bg-bg-soft'
-                }`}
-              >
-                <div className="flex items-center gap-1 mb-0.5">
-                  <span className={`w-2 h-2 rounded-full ${s.color}`} />
-                  <span className="font-semibold text-[11px] text-ink leading-none">{s.label}</span>
-                </div>
-                <p className="text-[10px] text-muted leading-tight">{s.desc}</p>
-              </button>
-            ))}
-          </div>
-
-          {/* Progress bar */}
-          {loopProgress && (
-            <div className="mb-3">
-              <div className="flex items-center justify-between text-[11px] text-muted mb-1">
-                <span>生成中 {loopProgress.current}/{loopProgress.total}：{loopProgress.roleName}…</span>
-                <span>{Math.round((loopProgress.current - 1) / loopProgress.total * 100)}%</span>
-              </div>
-              <div className="w-full bg-bg-soft rounded-full h-1.5">
-                <div
-                  className="bg-primary h-1.5 rounded-full transition-all duration-500"
-                  style={{ width: `${Math.round((loopProgress.current - 1) / loopProgress.total * 100)}%` }}
-                />
-              </div>
+          {/* ── NO-FRONT BLOCK: show when front not yet set ── */}
+          {angleStatus['front'] !== 'done' ? (
+            <div className="flex flex-col items-center justify-center gap-2 py-8 rounded-xl border border-dashed border-line bg-bg-soft text-center">
+              <Users size={28} className="text-muted/30" />
+              <p className="text-xs text-muted leading-snug max-w-[220px]">
+                請先在上方「一致性角色圖」生成正面圖，<br />
+                然後點「設為頭像並生成其餘角度」。
+              </p>
             </div>
-          )}
-
-          {/* 2×2 angle grid */}
-          <div className="grid grid-cols-2 gap-3">
-            {CHAR_ANGLE_ROLES.map(r => {
-              const status = angleStatus[r] ?? 'idle';
-              const mediaUrl = angleMedia[r];
-              const errMsg = angleError[r];
-              const isRequired = r !== 'three-quarter';
-              return (
-                <div
-                  key={r}
-                  className={`rounded-xl border overflow-hidden flex flex-col ${
-                    status === 'error' ? 'border-red-300 bg-red-50'
-                    : status === 'done' ? 'border-primary/30 bg-primary/3'
-                    : 'border-line bg-bg-soft'
-                  }`}
-                >
-                  {/* Image or placeholder */}
-                  <div className="w-full aspect-[3/4] flex items-center justify-center bg-bg-soft relative overflow-hidden">
-                    {mediaUrl ? (
-                      <img
-                        src={mediaUrl}
-                        alt={CHAR_ANGLE_LABELS[r]}
-                        className="w-full h-full object-cover cursor-pointer"
-                        onClick={() => setLightboxUrl(mediaUrl)}
-                      />
-                    ) : status === 'loading' ? (
-                      <RefreshCw size={24} className="text-primary/40 animate-spin" />
-                    ) : (
-                      <Users size={24} className="text-muted/30" />
-                    )}
-                    {/* Loading overlay on top of existing image (re-gen) */}
-                    {status === 'loading' && mediaUrl && (
-                      <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-                        <RefreshCw size={20} className="text-white animate-spin" />
-                      </div>
-                    )}
+          ) : (
+            <>
+              {/* Progress bar — total reflects 3 remaining angles (three-quarter/side/back) */}
+              {loopProgress && (
+                <div className="mb-3">
+                  <div className="flex items-center justify-between text-[11px] text-muted mb-1">
+                    <span>生成中 {loopProgress.current}/{loopProgress.total}：{loopProgress.roleName}…</span>
+                    <span>{Math.round((loopProgress.current - 1) / loopProgress.total * 100)}%</span>
                   </div>
-                  {/* Label + status row */}
-                  <div className="px-2 py-1.5 flex items-center justify-between gap-1">
-                    <div className="flex items-center gap-1 min-w-0">
-                      <span className="text-[11px] font-semibold text-ink truncate">{CHAR_ANGLE_LABELS[r]}</span>
-                      {!isRequired && (
-                        <span className="text-[9px] text-muted/70 flex-shrink-0">(選用)</span>
+                  <div className="w-full bg-bg-soft rounded-full h-1.5">
+                    <div
+                      className="bg-primary h-1.5 rounded-full transition-all duration-500"
+                      style={{ width: `${Math.round((loopProgress.current - 1) / loopProgress.total * 100)}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* 2×2 angle grid — front cell shows status but no retry (set via 設為頭像) */}
+              <div className="grid grid-cols-2 gap-3">
+                {CHAR_ANGLE_ROLES.map(r => {
+                  const status = angleStatus[r] ?? 'idle';
+                  const mediaUrl = angleMedia[r];
+                  const errMsg = angleError[r];
+                  const isFront = r === 'front';
+                  return (
+                    <div
+                      key={r}
+                      className={`rounded-xl border overflow-hidden flex flex-col ${
+                        status === 'error' ? 'border-red-300 bg-red-50'
+                        : status === 'done' ? 'border-primary/30 bg-primary/3'
+                        : 'border-line bg-bg-soft'
+                      }`}
+                    >
+                      {/* Image or placeholder */}
+                      <div className="w-full aspect-[3/4] flex items-center justify-center bg-bg-soft relative overflow-hidden">
+                        {mediaUrl ? (
+                          <img
+                            src={mediaUrl}
+                            alt={CHAR_ANGLE_LABELS[r]}
+                            className="w-full h-full object-cover cursor-pointer"
+                            onClick={() => setLightboxUrl(mediaUrl)}
+                          />
+                        ) : status === 'loading' ? (
+                          <RefreshCw size={24} className="text-primary/40 animate-spin" />
+                        ) : (
+                          <Users size={24} className="text-muted/30" />
+                        )}
+                        {/* Loading overlay on top of existing image (re-gen) */}
+                        {status === 'loading' && mediaUrl && (
+                          <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                            <RefreshCw size={20} className="text-white animate-spin" />
+                          </div>
+                        )}
+                      </div>
+                      {/* Label + status row */}
+                      <div className="px-2 py-1.5 flex items-center justify-between gap-1">
+                        <div className="flex items-center gap-1 min-w-0">
+                          <span className="text-[11px] font-semibold text-ink truncate">{CHAR_ANGLE_LABELS[r]}</span>
+                          {isFront && (
+                            <span className="text-[9px] text-muted/70 flex-shrink-0">(主頭像)</span>
+                          )}
+                        </div>
+                        {status === 'done' && <Check size={11} className="text-green-500 flex-shrink-0" />}
+                        {/* front angle: no retry button — re-generate via 一致性角色圖 section */}
+                        {status === 'error' && !isFront && (
+                          <button
+                            onClick={() => retryAngle(r)}
+                            disabled={isLoopRunning}
+                            className="text-[10px] flex items-center gap-0.5 text-red-600 hover:text-red-800 font-medium flex-shrink-0 disabled:opacity-40"
+                            title={errMsg}
+                          >
+                            <RefreshCw size={10} /> 重試
+                          </button>
+                        )}
+                      </div>
+                      {status === 'error' && errMsg && (
+                        <p className="px-2 pb-1.5 text-[10px] text-red-500 leading-tight line-clamp-2">{errMsg}</p>
                       )}
                     </div>
-                    {status === 'done' && <Check size={11} className="text-green-500 flex-shrink-0" />}
-                    {status === 'error' && (
-                      <button
-                        onClick={() => retryAngle(r)}
-                        disabled={isLoopRunning}
-                        className="text-[10px] flex items-center gap-0.5 text-red-600 hover:text-red-800 font-medium flex-shrink-0 disabled:opacity-40"
-                        title={errMsg}
-                      >
-                        <RefreshCw size={10} /> 重試
-                      </button>
-                    )}
-                  </div>
-                  {status === 'error' && errMsg && (
-                    <p className="px-2 pb-1.5 text-[10px] text-red-500 leading-tight line-clamp-2">{errMsg}</p>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>
