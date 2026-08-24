@@ -3,7 +3,7 @@
  * Phase 3：project_id 從 useProjectStore 取得，廢除 DEFAULT_PROJECT_ID 硬編碼
  * 原則：AI 起草，人來定奪（三動作列：接受/重新生成/手動編輯）
  */
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLocaleStore } from '@/store/localeStore';
 import { useProjectStore } from '@/store/projectStore';
 import { t } from '@/i18n';
@@ -269,9 +269,12 @@ interface S1bOutlineProps {
   context: SeriesContext;
   selectedTopic: TopicOption;
   onAccept: (outline: { episodeNumber: number; title_i18n: { 'zh-HK': string; en: string; 'zh-CN': string }; oneLine_i18n: { 'zh-HK': string; en: string; 'zh-CN': string } }[], coCreateNote: string) => void;
+  /** S3 重入還原：由 parent（S3StoryFramework）灌入已從 D1/store 還原的 outline，
+   *  令重入時直接顯示已生成大綱，唔使重新生成（唔扣積分）。可選，預設 undefined。 */
+  initialOutline?: { episodeNumber: number; title_i18n: { 'zh-HK': string; en: string; 'zh-CN': string }; oneLine_i18n: { 'zh-HK': string; en: string; 'zh-CN': string } }[];
 }
 
-export function S1bOutline({ context, selectedTopic, onAccept }: S1bOutlineProps) {
+export function S1bOutline({ context, selectedTopic, onAccept, initialOutline }: S1bOutlineProps) {
   const { locale } = useLocaleStore();
   const tr = t();
   void locale;
@@ -286,6 +289,18 @@ export function S1bOutline({ context, selectedTopic, onAccept }: S1bOutlineProps
   const [editVal, setEditVal] = useState('');
   const [coCreateNote, setCoCreateNote] = useState('');
   const [genError, setGenError] = useState<string | null>(null);
+
+  // ── S3 重入還原：掛載回填 outline（僅首次拿到非空 initialOutline 時執行一次）──
+  // 因 initialOutline 嚟自 S3StoryFramework 嘅 async store hydrate，可能喺
+  // mount 之後先到值，故用 useEffect + dep（唔可以只靠 useState 初始值）。
+  // ref guard 確保只回填一次，唔會蓋使用者之後喺此 component 內做嘅編輯/重新生成。
+  const outlineHydratedRef = useRef(false);
+  useEffect(() => {
+    if (outlineHydratedRef.current) return; // 已回填過，不再覆蓋
+    if (!(initialOutline && initialOutline.length > 0)) return; // 尚未有值，等下次 dep 觸發
+    outlineHydratedRef.current = true;
+    setOutline(initialOutline);
+  }, [initialOutline]);
 
   const generate = async (isRegenerate = false) => {
     setLoading(true);
@@ -698,9 +713,12 @@ interface S1cEpisodesProps {
   characters: CharacterCard[];
   sponsorAssets?: SelectedSponsorAsset[]; // S1 已選贊助商資產（唯一資料源）
   onAccept: (cards: EpisodeStoryCard[]) => void;
+  /** S3 重入還原：由 parent（S3StoryFramework）灌入已從 D1/store 還原的分集故事卡陣列，
+   *  令重入 3b 時已生成嘅集直接顯示，唔使重新展開（唔扣積分）。可選，預設 undefined。 */
+  initialCards?: EpisodeStoryCard[];
 }
 
-export function S1cEpisodes({ context, outline, characters, sponsorAssets = [], onAccept }: S1cEpisodesProps) {
+export function S1cEpisodes({ context, outline, characters, sponsorAssets = [], onAccept, initialCards }: S1cEpisodesProps) {
   const { locale } = useLocaleStore();
   const tr = t();
   void locale;
@@ -721,6 +739,20 @@ export function S1cEpisodes({ context, outline, characters, sponsorAssets = [], 
   const [elementsExpanded, setElementsExpanded] = useState<Set<number>>(new Set());
   // Batch 2 組二：每集 D1 存檔狀態（'saving' | 'saved' | 'error'），用於 UI 即時反饋
   const [saveState, setSaveState] = useState<Record<number, 'saving' | 'saved' | 'error'>>({});
+
+  // ── S3 重入還原：掛載回填 cards（僅首次拿到非空 initialCards 時執行一次）──
+  // 因 initialCards 嚟自 S3StoryFramework 嘅 async store hydrate，可能喺
+  // mount 之後先到值，故用 useEffect + dep（唔可以只靠 useState 初始值）。
+  // ref guard 確保只回填一次，唔會蓋使用者之後喺此 component 內做嘅編輯/重新生成。
+  const cardsHydratedRef = useRef(false);
+  useEffect(() => {
+    if (cardsHydratedRef.current) return; // 已回填過，不再覆蓋
+    if (!(initialCards && initialCards.length > 0)) return; // 尚未有值，等下次 dep 觸發
+    cardsHydratedRef.current = true;
+    const record: Record<number, EpisodeStoryCard> = {};
+    for (const card of initialCards) record[card.episodeNumber] = card;
+    setCards(record);
+  }, [initialCards]);
 
   const getElements = (epNum: number): EpisodeElements =>
     episodeElements[epNum] ?? DEFAULT_ELEMENTS;

@@ -2560,6 +2560,7 @@ function S3StoryFramework({ onNext }: { onNext: () => void }) {
     setCoCreated,
     isCoCreated, coCreateNote,
     projectId: projectId3, projectTitle, outline: storedOutline3,
+    storyCards: storedStoryCards3,
   } = useProjectStore();
   const { user: authUser3 } = useAuthStore();
 
@@ -2579,6 +2580,24 @@ function S3StoryFramework({ onNext }: { onNext: () => void }) {
   const [subStage, setSubStage] = useState<ArchitectSubStage>('outline');
   const [outline, setOutline] = useState<{ episodeNumber: number; title_i18n: { 'zh-HK': string; en: string; 'zh-CN': string }; oneLine_i18n: { 'zh-HK': string; en: string; 'zh-CN': string } }[]>([]);
   const [storyCards, setStoryCards] = useState<EpisodeStoryCard[]>([]);
+
+  // ── S3 重入還原：掛載回填 subStage/local outline/local storyCards ──
+  // 因 loadProject 為 async，store 值可能喺 mount 之後先到，故用 useEffect + dep
+  // （不可只靠 useState 初始值）。ref guard 確保只 hydrate 一次，唔會蓋使用者
+  // 之後喺 S1bOutline/S1cEpisodes 內做嘅編輯。
+  const s3HydratedRef = useRef(false);
+  useEffect(() => {
+    if (s3HydratedRef.current) return; // 已回填過，不再覆蓋
+    if (!(storedOutline3?.length > 0) && !(storedStoryCards3?.length > 0)) return; // 兩者皆空，等下次 dep 觸發（或維持顯示生成按鈕）
+    s3HydratedRef.current = true;
+    if (storedOutline3?.length > 0) {
+      setOutline(storedOutline3);
+      setSubStage('episodes'); // 已有大綱 → 直接去 3b，唔使重新生成
+    }
+    if (storedStoryCards3?.length > 0) {
+      setStoryCards(storedStoryCards3);
+    }
+  }, [storedOutline3, storedStoryCards3]);
 
   return (
     <div className="max-w-2xl space-y-4">
@@ -2627,6 +2646,7 @@ function S3StoryFramework({ onNext }: { onNext: () => void }) {
         <S1bOutline
           context={{ ...context, humanInput: storyMaterial }}
           selectedTopic={{ id: 'creator-input', title_i18n: { 'zh-HK': '創作者故事原材料', en: 'Creator Story Material', 'zh-CN': '创作者故事原材料' }, logline_i18n: { 'zh-HK': storyMaterial.slice(0, 80), en: storyMaterial.slice(0, 80), 'zh-CN': storyMaterial.slice(0, 80) }, hook_i18n: { 'zh-HK': '', en: '', 'zh-CN': '' } }}
+          initialOutline={outline}
           onAccept={(ol, outlineCoCreateNote) => {
             setOutline(ol);
             storeSetOutline(ol);
@@ -2655,6 +2675,7 @@ function S3StoryFramework({ onNext }: { onNext: () => void }) {
           outline={outline}
           characters={storedCharacters}        // ← S2 角色（作為故事生成上下文）
           sponsorAssets={storedSponsorAssets}  // ← S1 贊助商已選（作為元素選擇器資料源）
+          initialCards={storyCards}
           onAccept={(cards) => {
             setStoryCards(cards);
             storeSetStoryCards(cards);
