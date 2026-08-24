@@ -1407,6 +1407,16 @@ function buildAppearanceSummary(a: AppearanceOptions): string {
 }
 
 // ── Shared: CharacterProfileCard ────────────────────────────────────────────
+// Angle roles for character reference sheet generation
+const CHAR_ANGLE_ROLES = ['front', 'three-quarter', 'side', 'back'] as const;
+type CharAngleRole = typeof CHAR_ANGLE_ROLES[number];
+const CHAR_ANGLE_LABELS: Record<CharAngleRole, string> = {
+  'front': '正面',
+  'three-quarter': '四分三面',
+  'side': '側面',
+  'back': '背面',
+};
+
 function CharacterProfileCard({
   img, refs, name, role, age, bg, similarity, setSimilarity, mode,
   gender, onGenderChange,
@@ -1416,6 +1426,8 @@ function CharacterProfileCard({
   onImgChange, onRefsChange,
   onSaveChar,
   projectId,
+  charId,
+  userId,
 }: {
   img: string; refs?: string[]; name: string; role: string; age: string; bg: string;
   similarity: string; setSimilarity: (v: string) => void;
@@ -1434,6 +1446,8 @@ function CharacterProfileCard({
   onRefsChange?: (urls: string[]) => void;
   onSaveChar?: () => void;
   projectId?: string;
+  charId?: string;
+  userId?: string;
 }) {
   const { locale } = useLocaleStore();
   const tr = t();
@@ -1460,6 +1474,126 @@ function CharacterProfileCard({
   const [imageGenResult, setImageGenResult] = useState<string | null>(null);
   const [imageGenError, setImageGenError] = useState<string | null>(null);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+
+  // S2 角色設定圖：多角度生成狀態
+  type AngleStatus = 'idle' | 'loading' | 'done' | 'error';
+  const [angleMedia, setAngleMedia] = useState<Record<string, string>>({}); // role → fileUrl
+  const [angleStatus, setAngleStatus] = useState<Record<string, AngleStatus>>(
+    () => Object.fromEntries(CHAR_ANGLE_ROLES.map(r => [r, 'idle' as AngleStatus]))
+  );
+  const [angleError, setAngleError] = useState<Record<string, string>>({});
+  const [isLoopRunning, setIsLoopRunning] = useState(false);
+  const [loopProgress, setLoopProgress] = useState<{ current: number; total: number; roleName: string } | null>(null);
+
+  // Load existing asset_media rows on mount / charId change (persistence)
+  useEffect(() => {
+    if (!charId) return;
+    fetch(`/api/asset-media?asset_id=${charId}`)
+      .then(r => r.json())
+      .then((data: { ok: boolean; media?: { role: string; file_url: string }[] }) => {
+        if (data.ok && data.media) {
+          const map: Record<string, string> = {};
+          const statusMap: Record<string, AngleStatus> = Object.fromEntries(
+            CHAR_ANGLE_ROLES.map(r => [r, 'idle' as AngleStatus])
+          );
+          data.media.forEach(m => {
+            if ((CHAR_ANGLE_ROLES as readonly string[]).includes(m.role)) {
+              map[m.role] = m.file_url;
+              statusMap[m.role] = 'done';
+            }
+          });
+          setAngleMedia(map);
+          setAngleStatus(statusMap);
+        }
+      })
+      .catch(() => { /* non-blocking */ });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [charId]);
+
+  // Call POST /api/ai/character-angle for one role
+  const generateOneAngle = async (
+    angleRole: CharAngleRole,
+    appearanceSummary: string,
+    referenceImageUrl?: string
+  ): Promise<string> => {
+    const res = await fetch('/api/ai/character-angle', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        assetId: charId ?? 'unknown',
+        role: angleRole,
+        referenceImageUrl,
+        appearanceSummary,
+        projectId: projectId ?? 'global',
+        userId: userId ?? 'anonymous',
+      }),
+    });
+    const data = await res.json() as { ok: boolean; fileUrl?: string; error?: string };
+    if (!data.ok || !data.fileUrl) throw new Error(data.error ?? '生成失敗');
+    return data.fileUrl;
+  };
+
+  // Sequential loop: front → three-quarter → side → back (Path A chaining)
+  const startAngleLoop = async () => {
+    const prompt = buildAppearanceSummary(appearance);
+    if (!prompt || !charId) return;
+    setIsLoopRunning(true);
+    setLoopProgress(null);
+    let frontUrl: string | undefined = angleMedia['front']; // reuse existing front if present
+
+    const ROLES_IN_ORDER: CharAngleRole[] = ['front', 'three-quarter', 'side', 'back'];
+    for (let i = 0; i < ROLES_IN_ORDER.length; i++) {
+      const r = ROLES_IN_ORDER[i];
+      setLoopProgress({ current: i + 1, total: 4, roleName: CHAR_ANGLE_LABELS[r] });
+      setAngleStatus(prev => ({ ...prev, [r]: 'loading' }));
+      setAngleError(prev => ({ ...prev, [r]: '' }));
+      try {
+        // Path A: front uses original img/refs as reference; subsequent use front output
+        const refUrl = r === 'front'
+          ? (img || (refs ?? [])[0] || undefined)
+          : frontUrl;
+        const fileUrl = await generateOneAngle(r, prompt, refUrl);
+        setAngleMedia(prev => ({ ...prev, [r]: fileUrl }));
+        setAngleStatus(prev => ({ ...prev, [r]: 'done' }));
+        if (r === 'front') {
+          frontUrl = fileUrl;
+          onImgChange?.(fileUrl); // auto-set front as main avatar
+        }
+      } catch (e) {
+        setAngleStatus(prev => ({ ...prev, [r]: 'error' }));
+        setAngleError(prev => ({ ...prev, [r]: e instanceof Error ? e.message : '生成失敗' }));
+        // Don't abort — continue remaining angles
+      }
+    }
+    setIsLoopRunning(false);
+    setLoopProgress(null);
+  };
+
+  // Retry a single failed angle
+  const retryAngle = async (r: CharAngleRole) => {
+    const prompt = buildAppearanceSummary(appearance);
+    if (!prompt || !charId) return;
+    setAngleStatus(prev => ({ ...prev, [r]: 'loading' }));
+    setAngleError(prev => ({ ...prev, [r]: '' }));
+    try {
+      const refUrl = r === 'front'
+        ? (img || (refs ?? [])[0] || undefined)
+        : (angleMedia['front'] || img || undefined);
+      const fileUrl = await generateOneAngle(r, prompt, refUrl);
+      setAngleMedia(prev => ({ ...prev, [r]: fileUrl }));
+      setAngleStatus(prev => ({ ...prev, [r]: 'done' }));
+      if (r === 'front') onImgChange?.(fileUrl);
+    } catch (e) {
+      setAngleStatus(prev => ({ ...prev, [r]: 'error' }));
+      setAngleError(prev => ({ ...prev, [r]: e instanceof Error ? e.message : '生成失敗' }));
+    }
+  };
+
+  // Completeness gate: front + side + back required (three-quarter optional)
+  const isAngleSetComplete =
+    angleStatus['front'] === 'done' &&
+    angleStatus['side'] === 'done' &&
+    angleStatus['back'] === 'done';
 
   // Upload helper: POST to /api/upload
   const uploadFile = async (file: File, target: 'img' | 'refs') => {
@@ -2128,6 +2262,117 @@ function CharacterProfileCard({
         </details>
       </div>
       {lightboxUrl && <ImageLightbox url={lightboxUrl} onClose={() => setLightboxUrl(null)} />}
+
+      {/* ── 角色設定圖（多角度）── */}
+      {charId && (
+        <div className="bg-card rounded-xl border border-line p-5 shadow-card">
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center gap-2">
+              <Layers size={15} className="text-primary" />
+              <span className="text-sm font-semibold text-ink">角色設定圖</span>
+              {isAngleSetComplete && (
+                <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-semibold flex items-center gap-1">
+                  <Check size={9} /> 完整
+                </span>
+              )}
+            </div>
+            <button
+              onClick={startAngleLoop}
+              disabled={isLoopRunning || !buildAppearanceSummary(appearance)}
+              className="flex items-center gap-1.5 bg-primary text-white text-xs px-3 py-2 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 font-medium"
+            >
+              {isLoopRunning
+                ? <><RefreshCw size={11} className="animate-spin" /> 生成中…</>
+                : <><Sparkles size={11} /> 生成角色設定圖</>
+              }
+            </button>
+          </div>
+          <p className="text-xs text-muted mb-3">
+            自動生成正面、四分三面、側面、背面四個角度；front 將同步設為主頭像。
+          </p>
+
+          {/* Progress bar */}
+          {loopProgress && (
+            <div className="mb-3">
+              <div className="flex items-center justify-between text-[11px] text-muted mb-1">
+                <span>生成中 {loopProgress.current}/{loopProgress.total}：{loopProgress.roleName}…</span>
+                <span>{Math.round((loopProgress.current - 1) / loopProgress.total * 100)}%</span>
+              </div>
+              <div className="w-full bg-bg-soft rounded-full h-1.5">
+                <div
+                  className="bg-primary h-1.5 rounded-full transition-all duration-500"
+                  style={{ width: `${Math.round((loopProgress.current - 1) / loopProgress.total * 100)}%` }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* 2×2 angle grid */}
+          <div className="grid grid-cols-2 gap-3">
+            {CHAR_ANGLE_ROLES.map(r => {
+              const status = angleStatus[r] ?? 'idle';
+              const mediaUrl = angleMedia[r];
+              const errMsg = angleError[r];
+              const isRequired = r !== 'three-quarter';
+              return (
+                <div
+                  key={r}
+                  className={`rounded-xl border overflow-hidden flex flex-col ${
+                    status === 'error' ? 'border-red-300 bg-red-50'
+                    : status === 'done' ? 'border-primary/30 bg-primary/3'
+                    : 'border-line bg-bg-soft'
+                  }`}
+                >
+                  {/* Image or placeholder */}
+                  <div className="w-full aspect-[3/4] flex items-center justify-center bg-bg-soft relative overflow-hidden">
+                    {mediaUrl ? (
+                      <img
+                        src={mediaUrl}
+                        alt={CHAR_ANGLE_LABELS[r]}
+                        className="w-full h-full object-cover cursor-pointer"
+                        onClick={() => setLightboxUrl(mediaUrl)}
+                      />
+                    ) : status === 'loading' ? (
+                      <RefreshCw size={24} className="text-primary/40 animate-spin" />
+                    ) : (
+                      <Users size={24} className="text-muted/30" />
+                    )}
+                    {/* Loading overlay on top of existing image (re-gen) */}
+                    {status === 'loading' && mediaUrl && (
+                      <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                        <RefreshCw size={20} className="text-white animate-spin" />
+                      </div>
+                    )}
+                  </div>
+                  {/* Label + status row */}
+                  <div className="px-2 py-1.5 flex items-center justify-between gap-1">
+                    <div className="flex items-center gap-1 min-w-0">
+                      <span className="text-[11px] font-semibold text-ink truncate">{CHAR_ANGLE_LABELS[r]}</span>
+                      {!isRequired && (
+                        <span className="text-[9px] text-muted/70 flex-shrink-0">(選用)</span>
+                      )}
+                    </div>
+                    {status === 'done' && <Check size={11} className="text-green-500 flex-shrink-0" />}
+                    {status === 'error' && (
+                      <button
+                        onClick={() => retryAngle(r)}
+                        disabled={isLoopRunning}
+                        className="text-[10px] flex items-center gap-0.5 text-red-600 hover:text-red-800 font-medium flex-shrink-0 disabled:opacity-40"
+                        title={errMsg}
+                      >
+                        <RefreshCw size={10} /> 重試
+                      </button>
+                    )}
+                  </div>
+                  {status === 'error' && errMsg && (
+                    <p className="px-2 pb-1.5 text-[10px] text-red-500 leading-tight line-clamp-2">{errMsg}</p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -2502,6 +2747,8 @@ function S2CharacterSetup({ onNext }: { onNext: () => void }) {
               }
             }}
             projectId={pid}
+            charId={activeDraft.id}
+            userId={authUser?.id ?? 'anonymous'}
           />
         </div>
       )}
