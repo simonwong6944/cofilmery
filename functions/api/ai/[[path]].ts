@@ -500,7 +500,7 @@ app.post('/api/ai/project/save', async (c) => {
 // Returns: { ok, fileUrl }  — image stored in R2, served via /api/assets/file/*
 //
 // Uses OpenRouter POST /api/v1/images  (official image gen endpoint).
-// Model: google/gemini-2.5-flash-image (fast, good at character consistency).
+// Model: bytedance-seed/seedream-4.5  (photorealistic, consistent with character-angle route).
 // Response data[0].b64_json → base64 PNG → decode → R2 put → D1 assets row.
 app.post('/api/ai/image-gen', async (c) => {
   const env = c.env;
@@ -573,14 +573,14 @@ app.post('/api/ai/image-gen', async (c) => {
     input_references?: { type: string; image_url: { url: string } }[];
   };
   const payload: ImagePayload = {
-    model: 'google/gemini-2.5-flash-image',
+    model: 'bytedance-seed/seedream-4.5',
     prompt: parts,
     aspect_ratio: '3:4',
   };
 
   // ── Reference images: for each URL resolve R2 key → read bytes → base64 data URL ──
-  // Gemini requires base64 data URLs or absolute HTTP/HTTPS URLs; relative paths
-  // cause a 400 "Unsupported image URL scheme" error. We read bytes directly from R2.
+  // Seedream (same as character-angle route) requires base64 data URLs via input_references.
+  // We read bytes directly from R2 and encode; per-image fallback if one fails.
   // Per-image fallback: if one image fails we skip it and continue with the rest.
   let referenceSkipped = false;
   if (refUrls.length > 0) {
@@ -707,11 +707,11 @@ app.post('/api/ai/image-gen', async (c) => {
   }
 
   // ── Record credits ────────────────────────────────────────────────────────
-  const costUsd = imgData.usage_cost ?? 0.04; // ~$0.04 per image for gemini flash
+  const costUsd = imgData.usage_cost ?? 0.04; // ~$0.04 per image for Seedream 4.5
   const credits = costUsdToCredits(costUsd);
   const jobId   = crypto.randomUUID();
 
-  await recordGenJob(env.DB, jobId, userId, 'image_gen', 'completed', credits, 'google/gemini-2.5-flash-image', fileUrl);
+  await recordGenJob(env.DB, jobId, userId, 'image_gen', 'completed', credits, 'bytedance-seed/seedream-4.5', fileUrl);
   await recordCreditDebit(env.DB, userId, credits, 'ai_generation', `角色圖像生成 (AI generated)`);
 
   const referencesUsed = payload.input_references?.length ?? 0;

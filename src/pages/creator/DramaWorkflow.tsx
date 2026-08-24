@@ -1589,6 +1589,24 @@ function CharacterProfileCard({
     }
   };
 
+  // 補齊全部 idle non-front 角度（離開再入後使用）
+  // 重用 retryAngle 邏輯：各角度用 front 做 reference，sim='high'
+  const fillIdleAngles = async () => {
+    const idleRoles = (['three-quarter', 'side', 'back'] as CharAngleRole[]).filter(
+      r => (angleStatus[r] ?? 'idle') === 'idle'
+    );
+    for (const r of idleRoles) {
+      await retryAngle(r);
+    }
+  };
+
+  // 是否有任何 non-front 角度仍係 idle（front done 但尚未自動串）
+  const hasIdleRemainingAngles =
+    angleStatus['front'] === 'done' &&
+    (['three-quarter', 'side', 'back'] as CharAngleRole[]).some(
+      r => (angleStatus[r] ?? 'idle') === 'idle'
+    );
+
   // Completeness gate: front + side + back required (three-quarter optional)
   const isAngleSetComplete =
     angleStatus['front'] === 'done' &&
@@ -2320,6 +2338,23 @@ function CharacterProfileCard({
             </div>
           ) : (
             <>
+              {/* ── 補齊橫額：front done 但有 idle 角度時顯示（離開再入後用）── */}
+              {hasIdleRemainingAngles && !isLoopRunning && (
+                <div className="flex items-center justify-between bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-3">
+                  <div className="flex items-center gap-1.5">
+                    <Sparkles size={12} className="text-amber-600" />
+                    <span className="text-[11px] text-amber-800 font-medium">部分角度尚未生成</span>
+                  </div>
+                  <button
+                    onClick={fillIdleAngles}
+                    disabled={isLoopRunning || !buildAppearanceSummary(appearance)}
+                    className="flex items-center gap-1 bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-medium px-2.5 py-1 rounded-md transition-colors disabled:opacity-50"
+                  >
+                    <RefreshCw size={10} /> 補齊其餘角度
+                  </button>
+                </div>
+              )}
+
               {/* Progress bar — total reflects 3 remaining angles (three-quarter/side/back) */}
               {loopProgress && (
                 <div className="mb-3">
@@ -2336,7 +2371,7 @@ function CharacterProfileCard({
                 </div>
               )}
 
-              {/* 2×2 angle grid — front cell shows status but no retry (set via 設為頭像) */}
+              {/* 2×2 angle grid */}
               <div className="grid grid-cols-2 gap-3">
                 {CHAR_ANGLE_ROLES.map(r => {
                   const status = angleStatus[r] ?? 'idle';
@@ -2373,7 +2408,7 @@ function CharacterProfileCard({
                           </div>
                         )}
                       </div>
-                      {/* Label + status row */}
+                      {/* Label + status + action row */}
                       <div className="px-2 py-1.5 flex items-center justify-between gap-1">
                         <div className="flex items-center gap-1 min-w-0">
                           <span className="text-[11px] font-semibold text-ink truncate">{CHAR_ANGLE_LABELS[r]}</span>
@@ -2382,7 +2417,17 @@ function CharacterProfileCard({
                           )}
                         </div>
                         {status === 'done' && <Check size={11} className="text-green-500 flex-shrink-0" />}
-                        {/* front angle: no retry button — re-generate via 一致性角色圖 section */}
+                        {/* idle non-front: show individual generate button */}
+                        {status === 'idle' && !isFront && (
+                          <button
+                            onClick={() => retryAngle(r)}
+                            disabled={isLoopRunning || !buildAppearanceSummary(appearance)}
+                            className="text-[10px] flex items-center gap-0.5 text-primary hover:text-primary/80 font-medium flex-shrink-0 disabled:opacity-40"
+                          >
+                            <Sparkles size={10} /> 生成
+                          </button>
+                        )}
+                        {/* error non-front: retry button */}
                         {status === 'error' && !isFront && (
                           <button
                             onClick={() => retryAngle(r)}
@@ -2393,6 +2438,7 @@ function CharacterProfileCard({
                             <RefreshCw size={10} /> 重試
                           </button>
                         )}
+                        {/* front angle: no action button — set via 一致性角色圖 section */}
                       </div>
                       {status === 'error' && errMsg && (
                         <p className="px-2 pb-1.5 text-[10px] text-red-500 leading-tight line-clamp-2">{errMsg}</p>
