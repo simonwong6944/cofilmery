@@ -16,7 +16,7 @@ import { useLocaleStore } from '@/store/localeStore';
 import { useProjectStore } from '@/store/projectStore';
 import { useAuthStore } from '@/store/authStore';
 import { t } from '@/i18n';
-import { saveProjectToD1, saveCharactersToD1, loadCharactersFromD1, saveSponsorAssetsToD1, loadSponsorAssetsFromD1 } from '@/adapters';
+import { saveProjectToD1, saveArchitectToD1, saveCharactersToD1, loadCharactersFromD1, saveSponsorAssetsToD1, loadSponsorAssetsFromD1 } from '@/adapters';
 import type { SelectedSponsorAsset } from '@/adapters/types';
 import { VideoGenPanel } from '@/components/shared/VideoGenPanel';
 import { useTts } from '@/hooks/useTts';
@@ -2634,7 +2634,8 @@ function S3StoryFramework({ onNext }: { onNext: () => void }) {
               setCoCreated(true, outlineCoCreateNote.trim());
             }
             // A1 持久化：將 30 集 outline 寫入 D1 projects.series_outline（non-blocking）
-            saveProjectToD1({
+            // 改用 saveArchitectToD1 — 只打 /api/ai/project/save，不碰 story_material/series_context
+            saveArchitectToD1({
               projectId: projectId3,
               userId: authUser3?.id ?? 'demo-user',
               title: projectTitle || '未命名劇集',
@@ -2658,7 +2659,8 @@ function S3StoryFramework({ onNext }: { onNext: () => void }) {
             setStoryCards(cards);
             storeSetStoryCards(cards);
             // 非同步存 D1（non-blocking，失敗只 warn 不阻塞 S3 UI）
-            saveProjectToD1({
+            // 改用 saveArchitectToD1 — 只打 /api/ai/project/save，不碰 story_material/series_context
+            saveArchitectToD1({
               projectId: projectId3,
               userId: authUser3?.id ?? 'demo-user',
               title: projectTitle || '未命名劇集',

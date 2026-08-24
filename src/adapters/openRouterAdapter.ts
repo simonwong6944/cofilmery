@@ -208,19 +208,18 @@ export const openRouterAdapter: AIAdapter = {
   },
 };
 
-// ── Architect save helper (persist to D1 via /api/ai/project/save) ────────────
+// ── Project row save (story_material / series_context) ───────────────────────
 /**
- * saveProjectToD1 — upserts a project row + episodes.story_card rows in D1.
+ * saveProjectToD1 — upserts a project row in D1 via POST /api/projects.
  *
- * Calls POST /api/ai/project/save (NOT /api/projects) because only that
- * endpoint writes series_outline + episodes.story_card.  /api/projects only
- * handles story_material / series_context.
+ * ONLY writes: title, mode, story_material, series_context.
+ * Does NOT touch series_outline or episodes.story_card.
  *
- * Body the backend expects:
- *   { projectId, userId, title, mode?, characters?, storyCards?, outline? }
+ * Callers:
+ *   - S0 confirm  → persists series_context
+ *   - PlanOverview confirm/draft → persists story_material + series_context
  *
- * Returns { ok: true, projectId } on success, throws on network/DB error so
- * callers can surface failures instead of silently dropping them.
+ * Returns { ok: true, project } on success, throws on network/DB error.
  */
 export async function saveProjectToD1(params: {
   projectId: string;
@@ -229,13 +228,10 @@ export async function saveProjectToD1(params: {
   mode?: string;
   storyMaterial?: string;
   seriesContext?: string;
-  characters?: CharacterCard[];
-  storyCards?: EpisodeStoryCard[];
-  outline?: { episodeNumber: number; title_i18n: { 'zh-HK': string; en: string; 'zh-CN': string }; oneLine_i18n: { 'zh-HK': string; en: string; 'zh-CN': string } }[];
-}): Promise<{ ok: boolean; projectId?: string }> {
-  // Step 1: ensure the project row exists with story_material / series_context
-  // (POST /api/projects handles those two columns)
-  const projRes = await fetch('/api/projects', {
+  // NOTE: characters / storyCards / outline are intentionally NOT accepted here.
+  // Use saveArchitectToD1() for those fields.
+}): Promise<{ ok: boolean; project?: unknown }> {
+  const res = await fetch('/api/projects', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -247,12 +243,36 @@ export async function saveProjectToD1(params: {
       series_context: params.seriesContext ?? null,
     }),
   });
-  if (!projRes.ok) {
-    const err = await projRes.json<{ error?: string; detail?: string }>().catch(() => ({}));
-    throw new Error(err.error ?? `HTTP ${projRes.status}`);
+  if (!res.ok) {
+    const err = await res.json<{ error?: string; detail?: string }>().catch(() => ({}));
+    throw new Error(err.error ?? `HTTP ${res.status}`);
   }
+  return res.json();
+}
 
-  // Step 2: persist series_outline + episodes.story_card via the dedicated route
+// ── Architect save (series_outline / characters / episodes.story_card) ─────────
+/**
+ * saveArchitectToD1 — upserts series_outline + episodes.story_card in D1
+ * via POST /api/ai/project/save.
+ *
+ * Does NOT touch story_material or series_context — those columns belong to
+ * saveProjectToD1() via /api/projects.
+ *
+ * Callers:
+ *   - S3 outline onAccept → persists outline (characters included for consistency)
+ *   - S3 episodes onAccept → persists storyCards batch
+ *
+ * Returns { ok: true, projectId } on success, throws on network/DB error.
+ */
+export async function saveArchitectToD1(params: {
+  projectId: string;
+  userId: string;
+  title: string;
+  mode?: string;
+  characters?: CharacterCard[];
+  storyCards?: EpisodeStoryCard[];
+  outline?: { episodeNumber: number; title_i18n: { 'zh-HK': string; en: string; 'zh-CN': string }; oneLine_i18n: { 'zh-HK': string; en: string; 'zh-CN': string } }[];
+}): Promise<{ ok: boolean; projectId?: string }> {
   const res = await fetch('/api/ai/project/save', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

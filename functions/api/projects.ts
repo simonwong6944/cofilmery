@@ -80,9 +80,10 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   const now = new Date().toISOString();
 
   try {
-    // INSERT ... ON CONFLICT(id) DO UPDATE — SQLite upsert
-    // Preserves created_at, status, episode counts etc. on conflict; only updates
-    // mutable fields (title, mode, description, updated_at).
+    // INSERT ... ON CONFLICT(id) DO UPDATE — SQLite upsert.
+    // Null guard: story_material / series_context use COALESCE so that a NULL
+    // in the body never overwrites an existing non-null value.  This prevents
+    // callers that don't supply these fields from accidentally wiping them.
     await env.DB.prepare(
       `INSERT INTO projects (id, title, mode, status, creator_id, description, story_material, series_context, created_at, updated_at)
        VALUES (?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?)
@@ -90,8 +91,8 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
          title          = excluded.title,
          mode           = excluded.mode,
          description    = excluded.description,
-         story_material = excluded.story_material,
-         series_context = excluded.series_context,
+         story_material = COALESCE(excluded.story_material, story_material),
+         series_context = COALESCE(excluded.series_context, series_context),
          updated_at     = excluded.updated_at`
     ).bind(id, title, validMode, creator_id, description ?? null, story_material ?? null, series_context ?? null, now, now).run();
 

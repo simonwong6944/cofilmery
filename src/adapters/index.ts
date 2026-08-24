@@ -26,6 +26,7 @@ export {
   generateTts,
   fetchCreditsBalance,
   saveProjectToD1,
+  saveArchitectToD1,
   saveStoryCardToD1,
   saveCharactersToD1,
   loadCharactersFromD1,
