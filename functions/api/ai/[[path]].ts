@@ -722,6 +722,217 @@ app.post('/api/ai/image-gen', async (c) => {
   });
 });
 
+// ─── Character angle generation ───────────────────────────────────────────────
+// POST /api/ai/character-angle
+// Body: { assetId, role, referenceImageUrl?, appearanceSummary, projectId, userId }
+// Returns: { ok, fileUrl, role }
+//
+// Generates a single angle view for a character asset.
+// Roles: front | three-quarter | side | back (mandatory set)
+//        action | detail (optional, user-triggered only)
+// If referenceImageUrl is provided, loads from R2 and passes as input_reference
+// (Path A chaining: front → used as reference for three-quarter/side/back).
+// Stores result in R2 at generated/{projectId}/{assetId}_{role}.png
+// Writes one row to asset_media; if role=front also updates assets.file_url.
+app.post('/api/ai/character-angle', async (c) => {
+  const env = c.env;
+  if (!env.OPENROUTER_API_KEY) return c.json({ ok: false, error: 'AI not configured' }, 503);
+  if (!env.FILES)               return c.json({ ok: false, error: 'Storage not configured' }, 503);
+
+  const body = await c.req.json<{
+    assetId: string;
+    role: string;
+    referenceImageUrl?: string;
+    appearanceSummary: string;
+    projectId: string;
+    userId: string;
+  }>();
+
+  const { assetId, role, appearanceSummary, projectId, userId } = body;
+
+  if (!assetId)           return c.json({ ok: false, error: 'assetId is required' }, 400);
+  if (!appearanceSummary) return c.json({ ok: false, error: 'appearanceSummary is required' }, 400);
+  if (!projectId)         return c.json({ ok: false, error: 'projectId is required' }, 400);
+  if (!userId)            return c.json({ ok: false, error: 'userId is required' }, 400);
+
+  const VALID_ANGLE_ROLES = ['front', 'three-quarter', 'side', 'back', 'action', 'detail'] as const;
+  type AngleRole = typeof VALID_ANGLE_ROLES[number];
+  if (!VALID_ANGLE_ROLES.includes(role as AngleRole)) {
+    return c.json({ ok: false, error: `Invalid role. Must be one of: ${VALID_ANGLE_ROLES.join(', ')}` }, 400);
+  }
+
+  // Angle-specific prompt directive map
+  const ANGLE_DIRECTIVES: Record<AngleRole, string> = {
+    'front':         'front view, facing camera directly, symmetrical composition',
+    'three-quarter': 'three-quarter view, body turned approximately 45 degrees to the right, face slightly angled',
+    'side':          'profile view, facing left, full side silhouette visible',
+    'back':          'rear view, back of character facing camera, head slightly turned if natural',
+    'action':        'dynamic action pose, full body, movement and energy captured',
+    'detail':        'close-up detail shot, face and upper body, sharp facial features',
+  };
+
+  const angleDirective = ANGLE_DIRECTIVES[role as AngleRole];
+
+  // Build prompt
+  const parts = [
+    'Full-body character reference sheet illustration for a Hong Kong drama character.',
+    `Appearance: ${appearanceSummary}.`,
+    `Pose/View: ${angleDirective}.`,
+    'Consistent character design, clean background, studio lighting, illustration style suitable for character bible.',
+    'Maintain exact same face, hair, clothing, and physical proportions as the reference.',
+    '3:4 aspect ratio.',
+  ].filter(Boolean).join(' ');
+
+  // Build OpenRouter images payload
+  type ImagePayload = {
+    model: string;
+    prompt: string;
+    aspect_ratio: string;
+    input_references?: { type: string; image_url: { url: string } }[];
+  };
+  const payload: ImagePayload = {
+    model: 'google/gemini-2.5-flash-image',
+    prompt: parts,
+    aspect_ratio: '3:4',
+  };
+
+  // ── Load reference image from R2 if provided (Path A chaining) ────────────
+  let referenceSkipped = false;
+  if (body.referenceImageUrl) {
+    try {
+      const prefix = '/api/assets/file/';
+      const encodedKey = body.referenceImageUrl.startsWith(prefix)
+        ? body.referenceImageUrl.slice(prefix.length)
+        : body.referenceImageUrl;
+      const r2Key = decodeURIComponent(encodedKey);
+
+      const obj = await env.FILES.get(r2Key);
+      if (!obj) {
+        console.warn('[character-angle] R2 ref not found:', r2Key, '— proceeding text-only');
+        referenceSkipped = true;
+      } else {
+        const buf = await obj.arrayBuffer();
+        const contentType = obj.httpMetadata?.contentType ?? 'image/jpeg';
+
+        // Chunked btoa (8 KB chunks) to avoid stack overflow on large buffers
+        const bytes = new Uint8Array(buf);
+        const CHUNK = 8192;
+        let b64 = '';
+        for (let i = 0; i < bytes.length; i += CHUNK) {
+          b64 += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+        }
+        const dataUrl = `data:${contentType};base64,${btoa(b64)}`;
+        payload.input_references = [{ type: 'image_url', image_url: { url: dataUrl } }];
+      }
+    } catch (refErr) {
+      console.error('[character-angle] Failed to load reference from R2:', refErr, '— proceeding text-only');
+      referenceSkipped = true;
+    }
+  }
+
+  // ── Call OpenRouter images endpoint ──────────────────────────────────────
+  const res = await fetch('https://openrouter.ai/api/v1/images', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${env.OPENROUTER_API_KEY}`,
+      'Content-Type': 'application/json',
+      'HTTP-Referer': 'https://cofilmery.app',
+      'X-Title': 'CoFilmery',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    return c.json({ ok: false, error: 'Image generation failed', detail: errText }, 502);
+  }
+
+  const imgData = await res.json<{
+    data: { b64_json?: string; url?: string; revised_prompt?: string }[];
+    usage_cost?: number;
+  }>();
+
+  const item = imgData.data?.[0];
+  if (!item) {
+    return c.json({ ok: false, error: 'No image returned from OpenRouter' }, 502);
+  }
+
+  // ── Decode base64 → ArrayBuffer ───────────────────────────────────────────
+  let imageBuffer: ArrayBuffer;
+  if (item.b64_json) {
+    const binary = atob(item.b64_json);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    imageBuffer = bytes.buffer;
+  } else if (item.url) {
+    const imgRes = await fetch(item.url);
+    if (!imgRes.ok) return c.json({ ok: false, error: 'Failed to fetch generated image URL' }, 502);
+    imageBuffer = await imgRes.arrayBuffer();
+  } else {
+    return c.json({ ok: false, error: 'Unexpected image response format' }, 502);
+  }
+
+  // ── Store in R2: generated/{projectId}/{assetId}_{role}.png ───────────────
+  const r2Key  = `generated/${projectId}/${assetId}_${role}.png`;
+  const fileUrl = `/api/assets/file/${encodeURIComponent(r2Key)}`;
+
+  try {
+    await env.FILES.put(r2Key, imageBuffer, {
+      httpMetadata:   { contentType: 'image/png' },
+      customMetadata: { userId, projectId, assetId, role, source: 'character-angle' },
+    });
+  } catch (e) {
+    return c.json({ ok: false, error: 'R2 write failed', detail: String(e) }, 500);
+  }
+
+  // ── Write asset_media row (INSERT OR REPLACE to allow re-generation) ──────
+  const mediaId = crypto.randomUUID();
+  try {
+    // Remove existing row for this asset+role first (re-gen replaces old angle)
+    await env.DB.prepare(
+      `DELETE FROM asset_media WHERE asset_id = ? AND role = ?`
+    ).bind(assetId, role).run();
+
+    await env.DB.prepare(
+      `INSERT INTO asset_media (id, asset_id, file_url, role, sort_order, created_at)
+       VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
+    ).bind(
+      mediaId, assetId, fileUrl, role,
+      // sort_order: front=0, three-quarter=1, side=2, back=3, action=4, detail=5
+      ['front', 'three-quarter', 'side', 'back', 'action', 'detail'].indexOf(role),
+    ).run();
+  } catch (e) {
+    console.error('[character-angle] asset_media INSERT failed (non-fatal):', e);
+  }
+
+  // ── If role=front: update assets.file_url to this new image ──────────────
+  if (role === 'front') {
+    try {
+      await env.DB.prepare(
+        `UPDATE assets SET file_url = ? WHERE id = ?`
+      ).bind(fileUrl, assetId).run();
+    } catch (e) {
+      console.error('[character-angle] assets.file_url UPDATE failed (non-fatal):', e);
+    }
+  }
+
+  // ── Record credits ────────────────────────────────────────────────────────
+  const costUsd = imgData.usage_cost ?? 0.04;
+  const credits = costUsdToCredits(costUsd);
+  const jobId   = crypto.randomUUID();
+
+  await recordGenJob(env.DB, jobId, userId, 'character_angle', 'completed', credits, 'google/gemini-2.5-flash-image', fileUrl);
+  await recordCreditDebit(env.DB, userId, credits, 'ai_generation', `角色設定圖生成 — ${role} (${assetId.slice(0, 8)})`);
+
+  return c.json({
+    ok: true,
+    fileUrl,
+    role,
+    creditsConsumed: credits,
+    ...(referenceSkipped ? { referenceSkipped: true } : {}),
+  });
+});
+
 // ─── Credits balance ──────────────────────────────────────────────────────────
 app.get('/api/ai/credits/:userId', async (c) => {
   const env    = c.env;
