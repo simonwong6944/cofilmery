@@ -680,7 +680,7 @@ function buildElementsHint(el: EpisodeElements, characters: CharacterCard[], spo
     parts.push(`本集出場角色：${names.join('、')}`);
   }
   if (el.sponsorProductIds.length > 0) {
-    const prods = el.sponsorProductIds.map(id => sponsorAssets.find(a => a.assetId === id)?.name ?? id);
+    const prods = el.sponsorProductIds.map(id => sponsorAssets.find(a => a.asset_id === id)?.name ?? id);
     parts.push(`本集須自然植入贊助商產品：${prods.join('、')}（請融入劇情，避免硬銷）`);
   }
   if (el.ownAssetTags.length > 0) {
@@ -719,11 +719,32 @@ export function S1cEpisodes({ context, outline, characters, sponsorAssets = [], 
   const [episodeElements, setEpisodeElements] = useState<Record<number, EpisodeElements>>({});
   // 控制每集元素選擇器是否展開
   const [elementsExpanded, setElementsExpanded] = useState<Set<number>>(new Set());
+  // Batch 2 組二：每集 D1 存檔狀態（'saving' | 'saved' | 'error'），用於 UI 即時反饋
+  const [saveState, setSaveState] = useState<Record<number, 'saving' | 'saved' | 'error'>>({});
 
   const getElements = (epNum: number): EpisodeElements =>
     episodeElements[epNum] ?? DEFAULT_ELEMENTS;
   const updateElements = (epNum: number, patch: Partial<EpisodeElements>) =>
     setEpisodeElements(prev => ({ ...prev, [epNum]: { ...getElements(epNum), ...patch } }));
+
+  // Batch 2 組二：共用存檔 helper — 包住 saveStoryCardToD1，統一管理 saveState
+  // 用於 expandEpisode（首次生成）、regenerateEpisode（重新生成）、saveEdit（編輯後儲存）
+  // 三個動作，確保每次卡片內容變更都即時持久化到 D1，並在 UI 反映存檔狀態。
+  const persistCard = async (epNum: number, card: EpisodeStoryCard) => {
+    setSaveState(prev => ({ ...prev, [epNum]: 'saving' }));
+    try {
+      await saveStoryCardToD1({
+        projectId,
+        userId: epUser?.id ?? 'demo-user',
+        title: projectTitle || context.seriesTitle || '未命名劇集',
+        card,
+      });
+      setSaveState(prev => ({ ...prev, [epNum]: 'saved' }));
+    } catch (e) {
+      setSaveState(prev => ({ ...prev, [epNum]: 'error' }));
+      console.warn(`[S1cEpisodes] persistCard failed for episode ${epNum}:`, e);
+    }
+  };
 
   const expandEpisode = async (epNum: number) => {
     if (cards[epNum]) {
@@ -741,13 +762,8 @@ export function S1cEpisodes({ context, outline, characters, sponsorAssets = [], 
         setCards(prev => ({ ...prev, [epNum]: res.storyCard! }));
         setExpanded(prev => { const s = new Set(prev); s.add(epNum); return s; });
         void recordAction({ project_id: projectId, stage: 'episodes', action: 'generate', actor: 'ai' });
-        // A2 持久化：每集生成成功後即時寫入 D1 episodes.story_card（fire-and-forget）
-        void saveStoryCardToD1({
-          projectId,
-          userId: epUser?.id ?? 'demo-user',
-          title: projectTitle || context.seriesTitle || '未命名劇集',
-          card: res.storyCard,
-        });
+        // A2 持久化：每集生成成功後即時寫入 D1 episodes.story_card（統一經 persistCard，帶 UI 狀態）
+        void persistCard(epNum, res.storyCard);
       }
     } finally {
       setLoading(prev => ({ ...prev, [epNum]: false }));
@@ -765,6 +781,8 @@ export function S1cEpisodes({ context, outline, characters, sponsorAssets = [], 
       if (res.storyCard) {
         setCards(prev => ({ ...prev, [epNum]: res.storyCard! }));
         void recordAction({ project_id: projectId, stage: 'episodes', action: 'regenerate', actor: 'ai' });
+        // Batch 2 組二：重新生成後同樣即時存 D1，避免改動離開頁面即丟失
+        void persistCard(epNum, res.storyCard);
       }
     } finally {
       setLoading(prev => ({ ...prev, [epNum]: false }));
@@ -772,13 +790,16 @@ export function S1cEpisodes({ context, outline, characters, sponsorAssets = [], 
   };
 
   const saveEdit = (epNum: number) => {
-    setCards(prev => ({ ...prev, [epNum]: {
-      ...prev[epNum],
-      body_i18n: { ...prev[epNum].body_i18n, [loc]: editBody },
+    const updatedCard: EpisodeStoryCard = {
+      ...cards[epNum],
+      body_i18n: { ...cards[epNum].body_i18n, [loc]: editBody },
       humanEdited: true,
-    }}));
+    };
+    setCards(prev => ({ ...prev, [epNum]: updatedCard }));
     setEditing(null);
     void recordAction({ project_id: projectId, stage: 'episodes', action: 'edit', actor: 'human' });
+    // Batch 2 組二：編輯後撳「儲存」才即時存 D1（不綁 onChange 逐字存）
+    void persistCard(epNum, updatedCard);
   };
 
   const acceptedCards = Object.values(cards);
@@ -820,6 +841,26 @@ export function S1cEpisodes({ context, outline, characters, sponsorAssets = [], 
                   <p className="text-sm font-semibold text-ink truncate">{ep.title_i18n[loc]}</p>
                   <p className="text-xs text-muted truncate">{ep.oneLine_i18n[loc]}</p>
                 </div>
+                {/* Batch 2 組二：per-episode D1 存檔狀態顯示 */}
+                {saveState[ep.episodeNumber] === 'saving' && (
+                  <span className="flex items-center gap-1 text-[11px] text-muted shrink-0">
+                    <Loader2 size={11} className="animate-spin" /> 儲存中…
+                  </span>
+                )}
+                {saveState[ep.episodeNumber] === 'saved' && (
+                  <span className="flex items-center gap-1 text-[11px] text-green-600 shrink-0">
+                    <Check size={11} /> 已儲存
+                  </span>
+                )}
+                {saveState[ep.episodeNumber] === 'error' && card && (
+                  <button
+                    onClick={() => persistCard(ep.episodeNumber, card)}
+                    className="flex items-center gap-1 text-[11px] text-red-600 hover:text-red-700 shrink-0"
+                    title="點擊重試存檔"
+                  >
+                    <AlertCircle size={11} /> 儲存失敗 ⚠ 重試
+                  </button>
+                )}
                 {/* 元素選擇器切換按鈕 */}
                 <button
                   onClick={() => setElementsExpanded(prev => {
@@ -924,14 +965,14 @@ export function S1cEpisodes({ context, outline, characters, sponsorAssets = [], 
                       ) : (
                         <div className="flex flex-wrap gap-1.5">
                           {sponsorAssets.map(asset => {
-                            const selected = el.sponsorProductIds.includes(asset.assetId);
+                            const selected = el.sponsorProductIds.includes(asset.asset_id);
                             return (
                               <button
-                                key={asset.assetId}
+                                key={asset.asset_id}
                                 onClick={() => updateElements(ep.episodeNumber, {
                                   sponsorProductIds: selected
-                                    ? el.sponsorProductIds.filter(id => id !== asset.assetId)
-                                    : [...el.sponsorProductIds, asset.assetId],
+                                    ? el.sponsorProductIds.filter(id => id !== asset.asset_id)
+                                    : [...el.sponsorProductIds, asset.asset_id],
                                 })}
                                 className={`flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full border transition-all ${
                                   selected

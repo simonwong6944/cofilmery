@@ -297,6 +297,11 @@ export async function saveArchitectToD1(params: {
  * saveStoryCardToD1 — upserts a single episode story_card row.
  * Called immediately after each episode is generated (expandEpisode success)
  * so cards are persisted one-by-one without waiting for full batch accept.
+ *
+ * Batch 2 組二：catch 對齊 saveArchitectToD1 — log 後 rethrow，
+ * 讓呼叫方（StoryArchitect.tsx 的 persistCard helper）可以接住錯誤，
+ * 更新該集的 saveState 為 'error' 並在 UI 顯示「儲存失敗」。
+ * 不再完全靜音。
  */
 export async function saveStoryCardToD1(params: {
   projectId: string;
@@ -305,7 +310,7 @@ export async function saveStoryCardToD1(params: {
   card: EpisodeStoryCard;
 }): Promise<void> {
   try {
-    await fetch('/api/ai/project/save', {
+    const res = await fetch('/api/ai/project/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -318,8 +323,13 @@ export async function saveStoryCardToD1(params: {
         storyCards: [params.card],
       }),
     });
-  } catch {
-    // fire-and-forget: single-card save failure is non-blocking
+    if (!res.ok) {
+      const err = await res.json<{ error?: string; detail?: string }>().catch(() => ({}));
+      throw new Error(err.error ?? `HTTP ${res.status}`);
+    }
+  } catch (e) {
+    console.warn('[saveStoryCardToD1] save failed:', e);
+    throw e;
   }
 }
 

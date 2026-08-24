@@ -1654,7 +1654,7 @@ export const zhHK = {
       assetDate: '上傳日期',
       uploadBrandLabel: '品牌',
       uploadModelLabel: '型號',
-      uploadDescLabel: '描述',
+      uploadDescLabel: '置入方向 / 主打賣點',
       uploadRevenueLabel: '分潤率（每次）',
       assetRevenueUnit: 'HK$ / 次',
       editBtn: '編輯',

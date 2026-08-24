@@ -1401,7 +1401,7 @@ export const en = {
       assetDate: 'Upload Date',
       uploadBrandLabel: 'Brand',
       uploadModelLabel: 'Model',
-      uploadDescLabel: 'Description',
+      uploadDescLabel: 'Promotional Direction',
       uploadRevenueLabel: 'Revenue Rate (per play)',
       assetRevenueUnit: 'HK$ / play',
       editBtn: 'Edit',
