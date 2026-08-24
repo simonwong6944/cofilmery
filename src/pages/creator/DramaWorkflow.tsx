@@ -65,7 +65,7 @@ function S0SeriesSetup({ onNext }: { onNext: () => void }) {
   const { locale } = useLocaleStore();
   const tr = t();
   void locale;
-  const { setProjectId, setContext, projectId } = useProjectStore();
+  const { setProjectId, setContext, projectId, context } = useProjectStore();
   const { user } = useAuthStore();
   const [seriesName, setSeriesName] = useState('');
   const [episodeCount, setEpisodeCount] = useState(30);
@@ -75,6 +75,21 @@ function S0SeriesSetup({ onNext }: { onNext: () => void }) {
   const [need, setNeed] = useState('');
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
+
+  // ── 掛載回填：從 store.context 同步 local state（僅首次有值時執行一次）──
+  // 使用 hydratedRef 避免蓋掉使用者正在編輯的輸入
+  const s0HydratedRef = useRef(false);
+  useEffect(() => {
+    if (s0HydratedRef.current) return; // 已回填過，不再覆蓋
+    if (!context) return;              // async load 尚未完成，等下次 dep 觸發
+    s0HydratedRef.current = true;
+    if (context.seriesTitle)   setSeriesName(context.seriesTitle);
+    if (context.genre)         setGenre(context.genre);
+    if (context.tone)          setTone(context.tone);
+    if (context.coreNeed)      setNeed(context.coreNeed);
+    if (context.episodeCount)  setEpisodeCount(context.episodeCount);
+    if (context.durationLabel) setDuration(context.durationLabel);
+  }, [context]);
 
   const genreIcons = ['🌟','💛','👨‍👩‍👧‍👦','🌺','🕰️','🤝'];
   const genres = tr.creator.drama.s0.genres.map((g, i) => ({
@@ -326,6 +341,16 @@ function PlanOverview({ onNext }: { onNext: () => void }) {
   const { storyMaterial, setStoryMaterial, projectId: poProjectId, context: poContext } = useProjectStore();
   const { user: poUser } = useAuthStore();
   const [localMaterial, setLocalMaterial] = useState(storyMaterial);
+
+  // ── 掛載回填：storyMaterial 可能在 async loadProject 後才灌入 store ──
+  // hydratedRef 確保只在首次拿到非空值時同步一次，不蓋掉使用者已編輯的內容
+  const poHydratedRef = useRef(false);
+  useEffect(() => {
+    if (poHydratedRef.current) return;
+    if (!storyMaterial) return;
+    poHydratedRef.current = true;
+    setLocalMaterial(storyMaterial);
+  }, [storyMaterial]);
 
   // 非同步存 D1 story_material（non-blocking，失敗只 warn）
   const persistMaterial = (material: string) => {
