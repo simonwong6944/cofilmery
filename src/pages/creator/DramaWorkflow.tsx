@@ -1553,23 +1553,42 @@ function CharacterProfileCard({
     return data.fileUrl;
   };
 
+  // FIX A — 呼叫前先清掉三個舊角度（避免舊圖殘留），再用最新 frontUrl 串連重生
   // 串連生成 three-quarter → side → back（front 已由 image-gen 產生並設為頭像）
   // frontUrl: 一致性角色圖 URL，全部角度都用它做 reference
   const startRemainingAngles = async (frontUrl: string) => {
     if (!charId) return;
     const prompt = buildAppearanceSummary(appearance);
     if (!prompt) return;
+
+    // ① FIX A: 先清掉舊三角度 media 及狀態，防止舊圖殘留
+    const REMAINING_ROLES: CharAngleRole[] = ['three-quarter', 'side', 'back'];
+    setAngleMedia(prev => {
+      const next = { ...prev };
+      REMAINING_ROLES.forEach(r => { delete next[r]; });
+      return next;
+    });
+    setAngleStatus(prev => {
+      const next = { ...prev };
+      REMAINING_ROLES.forEach(r => { next[r] = 'idle'; });
+      return next;
+    });
+    setAngleError(prev => {
+      const next = { ...prev };
+      REMAINING_ROLES.forEach(r => { next[r] = ''; });
+      return next;
+    });
+
     setIsLoopRunning(true);
     setLoopProgress(null);
 
-    const REMAINING_ROLES: CharAngleRole[] = ['three-quarter', 'side', 'back'];
     for (let i = 0; i < REMAINING_ROLES.length; i++) {
       const r = REMAINING_ROLES[i];
       setLoopProgress({ current: i + 1, total: 3, roleName: CHAR_ANGLE_LABELS[r] });
       setAngleStatus(prev => ({ ...prev, [r]: 'loading' }));
       setAngleError(prev => ({ ...prev, [r]: '' }));
       try {
-        // 全部角度用 front 做 reference，用 high 盡量跟近 front
+        // 全部角度用最新 frontUrl 做 reference，用 high 盡量跟近 front
         const fileUrl = await generateOneAngle(r, prompt, frontUrl, 'high');
         setAngleMedia(prev => ({ ...prev, [r]: fileUrl }));
         setAngleStatus(prev => ({ ...prev, [r]: 'done' }));
@@ -2304,11 +2323,12 @@ function CharacterProfileCard({
             <div className="flex gap-2 p-2">
               <button
                 onClick={async () => {
+                  if (!imageGenResult) return;
                   const frontUrl = imageGenResult;
                   // (a) 設為主頭像
                   onImgChange?.(frontUrl);
                   setImageGenResult(null);
-                  // (b) 即時更新 front 格為 done
+                  // (b) 即時更新 front 格為 done（FIX B: frontUrl 已明確傳入，startRemainingAngles 會自動清掉舊三角度）
                   setAngleMedia(prev => ({ ...prev, front: frontUrl }));
                   setAngleStatus(prev => ({ ...prev, front: 'done' }));
                   // (c) 寫 asset_media(role='front') — 直接 POST，不再 call AI
@@ -2324,7 +2344,7 @@ function CharacterProfileCard({
                       }),
                     }).catch(e => console.warn('[setAsAvatar] asset_media front write failed:', e));
                   }
-                  // (d) 串連生成 three-quarter → side → back
+                  // (d) FIX A+B: startRemainingAngles 先清掉舊三角度再以 frontUrl 串連重生
                   await startRemainingAngles(frontUrl);
                 }}
                 className="flex-1 flex items-center justify-center gap-1.5 bg-primary text-white text-xs py-2 rounded-lg hover:bg-primary/90 transition-colors font-medium"

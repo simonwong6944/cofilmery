@@ -835,6 +835,10 @@ app.post('/api/ai/character-angle', async (c) => {
     // ⑤ Quality
     'Real human being, cinematic photography, natural skin texture and pores, realistic studio lighting, shot on a professional camera, film-still quality, plain neutral background.',
     'Absolutely NOT illustration, NOT cartoon, NOT anime, NOT 3D render, NOT painting, NOT drawing, NOT stylized.',
+    // ⑥ FIX C — Body proportion & framing consistency
+    // Prevents model from interpreting height descriptors (矮小/高大) as zoom-out/zoom-in,
+    // and ensures all four angles use identical camera distance and full-body framing.
+    'Maintain realistic natural human body proportions with a normal head-to-body ratio (approximately 1:7 to 1:8). Height differences (tall, short, petite, etc.) should be reflected in the character\'s overall stature only — do NOT enlarge the head, do NOT shrink or crop the body, do NOT zoom in or zoom out to show height. Keep a consistent full-body framing with the same camera distance across all angles: show the complete figure from head to feet.',
     '3:4 aspect ratio.',
   ].filter(Boolean).join(' ');
 
