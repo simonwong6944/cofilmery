@@ -1384,12 +1384,20 @@ type AppearanceOptions = {
   face: string; eyes: string; eyewear: string;
   facial: string; posture: string; style: string;
   extraNote: string; // 補充描述（自由填寫）
+  // STEP 2: 新增五個外貌細節欄（全部 gender-neutral，default ''，空值唔輸出）
+  eyeSize: string;   // 眼睛大小
+  mouthSize: string; // 嘴型
+  noseShape: string; // 鼻型
+  eyebrows: string;  // 眉型
+  faceDetail: string; // 臉部特徵（非鬚）
 };
 
 const DEFAULT_APPEARANCE: AppearanceOptions = {
   height: '', build: '', skin: '', hair: '', hairColor: '', hairLength: '',
   face: '', eyes: '', eyewear: '', facial: '', posture: '', style: '',
   extraNote: '',
+  // STEP 2: 新增 field 全部 default ''（空值唔輸出，不像 facial 咁有特殊 token）
+  eyeSize: '', mouthSize: '', noseShape: '', eyebrows: '', faceDetail: '',
 };
 
 // 鬚鬚選項中屬於劃鬚颩鬚的值（女角/other 總唔會產生，但万一有落地都加以拦截）
@@ -1415,6 +1423,13 @@ function buildAppearanceSummary(a: AppearanceOptions): string {
     a.skin ? a.skin + '膚色' : '',
     a.hairLength && a.hairColor ? `${a.hairColor}${a.hairLength}${a.hair || ''}` : (a.hair || ''),
     a.face ? a.face + '臉型' : '',
+    // STEP 2: 新增面部細節（空值唔輸出，唔加任何預設 token）
+    a.eyeSize   || '',   // 眼睛大小：大眼/細眼/丹鳳眼/圓眼
+    a.eyebrows  || '',   // 眉型：濃眉/細眉/劍眉/彎眉
+    a.noseShape || '',   // 鼻型：挺鼻/小巧/鷹鉤鼻/標準
+    a.mouthSize || '',   // 嘴型：櫻桃小嘴/厚唇/薄唇/標準
+    a.faceDetail || '',  // 臉部特徵：高顴骨/尖下巴/方下巴
+    // ── 以下沿用原有邏輯 ──
     a.eyewear && a.eyewear !== '無眼鏡' ? a.eyewear : '',
     facialToken,
     a.eyes, a.posture, a.style,
@@ -1626,7 +1641,7 @@ function CharacterProfileCard({
       const refUrl = r === 'front'
         ? (img || (refs ?? [])[0] || undefined)
         : (angleMedia['front'] || undefined);
-      const sim = r === 'front' ? angleSimMode : 'high';
+      const sim = r === 'front' ? 'mid' : 'high'; // STEP 1: front fixed mid, others fixed high
       const fileUrl = await generateOneAngle(r, prompt, refUrl, sim);
       setAngleMedia(prev => ({ ...prev, [r]: fileUrl }));
       setAngleStatus(prev => ({ ...prev, [r]: 'done' }));
@@ -1783,8 +1798,9 @@ function CharacterProfileCard({
     'No Beard', 'Stubble', 'Goatee', 'Moustache', 'Full Beard',
     '无胡须', '短胡须', '山羊胡', '八字胡', '络煶胡']);
 
-  const appearanceRows: { label: string; key: keyof AppearanceOptions; opts: string[] }[] =
-    appearanceRowLabels.map((r, i) => {
+  const appearanceRows: { label: string; key: keyof AppearanceOptions; opts: string[] }[] = [
+    // 原有 12 row（locale 驅動，gender override 適用）
+    ...appearanceRowLabels.map((r, i) => {
       const key = appearanceRowKeys[i];
       const overriddenOpts = appearanceOptsOverride?.[key];
       let opts = overriddenOpts ?? r.opts;
@@ -1793,7 +1809,14 @@ function CharacterProfileCard({
         opts = opts.filter(o => !BEARD_OPTS.has(o));
       }
       return { label: r.label, key, opts };
-    });
+    }),
+    // STEP 2: 新增五個外貌細節 row（繁中 hardcode，gender-neutral，唔需要 locale / override）
+    { label: '眼睛大小', key: 'eyeSize'   as keyof AppearanceOptions, opts: ['大眼', '細眼', '丹鳳眼', '圓眼'] },
+    { label: '嘴型',     key: 'mouthSize' as keyof AppearanceOptions, opts: ['櫻桃小嘴', '厚唇', '薄唇', '標準'] },
+    { label: '鼻型',     key: 'noseShape' as keyof AppearanceOptions, opts: ['挺鼻', '小巧', '鷹鉤鼻', '標準'] },
+    { label: '眉型',     key: 'eyebrows'  as keyof AppearanceOptions, opts: ['濃眉', '細眉', '劍眉', '彎眉'] },
+    { label: '臉部特徵', key: 'faceDetail' as keyof AppearanceOptions, opts: ['高顴骨', '尖下巴', '方下巴'] },
+  ];
 
   const accentColor = mode === 'drama' ? 'primary' : 'accent';
 
@@ -2228,31 +2251,8 @@ function CharacterProfileCard({
           根據外貌設定生成一致性 front 圖；設為頭像後自動串連生成四分三面、側面、背面。
         </p>
 
-        {/* ① 似度三檔掣（控制 front 生成 + 角色設定圖串連） */}
-        <div className="flex gap-2 mb-3">
-          {([
-            { key: 'high' as const, label: '好像（90%+）', desc: '緊貼原相面孔', color: 'bg-green-500', border: 'border-green-500', bg: 'bg-green-50' },
-            { key: 'mid'  as const, label: '70%（預設）',   desc: '識出係同一人', color: 'bg-blue-500',  border: 'border-blue-500',  bg: 'bg-blue-50'  },
-            { key: 'low'  as const, label: '神似（50%）',   desc: '同氣質新角色', color: 'bg-purple-500',border: 'border-purple-500',bg: 'bg-purple-50' },
-          ] as const).map(s => (
-            <button
-              key={s.key}
-              onClick={() => setAngleSimMode(s.key)}
-              disabled={imageGenLoading || isLoopRunning}
-              className={`flex-1 p-2 rounded-lg border text-left transition-all disabled:opacity-50 ${
-                angleSimMode === s.key
-                  ? `${s.border} ${s.bg}`
-                  : 'border-line hover:border-primary/40 bg-bg-soft'
-              }`}
-            >
-              <div className="flex items-center gap-1 mb-0.5">
-                <span className={`w-2 h-2 rounded-full ${s.color}`} />
-                <span className="font-semibold text-[11px] text-ink leading-none">{s.label}</span>
-              </div>
-              <p className="text-[10px] text-muted leading-tight">{s.desc}</p>
-            </button>
-          ))}
-        </div>
+        {/* ① 似度選項（已固定為 70%，隱藏 UI）*/}
+        {/* STEP 1: similarity 三檔實測分唔開（50% 仍同樣面孔），固定 mid。UI 隱藏，data/state 保留供將來恢復。*/}
 
         {/* ② 頭像預覽 + 生成按鈕 */}
         <div className="flex gap-3 items-start mb-3">
@@ -2275,12 +2275,7 @@ function CharacterProfileCard({
                 setImageGenResult(null);
                 setImageGenError(null);
                 try {
-                  // Map angleSimMode enum → image-gen backend similarity locale strings
-                  const simLocaleMap: Record<'high' | 'mid' | 'low', string> = {
-                    high: '極似',
-                    mid:  '70%',
-                    low:  '神韻',
-                  };
+                  // STEP 1: similarity 固定 70%（mid），唔再讀 angleSimMode
                   // Merge avatar (img) + refs[], deduplicate, cap at 3
                   const allRefs = [...new Set([img, ...(refs ?? [])].filter(Boolean))].slice(0, 3);
                   const body: Record<string, unknown> = {
@@ -2289,7 +2284,7 @@ function CharacterProfileCard({
                     age,
                     role,
                     projectId: projectId ?? 'global',
-                    similarity: simLocaleMap[angleSimMode], // 傳換算後嘅 locale string
+                    similarity: '70%', // fixed mid
                   };
                   if (allRefs.length > 0) body.referenceImageUrls = allRefs;
                   console.log('[imageGen] calling /api/ai/image-gen (front only), body keys=', Object.keys(body));
