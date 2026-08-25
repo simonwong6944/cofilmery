@@ -584,7 +584,10 @@ app.post('/api/ai/image-gen', async (c) => {
     body.role     ? `Role: ${body.role}.`                : '',
     `Appearance: ${body.appearanceSummary}.`,
     simDirective,   // similarity mode directive (empty string filtered out below)
-    'Half-body portrait, natural lighting, cinematic realism, clear facial features, 3:4 ratio.',
+    // FIX C (image-gen): Body proportion & framing consistency — same clause as character-angle route.
+    // Prevents model from interpreting height descriptors (矮小/高大) as zoom-out/zoom-in.
+    "Maintain realistic natural human body proportions with a normal head-to-body ratio (approximately 1:7 to 1:8). Height differences (tall, short, petite, etc.) should be reflected in the character's overall stature only — do NOT enlarge the head, do NOT shrink or crop the body, do NOT zoom in or zoom out to show height. Keep a consistent full-body framing with the same camera distance across all angles: show the complete figure from head to feet.",
+    'Photorealistic full-body character portrait, natural lighting, cinematic realism, clear facial features, plain neutral background, 3:4 ratio.',
   ].filter(Boolean).join(' ');
 
   // Build request payload for OpenRouter images API
