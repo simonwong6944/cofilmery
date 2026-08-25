@@ -127,13 +127,66 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   }
 };
 
+// ── PATCH /api/characters ─────────────────────────────────────────────────────
+// Lightweight single-field update: sync a character's img column AND data blob.
+// Body: { id: string; img: string }
+// Reads the existing data JSON, merges in the new img, then writes both columns.
+// Used by setAsAvatar flow so loadCharactersFromD1 returns the correct thumbnail
+// after logout/re-login without requiring a full characters overwrite.
+export const onRequestPatch: PagesFunction<Env> = async (ctx) => {
+  const env = ctx.env;
+
+  let body: { id?: string; img?: string };
+  try {
+    body = await ctx.request.json();
+  } catch {
+    return new Response(JSON.stringify({ error: 'Invalid JSON body' }), {
+      status: 400, headers: CORS,
+    });
+  }
+
+  const { id, img } = body;
+  if (!id)  return new Response(JSON.stringify({ error: 'id is required' }),  { status: 400, headers: CORS });
+  if (!img) return new Response(JSON.stringify({ error: 'img is required' }), { status: 400, headers: CORS });
+
+  const now = new Date().toISOString();
+  try {
+    // Read existing data blob so we can merge img into it
+    const row = await env.DB.prepare(
+      `SELECT data FROM characters WHERE id = ?`
+    ).bind(id).first<{ data: string }>();
+
+    if (!row) {
+      return new Response(JSON.stringify({ error: 'Character not found', id }), {
+        status: 404, headers: CORS,
+      });
+    }
+
+    // Merge img into the existing data JSON blob
+    let dataObj: Record<string, unknown> = {};
+    try { dataObj = JSON.parse(row.data); } catch { /* keep empty */ }
+    dataObj.img = img;
+    const mergedData = JSON.stringify(dataObj);
+
+    await env.DB.prepare(
+      `UPDATE characters SET img = ?, data = ?, updated_at = ? WHERE id = ?`
+    ).bind(img, mergedData, now, id).run();
+
+    return new Response(JSON.stringify({ ok: true, id, img }), { status: 200, headers: CORS });
+  } catch (e) {
+    return new Response(JSON.stringify({ error: 'DB write failed', detail: String(e) }), {
+      status: 500, headers: CORS,
+    });
+  }
+};
+
 // ── OPTIONS (CORS preflight) ──────────────────────────────────────────────────
 export const onRequestOptions: PagesFunction = async () =>
   new Response(null, {
     status: 204,
     headers: {
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Methods': 'GET, POST, PATCH, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type',
     },
   });

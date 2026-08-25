@@ -2341,13 +2341,13 @@ function CharacterProfileCard({
                   console.log('[setAsAvatar] clicked, imageGenResult=', imageGenResult);
                   if (!imageGenResult) return;
                   const frontUrl = imageGenResult;
-                  // (a) 設為主頭像
+                  // (a) 設為主頭像（更新 draft img in-memory）
                   onImgChange?.(frontUrl);
                   setImageGenResult(null);
-                  // (b) 即時更新 front 格為 done（FIX B: frontUrl 已明確傳入，startRemainingAngles 會自動清掉舊三角度）
+                  // (b) 即時更新 front 格為 done
                   setAngleMedia(prev => ({ ...prev, front: frontUrl }));
                   setAngleStatus(prev => ({ ...prev, front: 'done' }));
-                  // (c) 寫 asset_media(role='front') — 直接 POST，不再 call AI
+                  // (c-i) 寫 asset_media(role='front')
                   if (charId) {
                     fetch('/api/asset-media', {
                       method: 'POST',
@@ -2359,6 +2359,16 @@ function CharacterProfileCard({
                         sort_order: 0,
                       }),
                     }).catch(e => console.warn('[setAsAvatar] asset_media front write failed:', e));
+                  }
+                  // (c-ii) BUG 2 FIX: 同步更新 characters 表 img 欄 (PATCH 單一欄位)
+                  // onImgChange 已更新 draft in-memory；PATCH 令 D1 img 欄即時正確，
+                  // 確保登出後 loadCharactersFromD1 讀回正確縮圖。
+                  if (charId) {
+                    fetch('/api/characters', {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ id: charId, img: frontUrl }),
+                    }).catch(e => console.warn('[setAsAvatar] characters img PATCH failed:', e));
                   }
                   // (d) FIX A+B: startRemainingAngles 先清掉舊三角度再以 frontUrl 串連重生
                   await startRemainingAngles(frontUrl);

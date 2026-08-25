@@ -937,8 +937,10 @@ app.post('/api/ai/character-angle', async (c) => {
     return c.json({ ok: false, error: 'Unexpected image response format' }, 502);
   }
 
-  // ── Store in R2: generated/{projectId}/{assetId}_{role}.png ───────────────
-  const r2Key  = `generated/${projectId}/${assetId}_${role}.png`;
+  // ── Store in R2: generated/{projectId}/{assetId}_{role}_{ts}.png ──────────
+  // BUG 1 FIX: append timestamp to bust browser cache on re-generation.
+  // Each re-gen produces a unique URL; the old asset_media row is DELETEd first.
+  const r2Key  = `generated/${projectId}/${assetId}_${role}_${Date.now()}.png`;
   const fileUrl = `/api/assets/file/${encodeURIComponent(r2Key)}`;
 
   try {
