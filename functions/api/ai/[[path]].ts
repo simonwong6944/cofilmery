@@ -818,11 +818,21 @@ app.post('/api/ai/character-angle', async (c) => {
   const similarityDirective = SIMILARITY_DIRECTIVES[similarity];
 
   // ── Build photorealistic prompt (no illustration / cartoon language) ──────
+  // POSE FIRST: angleDirective leads the prompt so the model treats it as the primary instruction.
+  // The reference image is explicitly limited to facial identity only — it must NOT influence
+  // body orientation, framing, or composition. This prevents three-quarter/side/back from
+  // inheriting the front-facing pose of the reference image.
   const parts = [
+    // ① Pose/view FIRST — highest priority instruction
+    `POSE INSTRUCTION (MANDATORY): ${angleDirective}. This pose is non-negotiable and must be followed exactly.`,
+    // ② Character context
     'Photorealistic full-body character portrait for a live-action Hong Kong TV drama.',
     `Appearance settings to apply: ${appearanceSummary}.`,
+    // ③ Similarity directive (reference usage)
     similarityDirective,
-    `Pose/View: ${angleDirective}.`,
+    // ④ Reference scope limiter — prevent reference pose from bleeding into output
+    'IMPORTANT: The reference image provided is ONLY for facial identity and likeness reference. Do NOT copy the reference image\'s body orientation, camera angle, pose, framing, or composition. The body orientation MUST match the POSE INSTRUCTION above, even though it differs from the reference image.',
+    // ⑤ Quality
     'Real human being, cinematic photography, natural skin texture and pores, realistic studio lighting, shot on a professional camera, film-still quality, plain neutral background.',
     'Absolutely NOT illustration, NOT cartoon, NOT anime, NOT 3D render, NOT painting, NOT drawing, NOT stylized.',
     '3:4 aspect ratio.',

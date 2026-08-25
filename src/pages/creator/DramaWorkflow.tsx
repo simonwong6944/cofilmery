@@ -1392,15 +1392,31 @@ const DEFAULT_APPEARANCE: AppearanceOptions = {
   extraNote: '',
 };
 
+// 鬚鬚選項中屬於劃鬚颩鬚的值（女角/other 總唔會產生，但万一有落地都加以拦截）
+const BEARD_VALUES = new Set(['\u77ed鬚', '山羊鬚', '八字鬚', '滿臉鬚', '短鬋鬋', '鬋鬋清清', 'Stubble', 'Goatee', 'Moustache', 'Full Beard']);
+
 // 將 AppearanceOptions 轉成中文摘要字串供 AI prompt 導入
+// facial 欄位特殊處理：
+//   - 空値 or '無鬚' or '無鬚鬚' or 'No Beard' → 輸出 '無鬋鬋' （明確告知 AI 唔要鬚）
+//   - 有鬚款式 → 照輸出
+//   - 非鬚暴特徵（酒穩、皺紋等）→ 照輸出
 function buildAppearanceSummary(a: AppearanceOptions): string {
+  // Resolve facial field: always emit something so AI doesn't invent beard
+  let facialToken = '';
+  const f = a.facial?.trim() ?? '';
+  if (!f || f === '無鬚' || f === '無鬚鬚' || f === 'No Beard' || f === '無鬋鬋') {
+    facialToken = '無鬋鬋'; // explicitly tell AI: no beard
+  } else {
+    facialToken = f; // bearded style OR non-beard feature (dimples, wrinkles, etc.)
+  }
+
   return [
     a.height, a.build,
     a.skin ? a.skin + '膚色' : '',
     a.hairLength && a.hairColor ? `${a.hairColor}${a.hairLength}${a.hair || ''}` : (a.hair || ''),
     a.face ? a.face + '臉型' : '',
     a.eyewear && a.eyewear !== '無眼鏡' ? a.eyewear : '',
-    a.facial && a.facial !== '無鬚' ? a.facial : '',
+    facialToken,
     a.eyes, a.posture, a.style,
     a.extraNote,
   ].filter(Boolean).join('，');
@@ -1729,11 +1745,22 @@ function CharacterProfileCard({
     'height','build','skin','hair','hairColor','hairLength',
     'face','eyes','eyewear','facial','posture','style',
   ];
+  // FIX 2: female/other 嘅 facial row 移除鬚款選項，只保留面部特徵（酒窩/皺紋/睫毛等）
+  // 令用戶唔會誤揀鬚款，且 summary 唔會帶鬚字眼
+  const BEARD_OPTS = new Set(['\u7121鬚', '短鬚', '山羊鬚', '八字鬚', '滿臉鬚',
+    'No Beard', 'Stubble', 'Goatee', 'Moustache', 'Full Beard',
+    '无胡须', '短胡须', '山羊胡', '八字胡', '络煶胡']);
+
   const appearanceRows: { label: string; key: keyof AppearanceOptions; opts: string[] }[] =
     appearanceRowLabels.map((r, i) => {
       const key = appearanceRowKeys[i];
       const overriddenOpts = appearanceOptsOverride?.[key];
-      return { label: r.label, key, opts: overriddenOpts ?? r.opts };
+      let opts = overriddenOpts ?? r.opts;
+      // female/other: strip beard options from facial row
+      if (key === 'facial' && (gender === 'female' || gender === 'other')) {
+        opts = opts.filter(o => !BEARD_OPTS.has(o));
+      }
+      return { label: r.label, key, opts };
     });
 
   const accentColor = mode === 'drama' ? 'primary' : 'accent';
@@ -1889,7 +1916,20 @@ function CharacterProfileCard({
                     return (
                       <button
                         key={g}
-                        onClick={() => onGenderChange?.(isSelected ? undefined : g)}
+                        onClick={() => {
+                          const newGender = isSelected ? undefined : g;
+                          onGenderChange?.(newGender);
+                          // FIX 2: 切換 gender 時，若新 gender 係 female/other，清空 beard 殘留
+                          // male → female/other: 若 facial 係鬚款式，清空
+                          // 任何 → undefined: 不清（保留用戶已揀的值）
+                          if (newGender === 'female' || newGender === 'other') {
+                            if (BEARD_VALUES.has(appearance.facial ?? '')) {
+                              const clearedApp = { ...appearance, facial: '' };
+                              setAppearance(clearedApp);
+                              onAppearanceChange?.(clearedApp);
+                            }
+                          }
+                        }}
                         className={`text-xs px-2.5 py-1 rounded-full border transition-all font-medium ${
                           isSelected
                             ? 'bg-primary text-white border-primary'
