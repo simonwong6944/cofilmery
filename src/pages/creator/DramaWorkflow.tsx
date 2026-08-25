@@ -1390,6 +1390,11 @@ type AppearanceOptions = {
   noseShape: string; // 鼻型
   eyebrows: string;  // 眉型
   faceDetail: string; // 臉部特徵（非鬚）
+  // STEP 3: 離散元素型（gender-neutral，default ''，空值唔輸出）
+  ageLook: string;   // 年齡感
+  makeup: string;    // 妝容
+  accessory: string; // 配件
+  faceMark: string;  // 面部標記
 };
 
 const DEFAULT_APPEARANCE: AppearanceOptions = {
@@ -1398,6 +1403,8 @@ const DEFAULT_APPEARANCE: AppearanceOptions = {
   extraNote: '',
   // STEP 2: 新增 field 全部 default ''（空值唔輸出，不像 facial 咁有特殊 token）
   eyeSize: '', mouthSize: '', noseShape: '', eyebrows: '', faceDetail: '',
+  // STEP 3: 離散元素型（default ''，空值唔輸出，唔套用 facial 特殊 token）
+  ageLook: '', makeup: '', accessory: '', faceMark: '',
 };
 
 // 鬚鬚選項中屬於劃鬚颩鬚的值（女角/other 總唔會產生，但万一有落地都加以拦截）
@@ -1429,6 +1436,11 @@ function buildAppearanceSummary(a: AppearanceOptions): string {
     a.noseShape || '',   // 鼻型：挺鼻/小巧/鷹鉤鼻/標準
     a.mouthSize || '',   // 嘴型：櫻桃小嘴/厚唇/薄唇/標準
     a.faceDetail || '',  // 臉部特徵：高顴骨/尖下巴/方下巴
+    // STEP 3: 離散元素型（空值唔輸出，無特殊 token）
+    a.ageLook   || '',   // 年齡感：少女/青年/中年/老年
+    a.makeup    || '',   // 妝容：素顏/淡妝/濃妝/紅唇/煙燻妝
+    a.accessory || '',   // 配件：耳環/頸鏈/帽/頭飾
+    a.faceMark  || '',   // 面部標記：痣/雀斑/疤痕/酒渦
     // ── 以下沿用原有邏輯 ──
     a.eyewear && a.eyewear !== '無眼鏡' ? a.eyewear : '',
     facialToken,
@@ -1816,6 +1828,11 @@ function CharacterProfileCard({
     { label: '鼻型',     key: 'noseShape' as keyof AppearanceOptions, opts: ['挺鼻', '小巧', '鷹鉤鼻', '標準'] },
     { label: '眉型',     key: 'eyebrows'  as keyof AppearanceOptions, opts: ['濃眉', '細眉', '劍眉', '彎眉'] },
     { label: '臉部特徵', key: 'faceDetail' as keyof AppearanceOptions, opts: ['高顴骨', '尖下巴', '方下巴'] },
+    // STEP 3: 離散元素型四個新 row（繁中 hardcode，gender-neutral，唔需要 locale / gender filter）
+    { label: '年齡感',   key: 'ageLook'   as keyof AppearanceOptions, opts: ['少女', '青年', '中年', '老年'] },
+    { label: '妝容',     key: 'makeup'    as keyof AppearanceOptions, opts: ['素顏', '淡妝', '濃妝', '紅唇', '煙燻妝'] },
+    { label: '配件',     key: 'accessory' as keyof AppearanceOptions, opts: ['耳環', '頸鏈', '帽', '頭飾'] },
+    { label: '面部標記', key: 'faceMark'  as keyof AppearanceOptions, opts: ['痣', '雀斑', '疤痕', '酒渦'] },
   ];
 
   const accentColor = mode === 'drama' ? 'primary' : 'accent';
