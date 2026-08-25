@@ -269,22 +269,35 @@ export async function saveArchitectToD1(params: {
   userId: string;
   title: string;
   mode?: string;
+  /** @deprecated Characters are managed by /api/characters (independent table).
+   *  Omit this field — passing it writes an empty array to projects.characters JSON column
+   *  which erases the legacy migration fallback used by openProject.
+   *  The independent table is the source of truth; saveCharactersToD1() is the correct writer. */
   characters?: CharacterCard[];
   storyCards?: EpisodeStoryCard[];
   outline?: { episodeNumber: number; title_i18n: { 'zh-HK': string; en: string; 'zh-CN': string }; oneLine_i18n: { 'zh-HK': string; en: string; 'zh-CN': string } }[];
 }): Promise<{ ok: boolean; projectId?: string }> {
+  // Build payload — intentionally omit `characters` so the backend does NOT overwrite
+  // projects.characters JSON column. Characters live in the independent `characters` table
+  // managed by saveCharactersToD1() / /api/characters. The JSON column is kept as a
+  // one-time legacy migration fallback in openProject().
+  const payload: Record<string, unknown> = {
+    projectId:  params.projectId,
+    userId:     params.userId,
+    title:      params.title,
+    mode:       params.mode ?? 'drama',
+    outline:    params.outline    ?? [],
+    storyCards: params.storyCards ?? [],
+  };
+  // Only include characters if caller explicitly passes it (backward-compat safety net)
+  // In practice, S3 callers should never pass it anymore.
+  if (params.characters !== undefined) {
+    payload.characters = params.characters;
+  }
   const res = await fetch('/api/ai/project/save', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      projectId:  params.projectId,
-      userId:     params.userId,
-      title:      params.title,
-      mode:       params.mode ?? 'drama',
-      characters: params.characters ?? [],
-      outline:    params.outline    ?? [],
-      storyCards: params.storyCards ?? [],
-    }),
+    body: JSON.stringify(payload),
   });
   if (!res.ok) {
     const err = await res.json<{ error?: string; detail?: string }>().catch(() => ({}));

@@ -2558,6 +2558,7 @@ function S2CharacterSetup({ onNext }: { onNext: () => void }) {
   const [drafts, setDrafts] = useState<CharDraft[]>(buildDefaultDrafts);
   const [activeId, setActiveId] = useState<string>(() => buildDefaultDrafts()[0]?.id ?? '');
   const [saveCharError, setSaveCharError] = useState<string>('');
+  const [isSavingChar, setIsSavingChar] = useState(false);
 
   // 將 drafts 陣列轉換為 CharacterCard[] 寫入 store（即時同步）
   const draftsToCards = (ds: CharDraft[]): CharacterCard[] =>
@@ -2649,15 +2650,8 @@ function S2CharacterSetup({ onNext }: { onNext: () => void }) {
     // draftsToCards 已包含所有欄位（含 appearancePrompt_en）
     const chars = draftsToCards(drafts);
     storeSetCharacters(chars);
-    // 非同步存 D1（non-blocking，失敗只 warn 不阻塞 S2 UI）
-    saveProjectToD1({
-      projectId: pid,
-      userId: authUser?.id ?? 'demo-user',
-      title: ptitle || '未命名劇集',
-      characters: chars,
-      outline: storedOutline,
-    }).catch(e => console.warn('[S2 handleSaveAndNext] D1 save failed:', e));
-    // 非同步存全部角色至 D1（non-blocking）
+    // 只用 saveCharactersToD1（獨立表，全覆寫）— 唔再雙寫 saveProjectToD1 characters
+    // saveProjectToD1 只管 story_material / series_context，唔傳 characters
     saveCharactersToD1(pid, chars)
       .catch(e => console.warn('[S2 handleSaveAndNext] saveCharactersToD1 failed:', e));
     onNext();
@@ -2757,23 +2751,29 @@ function S2CharacterSetup({ onNext }: { onNext: () => void }) {
               {roleTagLabels[activeDraft.roleTag]}
             </span>
             <span className="text-sm font-semibold text-ink">{activeDraft.name || s2tr.charNameFallback}</span>
-            {/* D1: 個別角色儲存按鈕 */}
+            {/* D1: 個別角色儲存按鈕 — 改用 saveCharactersToD1（獨立表，全覆寫）*/}
             <button
-              onClick={() => {
+              onClick={async () => {
                 const chars = draftsToCards(drafts);
                 storeSetCharacters(chars);
-                saveProjectToD1({
-                  projectId: pid,
-                  userId: authUser?.id ?? 'demo-user',
-                  title: ptitle || '未命名劇集',
-                  characters: chars,
-                  outline: storedOutline,
-                }).catch(e => console.warn('[S2 saveChar] D1 save failed:', e));
+                setSaveCharError('');
+                setIsSavingChar(true);
+                try {
+                  await saveCharactersToD1(pid, chars);
+                } catch (e) {
+                  setSaveCharError(e instanceof Error ? e.message : '保存失敗，請稍後重試');
+                } finally {
+                  setIsSavingChar(false);
+                }
               }}
-              className="flex items-center gap-1 text-[10px] bg-primary/10 text-primary px-2 py-1 rounded-lg hover:bg-primary/20 transition-colors font-medium"
+              disabled={isSavingChar}
+              className="flex items-center gap-1 text-[10px] bg-primary/10 text-primary px-2 py-1 rounded-lg hover:bg-primary/20 transition-colors font-medium disabled:opacity-50"
               title="儲存此角色至 D1"
             >
-              <Save size={10} /> 儲存此角色
+              {isSavingChar
+                ? <><RefreshCw size={10} className="animate-spin" /> 儲存中…</>
+                : <><Save size={10} /> 儲存此角色</>
+              }
             </button>
             {/* 定位切換 */}
             <div className="ml-auto flex gap-1">
@@ -2980,11 +2980,11 @@ function S3StoryFramework({ onNext }: { onNext: () => void }) {
             }
             // A1 持久化：將 30 集 outline 寫入 D1 projects.series_outline（non-blocking）
             // 改用 saveArchitectToD1 — 只打 /api/ai/project/save，不碰 story_material/series_context
+            // 注意：唔傳 characters — characters 由 /api/characters 獨立管理，saveArchitectToD1 唔應覆蓋
             saveArchitectToD1({
               projectId: projectId3,
               userId: authUser3?.id ?? 'demo-user',
               title: projectTitle || '未命名劇集',
-              characters: storedCharacters,
               outline: ol,
               storyCards: [],
             }).catch(e => console.warn('[S3 outline onAccept] D1 save failed:', e));
@@ -3006,11 +3006,11 @@ function S3StoryFramework({ onNext }: { onNext: () => void }) {
             storeSetStoryCards(cards);
             // 非同步存 D1（non-blocking，失敗只 warn 不阻塞 S3 UI）
             // 改用 saveArchitectToD1 — 只打 /api/ai/project/save，不碰 story_material/series_context
+            // 注意：唔傳 characters — characters 由 /api/characters 獨立管理，saveArchitectToD1 唔應覆蓋
             saveArchitectToD1({
               projectId: projectId3,
               userId: authUser3?.id ?? 'demo-user',
               title: projectTitle || '未命名劇集',
-              characters: storedCharacters,
               storyCards: cards,
               outline: storedOutline3,
             }).catch(e => console.warn('[S3 onAccept] D1 save failed:', e));

@@ -466,17 +466,39 @@ app.post('/api/ai/project/save', async (c) => {
   }>();
 
   try {
-    await env.DB.prepare(
-      `INSERT INTO projects (id, title, mode, status, creator_id, characters, series_outline, created_at, updated_at)
+    // characters column: only overwrite if the caller explicitly included the key in the payload.
+    // When characters is absent (undefined), preserve the existing JSON column value so the
+    // legacy migration fallback in openProject() keeps working.
+    // The independent `characters` table is the source of truth; saveCharactersToD1() owns it.
+    const hasCharacters = 'characters' in body;
+    let upsertSql: string;
+    let bindArgs: unknown[];
+
+    if (hasCharacters) {
+      upsertSql = `INSERT INTO projects (id, title, mode, status, creator_id, characters, series_outline, created_at, updated_at)
        VALUES (?,?,?,?,?,?,?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
        ON CONFLICT(id) DO UPDATE SET
          title=excluded.title, characters=excluded.characters,
-         series_outline=excluded.series_outline, updated_at=CURRENT_TIMESTAMP`
-    ).bind(
-      body.projectId, body.title, body.mode ?? 'drama', 'draft', body.userId,
-      JSON.stringify(body.characters ?? []),
-      JSON.stringify(body.outline ?? [])
-    ).run();
+         series_outline=excluded.series_outline, updated_at=CURRENT_TIMESTAMP`;
+      bindArgs = [
+        body.projectId, body.title, body.mode ?? 'drama', 'draft', body.userId,
+        JSON.stringify(body.characters ?? []),
+        JSON.stringify(body.outline ?? []),
+      ];
+    } else {
+      // characters absent — do NOT touch the characters column
+      upsertSql = `INSERT INTO projects (id, title, mode, status, creator_id, series_outline, created_at, updated_at)
+       VALUES (?,?,?,?,?,?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
+       ON CONFLICT(id) DO UPDATE SET
+         title=excluded.title,
+         series_outline=excluded.series_outline, updated_at=CURRENT_TIMESTAMP`;
+      bindArgs = [
+        body.projectId, body.title, body.mode ?? 'drama', 'draft', body.userId,
+        JSON.stringify(body.outline ?? []),
+      ];
+    }
+
+    await env.DB.prepare(upsertSql).bind(...bindArgs).run();
 
     if (Array.isArray(body.storyCards)) {
       for (const card of body.storyCards as Array<{ episodeNumber: number; title_i18n: Record<string, string> }>) {

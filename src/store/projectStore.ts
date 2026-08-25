@@ -202,7 +202,45 @@ export const useProjectStore = create<ProjectState>()(
             episodes?: Array<{ episode_number: number; title: string; story_card: string | null }>;
           };
           if (data.ok && data.project) {
+            // Step 1: load project row (sets characters from projects.characters JSON as initial value)
             get().loadProject(data.project, data.episodes);
+
+            // Step 2: fetch characters from dedicated table (source of truth)
+            // This overwrites whatever loadProject set from the JSON column.
+            try {
+              const charRes = await fetch(`/api/characters?project_id=${encodeURIComponent(id)}`);
+              if (charRes.ok) {
+                const charData = await charRes.json() as { ok: boolean; characters: CharacterCard[] };
+                if (charData.ok) {
+                  if (charData.characters && charData.characters.length > 0) {
+                    // Independent table has data → use it as source of truth
+                    set({ characters: charData.characters });
+                  } else {
+                    // Independent table is empty — check if projects.characters JSON has legacy data
+                    // If so, migrate once: write to independent table so next load reads from there
+                    let legacyChars: CharacterCard[] = [];
+                    if (data.project.characters) {
+                      try { legacyChars = JSON.parse(data.project.characters) as CharacterCard[]; }
+                      catch { /* ignore malformed JSON */ }
+                    }
+                    if (legacyChars.length > 0) {
+                      // One-time migration: persist legacy JSON characters into independent table
+                      fetch('/api/characters', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ project_id: id, characters: legacyChars }),
+                      }).catch(e => console.warn('[openProject] migration to characters table failed:', e));
+                      // Store already has legacyChars from loadProject — no need to set() again
+                    }
+                    // If both are empty, store stays as [] from loadProject — that's correct
+                  }
+                }
+              }
+            } catch (charErr) {
+              // Non-fatal: characters table fetch failed, fall back to projects.characters JSON already loaded
+              console.warn('[openProject] loadCharactersFromD1 failed, using JSON fallback:', charErr);
+            }
+
             return true;
           }
           return false;
