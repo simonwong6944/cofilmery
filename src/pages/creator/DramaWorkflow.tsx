@@ -1535,6 +1535,7 @@ function CharacterProfileCard({
     referenceImageUrl?: string,
     sim?: 'high' | 'mid' | 'low'
   ): Promise<string> => {
+    console.log('[generateOneAngle] calling /api/ai/character-angle, role=', angleRole, 'sim=', sim, 'hasRef=', !!referenceImageUrl);
     const res = await fetch('/api/ai/character-angle', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1557,9 +1558,11 @@ function CharacterProfileCard({
   // 串連生成 three-quarter → side → back（front 已由 image-gen 產生並設為頭像）
   // frontUrl: 一致性角色圖 URL，全部角度都用它做 reference
   const startRemainingAngles = async (frontUrl: string) => {
-    if (!charId) return;
+    console.log('[startRemainingAngles] called, frontUrl=', frontUrl, 'charId=', charId);
+    if (!charId) { console.log('[startRemainingAngles] EARLY RETURN: charId is empty/undefined'); return; }
     const prompt = buildAppearanceSummary(appearance);
-    if (!prompt) return;
+    console.log('[startRemainingAngles] prompt=', JSON.stringify(prompt), 'appearance=', JSON.stringify(appearance));
+    if (!prompt) { console.log('[startRemainingAngles] EARLY RETURN: prompt is empty (appearance not filled)'); return; }
 
     // ① FIX A: 先清掉舊三角度 media 及狀態，防止舊圖殘留
     const REMAINING_ROLES: CharAngleRole[] = ['three-quarter', 'side', 'back'];
@@ -2279,12 +2282,14 @@ function CharacterProfileCard({
                     similarity: simLocaleMap[angleSimMode], // 傳換算後嘅 locale string
                   };
                   if (allRefs.length > 0) body.referenceImageUrls = allRefs;
+                  console.log('[imageGen] calling /api/ai/image-gen (front only), body keys=', Object.keys(body));
                   const res = await fetch('/api/ai/image-gen', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(body),
                   });
                   const data = await res.json() as { ok: boolean; fileUrl?: string; error?: string };
+                  console.log('[imageGen] result ok=', data.ok, 'fileUrl=', data.fileUrl?.slice(0, 60));
                   if (!data.ok || !data.fileUrl) throw new Error(data.error ?? 'Generation failed');
                   setImageGenResult(data.fileUrl);
                 } catch (e) {
@@ -2323,6 +2328,7 @@ function CharacterProfileCard({
             <div className="flex gap-2 p-2">
               <button
                 onClick={async () => {
+                  console.log('[setAsAvatar] clicked, imageGenResult=', imageGenResult);
                   if (!imageGenResult) return;
                   const frontUrl = imageGenResult;
                   // (a) 設為主頭像
