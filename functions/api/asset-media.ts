@@ -141,6 +141,8 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
 };
 
 // ── Shared insert helper ──────────────────────────────────────────────────────
+// FIX 1: asset_media accepts both assets-table IDs and characters-table IDs (char-...).
+// Check assets first; if not found, check characters; only 404 if neither exists.
 async function insertMediaRow(
   db:        D1Database,
   mediaId:   string,
@@ -150,15 +152,22 @@ async function insertMediaRow(
   sortOrder: number,
 ): Promise<Response> {
   try {
-    // Verify asset exists
+    // Verify owner exists — assets table first, then characters table
     const asset = await db.prepare(
       `SELECT id FROM assets WHERE id = ?`
     ).bind(assetId).first<{ id: string }>();
 
     if (!asset) {
-      return new Response(JSON.stringify({ error: 'Asset not found' }), {
-        status: 404, headers: CORS,
-      });
+      // Characters stored in the independent `characters` table use IDs like 'char-...'
+      const character = await db.prepare(
+        `SELECT id FROM characters WHERE id = ?`
+      ).bind(assetId).first<{ id: string }>();
+
+      if (!character) {
+        return new Response(JSON.stringify({ error: 'Asset not found', assetId }), {
+          status: 404, headers: CORS,
+        });
+      }
     }
 
     // Enforce 8-media cap

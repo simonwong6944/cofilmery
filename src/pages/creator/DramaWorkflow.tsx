@@ -1549,7 +1549,10 @@ function CharacterProfileCard({
         similarity: sim ?? 'mid',
       }),
     });
-    const data = await res.json() as { ok: boolean; fileUrl?: string; error?: string };
+    const data = await res.json() as { ok: boolean; fileUrl?: string; error?: string; mediaWriteFailed?: boolean; mediaWriteError?: string };
+    if (data.mediaWriteFailed) {
+      console.warn('[generateOneAngle] asset_media write failed on server:', data.mediaWriteError, '| role:', angleRole);
+    }
     if (!data.ok || !data.fileUrl) throw new Error(data.error ?? '生成失敗');
     return data.fileUrl;
   };

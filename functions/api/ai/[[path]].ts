@@ -951,6 +951,11 @@ app.post('/api/ai/character-angle', async (c) => {
   }
 
   // ── Write asset_media row (DELETE+INSERT for idempotent re-generation) ────
+  // FIX 2: errors are surfaced via mediaWriteFailed flag in response (not silently swallowed).
+  // asset_id may be a characters table ID (char-...) — no assets lookup needed here;
+  // the INSERT is direct and does not depend on assets FK.
+  let mediaWriteFailed = false;
+  let mediaWriteError  = '';
   const mediaId = crypto.randomUUID();
   try {
     await env.DB.prepare(
@@ -966,17 +971,21 @@ app.post('/api/ai/character-angle', async (c) => {
       ['front', 'three-quarter', 'side', 'back', 'action', 'detail'].indexOf(role),
     ).run();
   } catch (e) {
-    console.error('[character-angle] asset_media INSERT failed (non-fatal):', e);
+    mediaWriteFailed = true;
+    mediaWriteError  = String(e);
+    console.error('[character-angle] asset_media INSERT failed:', mediaWriteError,
+      '| assetId:', assetId, '| role:', role);
   }
 
   // ── If role=front: update assets.file_url to this new image ──────────────
-  if (role === 'front') {
+  // Only attempt for assets-table IDs (not char-... character IDs).
+  if (role === 'front' && !assetId.startsWith('char-')) {
     try {
       await env.DB.prepare(
         `UPDATE assets SET file_url = ? WHERE id = ?`
       ).bind(fileUrl, assetId).run();
     } catch (e) {
-      console.error('[character-angle] assets.file_url UPDATE failed (non-fatal):', e);
+      console.error('[character-angle] assets.file_url UPDATE failed (non-fatal):', String(e));
     }
   }
 
@@ -994,7 +1003,9 @@ app.post('/api/ai/character-angle', async (c) => {
     role,
     creditsConsumed: credits,
     similarity,
-    ...(referenceSkipped ? { referenceSkipped: true } : {}),
+    ...(referenceSkipped    ? { referenceSkipped: true } : {}),
+    // FIX 2: surface DB write failures so frontend/logs can detect them
+    ...(mediaWriteFailed    ? { mediaWriteFailed: true, mediaWriteError } : {}),
   });
 });
 
