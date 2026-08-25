@@ -1535,7 +1535,8 @@ function CharacterProfileCard({
     referenceImageUrl?: string,
     sim?: 'high' | 'mid' | 'low'
   ): Promise<string> => {
-    console.log('[generateOneAngle] calling /api/ai/character-angle, role=', angleRole, 'sim=', sim, 'hasRef=', !!referenceImageUrl);
+    const t0 = Date.now();
+    console.log('[generateOneAngle] START role=', angleRole, 'sim=', sim, 'hasRef=', !!referenceImageUrl, 'charId=', charId);
     const res = await fetch('/api/ai/character-angle', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1549,9 +1550,11 @@ function CharacterProfileCard({
         similarity: sim ?? 'mid',
       }),
     });
+    console.log('[generateOneAngle] HTTP role=', angleRole, 'status=', res.status, 'elapsed=', Date.now()-t0, 'ms');
     const data = await res.json() as { ok: boolean; fileUrl?: string; error?: string; mediaWriteFailed?: boolean; mediaWriteError?: string };
+    console.log('[generateOneAngle] RESPONSE role=', angleRole, 'ok=', data.ok, 'fileUrl=', data.fileUrl?.slice(0,60), 'error=', data.error, 'total=', Date.now()-t0, 'ms');
     if (data.mediaWriteFailed) {
-      console.warn('[generateOneAngle] asset_media write failed on server:', data.mediaWriteError, '| role:', angleRole);
+      console.warn('[generateOneAngle] mediaWriteFailed role=', angleRole, data.mediaWriteError);
     }
     if (!data.ok || !data.fileUrl) throw new Error(data.error ?? '生成失敗');
     return data.fileUrl;
@@ -1596,11 +1599,15 @@ function CharacterProfileCard({
       try {
         // 全部角度用最新 frontUrl 做 reference，用 high 盡量跟近 front
         const fileUrl = await generateOneAngle(r, prompt, frontUrl, 'high');
+        console.log('[startRemainingAngles] got fileUrl for', r, '=', fileUrl?.slice(0,60), '→ setAngleMedia');
         setAngleMedia(prev => ({ ...prev, [r]: fileUrl }));
         setAngleStatus(prev => ({ ...prev, [r]: 'done' }));
+        console.log('[startRemainingAngles] setAngleMedia+Status done for', r);
       } catch (e) {
+        const errMsg = e instanceof Error ? e.message : '生成失敗';
+        console.error('[startRemainingAngles] CATCH role=', r, 'error=', errMsg, e);
         setAngleStatus(prev => ({ ...prev, [r]: 'error' }));
-        setAngleError(prev => ({ ...prev, [r]: e instanceof Error ? e.message : '生成失敗' }));
+        setAngleError(prev => ({ ...prev, [r]: errMsg }));
         // Don't abort — continue remaining angles
       }
     }
