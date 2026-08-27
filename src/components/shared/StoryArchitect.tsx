@@ -18,7 +18,256 @@ import {
   RefreshCw, Check, Edit3, ChevronDown, ChevronUp,
   Sparkles, Users, BookOpen, Film, Plus, X, Save,
   Mic, Star, AlertCircle, Loader2, Package, ArrowLeft,
+  Image as ImageIcon, Filter, CheckSquare, Square,
 } from 'lucide-react';
+
+// ── EpisodeAssetPickerModal ─────────────────────────────────────────────
+// 每集「+ 揀資產」modal — 呼叫 GET /api/assets?project_id=<pid> 列出全部資產
+// 支援 category filter、多選、全選、snapshot 存入 EpisodeStoryCard.selectedAssets
+// ───────────────────────────────────────────────────────────────────────
+
+interface RawAsset {
+  id: string;
+  file_name: string;
+  file_url: string;
+  category: string;
+  label: string;
+  brand: string;
+  revenue_rate: number;
+  is_complete?: boolean;
+  media?: { role: string; file_url: string }[];
+}
+
+interface EpisodeAssetPickerModalProps {
+  projectId: string;
+  episodeNumber: number;
+  initialSelected: SelectedSponsorAsset[];
+  onConfirm: (assets: SelectedSponsorAsset[]) => void;
+  onClose: () => void;
+}
+
+function EpisodeAssetPickerModal({
+  projectId,
+  episodeNumber,
+  initialSelected,
+  onConfirm,
+  onClose,
+}: EpisodeAssetPickerModalProps) {
+  const [assets, setAssets] = useState<RawAsset[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [catFilter, setCatFilter] = useState<string>('all');
+  const [selected, setSelected] = useState<SelectedSponsorAsset[]>(initialSelected);
+
+  // Load assets on mount
+  useEffect(() => {
+    setLoading(true);
+    fetch(`/api/assets?project_id=${encodeURIComponent(projectId)}`)
+      .then(r => r.json() as Promise<{ assets?: RawAsset[] }>)
+      .then(data => setAssets(data.assets ?? []))
+      .catch(() => setAssets([]))
+      .finally(() => setLoading(false));
+  }, [projectId]);
+
+  // Derive categories from loaded assets
+  const categories = ['all', ...Array.from(new Set(assets.map(a => a.category))).sort()];
+
+  const filtered = catFilter === 'all' ? assets : assets.filter(a => a.category === catFilter);
+
+  const isSelected = (id: string) => selected.some(s => s.asset_id === id);
+
+  const toggle = (asset: RawAsset) => {
+    setSelected(prev => {
+      const exists = prev.find(s => s.asset_id === asset.id);
+      if (exists) return prev.filter(s => s.asset_id !== asset.id);
+      // Build snapshot — same pattern as toggleAsset in S1
+      const snap: SelectedSponsorAsset = {
+        asset_id:     asset.id,
+        category:     asset.category,
+        name:         asset.label || asset.file_name,
+        img:          asset.media?.[0]?.file_url || asset.file_url,
+        brand:        asset.brand ?? '',
+        revenue_rate: asset.revenue_rate ?? 0,
+      };
+      return [...prev, snap];
+    });
+  };
+
+  // Select all / deselect all visible (filtered)
+  const allFilteredSelected = filtered.length > 0 && filtered.every(a => isSelected(a.id));
+  const toggleSelectAll = () => {
+    if (allFilteredSelected) {
+      // Deselect all filtered
+      const filteredIds = new Set(filtered.map(a => a.id));
+      setSelected(prev => prev.filter(s => !filteredIds.has(s.asset_id)));
+    } else {
+      // Select all filtered not yet selected
+      const toAdd: SelectedSponsorAsset[] = filtered
+        .filter(a => !isSelected(a.id))
+        .map(asset => ({
+          asset_id:     asset.id,
+          category:     asset.category,
+          name:         asset.label || asset.file_name,
+          img:          asset.media?.[0]?.file_url || asset.file_url,
+          brand:        asset.brand ?? '',
+          revenue_rate: asset.revenue_rate ?? 0,
+        }));
+      setSelected(prev => [...prev, ...toAdd]);
+    }
+  };
+
+  const catLabel: Record<string, string> = {
+    all: '全部',
+    character: '角色',
+    prop: '道具',
+    costume: '服裝',
+    scene: '場景',
+    sponsor: '贊助商',
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-line">
+          <div>
+            <h3 className="text-base font-bold text-ink flex items-center gap-2">
+              <Package size={16} className="text-violet-600" />
+              第 {episodeNumber} 集 — 揀選資產
+            </h3>
+            <p className="text-xs text-muted mt-0.5">存為 snapshot，已揀資產資料不受原庫改動影響</p>
+          </div>
+          <button onClick={onClose} className="text-muted hover:text-ink transition-colors p-1">
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Filters + Select-all */}
+        <div className="px-5 py-3 border-b border-line bg-bg-soft flex items-center gap-2 flex-wrap">
+          <Filter size={12} className="text-muted shrink-0" />
+          {categories.map(cat => (
+            <button
+              key={cat}
+              onClick={() => setCatFilter(cat)}
+              className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${
+                catFilter === cat
+                  ? 'bg-violet-600 text-white border-violet-600'
+                  : 'border-line text-muted hover:border-violet-400 hover:text-violet-700 bg-white'
+              }`}
+            >
+              {catLabel[cat] ?? cat}
+            </button>
+          ))}
+          <div className="ml-auto flex items-center gap-2 shrink-0">
+            <button
+              onClick={toggleSelectAll}
+              className="flex items-center gap-1 text-[11px] text-violet-700 hover:text-violet-900 transition-colors"
+            >
+              {allFilteredSelected
+                ? <CheckSquare size={13} className="text-violet-600" />
+                : <Square size={13} className="text-muted" />
+              }
+              {allFilteredSelected ? '取消全選' : '全選'}
+            </button>
+            {selected.length > 0 && (
+              <span className="text-[11px] text-violet-700 font-semibold bg-violet-100 px-2 py-0.5 rounded-full">
+                已選 {selected.length}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Asset grid */}
+        <div className="flex-1 overflow-y-auto p-5">
+          {loading && (
+            <div className="flex items-center justify-center gap-2 py-12 text-muted text-sm">
+              <Loader2 size={16} className="animate-spin" /> 載入資產庫…
+            </div>
+          )}
+          {!loading && filtered.length === 0 && (
+            <div className="flex flex-col items-center justify-center gap-2 py-12 text-muted">
+              <Package size={28} className="opacity-40" />
+              <p className="text-sm">暫無資產</p>
+            </div>
+          )}
+          {!loading && filtered.length > 0 && (
+            <div className="grid grid-cols-3 gap-3">
+              {filtered.map(asset => {
+                const sel = isSelected(asset.id);
+                const thumb = asset.media?.[0]?.file_url || asset.file_url;
+                return (
+                  <button
+                    key={asset.id}
+                    onClick={() => toggle(asset)}
+                    className={`rounded-xl overflow-hidden border-2 transition-all text-left ${
+                      sel
+                        ? 'border-violet-500 ring-2 ring-violet-200'
+                        : 'border-line hover:border-violet-300'
+                    }`}
+                  >
+                    <div className="relative">
+                      {thumb ? (
+                        <img src={thumb} alt={asset.label || asset.file_name} className="w-full h-20 object-cover" />
+                      ) : (
+                        <div className="w-full h-20 bg-bg-soft flex items-center justify-center">
+                          <ImageIcon size={20} className="text-muted opacity-40" />
+                        </div>
+                      )}
+                      {sel && (
+                        <div className="absolute inset-0 bg-violet-500/20 flex items-center justify-center">
+                          <div className="bg-violet-600 text-white rounded-full p-1">
+                            <Check size={12} />
+                          </div>
+                        </div>
+                      )}
+                      {asset.is_complete && (
+                        <div className="absolute top-1 right-1 bg-green-500 text-white text-[9px] px-1 py-0.5 rounded font-bold">
+                          完整
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-2">
+                      <p className="text-[11px] font-semibold text-ink leading-tight line-clamp-2">
+                        {asset.label || asset.file_name}
+                      </p>
+                      <p className="text-[10px] text-muted mt-0.5">{catLabel[asset.category] ?? asset.category}</p>
+                      {asset.brand && (
+                        <p className="text-[10px] text-muted truncate">{asset.brand}</p>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-5 py-3 border-t border-line bg-bg-soft flex items-center justify-between gap-3">
+          <p className="text-xs text-muted">
+            {selected.length > 0 ? `已選 ${selected.length} 個資產` : '未選任何資產'}
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={onClose}
+              className="px-4 py-1.5 rounded-lg text-xs text-muted border border-line hover:border-ink transition-colors"
+            >
+              取消
+            </button>
+            <button
+              onClick={() => onConfirm(selected)}
+              className="px-4 py-1.5 rounded-lg text-xs bg-violet-600 text-white hover:bg-violet-700 transition-colors font-semibold"
+            >
+              確認（{selected.length}）
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ── 記錄 architect_actions 至後端 D1（fire-and-forget）────────────────
 async function recordAction(params: {
@@ -739,6 +988,8 @@ export function S1cEpisodes({ context, outline, characters, sponsorAssets = [], 
   const [elementsExpanded, setElementsExpanded] = useState<Set<number>>(new Set());
   // Batch 2 組二：每集 D1 存檔狀態（'saving' | 'saved' | 'error'），用於 UI 即時反饋
   const [saveState, setSaveState] = useState<Record<number, 'saving' | 'saved' | 'error'>>({});
+  // STEP-EP-ASSETS: 每集揀資產 modal 開關（epNum | null）
+  const [assetPickerEp, setAssetPickerEp] = useState<number | null>(null);
 
   // ── S3 重入還原：掛載回填 cards（僅首次拿到非空 initialCards 時執行一次）──
   // 因 initialCards 嚟自 S3StoryFramework 嘅 async store hydrate，可能喺
@@ -776,6 +1027,18 @@ export function S1cEpisodes({ context, outline, characters, sponsorAssets = [], 
       setSaveState(prev => ({ ...prev, [epNum]: 'error' }));
       console.warn(`[S1cEpisodes] persistCard failed for episode ${epNum}:`, e);
     }
+  };
+
+  // STEP-EP-ASSETS: 確認揀資產後更新該集 selectedAssets 並即時 persist
+  const updateCardAssets = (epNum: number, assets: SelectedSponsorAsset[]) => {
+    setCards(prev => {
+      const existing = prev[epNum];
+      if (!existing) return prev;
+      const updated: EpisodeStoryCard = { ...existing, selectedAssets: assets };
+      void persistCard(epNum, updated);
+      return { ...prev, [epNum]: updated };
+    });
+    setAssetPickerEp(null);
   };
 
   const expandEpisode = async (epNum: number) => {
@@ -914,6 +1177,22 @@ export function S1cEpisodes({ context, outline, characters, sponsorAssets = [], 
                     return count > 0 ? `元素 ${count}` : '元素';
                   })()}
                 </button>
+                {/* STEP-EP-ASSETS: 「+ 揀資產」掣 */}
+                <button
+                  onClick={() => setAssetPickerEp(ep.episodeNumber)}
+                  className={`flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-lg border transition-colors shrink-0 ${
+                    (cards[ep.episodeNumber]?.selectedAssets?.length ?? 0) > 0
+                      ? 'border-violet-400 text-violet-700 bg-violet-50'
+                      : 'border-line text-muted hover:border-violet-300 hover:text-violet-600'
+                  }`}
+                  title="揀選本集資產（snapshot）"
+                >
+                  <Plus size={10} />
+                  {(cards[ep.episodeNumber]?.selectedAssets?.length ?? 0) > 0
+                    ? `資產 ${cards[ep.episodeNumber]!.selectedAssets!.length}`
+                    : '揀資產'
+                  }
+                </button>
                 {!card && (
                   <button
                     onClick={() => expandEpisode(ep.episodeNumber)}
@@ -1014,7 +1293,7 @@ export function S1cEpisodes({ context, outline, characters, sponsorAssets = [], 
                               >
                                 {selected && <Check size={9} />}
                                 {asset.name}
-                                <span className={`text-[9px] ${selected ? 'text-amber-100' : 'text-muted'}`}>{asset.tag}</span>
+                                <span className={`text-[9px] ${selected ? 'text-amber-100' : 'text-muted'}`}>{asset.category}</span>
                               </button>
                             );
                           })}
@@ -1094,6 +1373,53 @@ export function S1cEpisodes({ context, outline, characters, sponsorAssets = [], 
                           <Plus size={10} />
                         </button>
                       </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* STEP-EP-ASSETS: 已揀資產縮圖列 */}
+              {(() => {
+                const epAssets = cards[ep.episodeNumber]?.selectedAssets ?? [];
+                if (epAssets.length === 0) return null;
+                return (
+                  <div className="px-4 py-2.5 border-t border-violet-100 bg-violet-50/40">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Package size={11} className="text-violet-600" />
+                      <span className="text-[11px] font-semibold text-violet-800">本集已揀資產（{epAssets.length}）</span>
+                      <button
+                        onClick={() => setAssetPickerEp(ep.episodeNumber)}
+                        className="ml-auto text-[10px] text-violet-600 hover:text-violet-800 underline"
+                      >
+                        編輯
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {epAssets.map(asset => (
+                        <div
+                          key={asset.asset_id}
+                          className="flex items-center gap-1.5 bg-white border border-violet-200 rounded-lg px-2 py-1"
+                        >
+                          {asset.img ? (
+                            <img src={asset.img} alt={asset.name} className="w-6 h-6 rounded object-cover flex-shrink-0" />
+                          ) : (
+                            <div className="w-6 h-6 rounded bg-bg-soft border border-line flex items-center justify-center flex-shrink-0">
+                              <Package size={10} className="text-muted" />
+                            </div>
+                          )}
+                          <span className="text-[10px] text-ink max-w-[80px] truncate">{asset.name}</span>
+                          <button
+                            onClick={() => {
+                              const filtered = epAssets.filter(a => a.asset_id !== asset.asset_id);
+                              updateCardAssets(ep.episodeNumber, filtered);
+                            }}
+                            className="text-muted hover:text-red-500 transition-colors flex-shrink-0"
+                            title="移除"
+                          >
+                            <X size={9} />
+                          </button>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 );
@@ -1193,6 +1519,17 @@ export function S1cEpisodes({ context, outline, characters, sponsorAssets = [], 
           );
         })}
       </div>
+
+      {/* STEP-EP-ASSETS: 揀資產 Modal */}
+      {assetPickerEp !== null && (
+        <EpisodeAssetPickerModal
+          projectId={projectId}
+          episodeNumber={assetPickerEp}
+          initialSelected={cards[assetPickerEp]?.selectedAssets ?? []}
+          onConfirm={(assets) => updateCardAssets(assetPickerEp, assets)}
+          onClose={() => setAssetPickerEp(null)}
+        />
+      )}
     </div>
   );
 }

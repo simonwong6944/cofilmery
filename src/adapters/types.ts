@@ -143,6 +143,12 @@ export interface EpisodeStoryCard {
   linkPrevNext_i18n: I18nText;
   characterIds: string[];
   humanEdited: boolean;
+  /** 每集資產快照（STEP-EP-ASSETS）
+   *  存 SelectedSponsorAsset snapshot，唔係淨存 asset_id。
+   *  原資產之後改/刪唔影響已揀集數。JSON.stringify/parse 透明序列化。
+   *  預設 []，舊有 story_card JSON 冇此欄時 undefined → 前端用 ?? [] 處理。
+   */
+  selectedAssets?: SelectedSponsorAsset[];
 }
 
 // 分階段請求/回應
