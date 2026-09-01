@@ -747,6 +747,16 @@ function S1AssetBank({ onNext }: { onNext: () => void }) {
   const [s1UploadErr, setS1UploadErr]   = useState('');
   const [s1Assets, setS1Assets]         = useState<Array<{ id: string; file_name: string; file_type: string; file_size: number; file_url: string; category: string; label: string }>>([]);
   const [s1Loaded, setS1Loaded]         = useState(false);
+  // FIX-CATEGORY: 記錄用戶點擊了哪個分組 (index)，供 onS1FileChange 決定 canonical category
+  // index 對應：0=character, 1=scene, 2=prop(道具/服裝), 3=audio
+  const [s1UploadSection, setS1UploadSection] = useState<number | null>(null);
+  // label index → canonical category 對應表（跟 locale ownAssets 順序一致）
+  const S1_SECTION_CATEGORY: Record<number, string> = {
+    0: 'character',  // 角色參考圖
+    1: 'scene',      // 場景參考圖
+    2: 'prop',       // 道具 / 服裝（合組，canonical 用 prop）
+    3: 'audio',      // 背景音樂
+  };
   // edit / delete state
   const [s1EditAsset, setS1EditAsset]   = useState<{ id: string; label: string } | null>(null);
   const [s1EditLabel, setS1EditLabel]   = useState('');
@@ -846,7 +856,14 @@ function S1AssetBank({ onNext }: { onNext: () => void }) {
         fd.append('file', file);
         fd.append('projectId', s1ProjectId);
         fd.append('userId', s1User.id);
-        fd.append('category', file.type.startsWith('audio/') ? 'audio' : file.type.startsWith('video/') ? 'video' : 'other');
+        // FIX-CATEGORY: 優先用分組 canonical category；音頻 MIME 作二次兜底
+        const canonicalCategory: string =
+          s1UploadSection !== null && S1_SECTION_CATEGORY[s1UploadSection] !== undefined
+            ? S1_SECTION_CATEGORY[s1UploadSection]
+            : file.type.startsWith('audio/') ? 'audio'
+            : file.type.startsWith('video/') ? 'video'
+            : 'other';
+        fd.append('category', canonicalCategory);
         const res = await fetch('/api/upload', { method: 'POST', body: fd });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
       }
@@ -855,6 +872,7 @@ function S1AssetBank({ onNext }: { onNext: () => void }) {
       setS1UploadErr(err instanceof Error ? err.message : '上傳失敗');
     } finally {
       setS1Uploading(false);
+      setS1UploadSection(null); // 上傳完成後清除分組記錄
     }
   };
 
@@ -922,14 +940,8 @@ function S1AssetBank({ onNext }: { onNext: () => void }) {
   const ownAssetTypes = tr.creator.drama.s1.ownAssets.map((a, i) => ({
     icon: ownAssetIcons[i], label: a.label, color: ownAssetColors[i],
     accept: a.accept,
-    // count from real assets (0 while loading)
-    count: s1Assets.filter(asset => {
-      if (i === 0) return asset.category === 'character';
-      if (i === 1) return asset.file_type.startsWith('image/');
-      if (i === 2) return asset.file_type.startsWith('video/');
-      if (i === 3) return asset.file_type.startsWith('audio/');
-      return false;
-    }).length,
+    // FIX-CATEGORY: count by canonical category（唔再靠 MIME type 推斷）
+    count: s1Assets.filter(asset => asset.category === (S1_SECTION_CATEGORY[i] ?? 'other')).length,
   }));
 
   // toggleAsset — uses real GlobalAsset fields, mapped to SelectedSponsorAsset
@@ -1034,7 +1046,12 @@ function S1AssetBank({ onNext }: { onNext: () => void }) {
                 <span className="text-xs text-muted">{type.accept}</span>
               </div>
               <div
-                onClick={() => !s1Uploading && s1FileRef.current?.click()}
+                onClick={() => {
+                  if (s1Uploading) return;
+                  // FIX-CATEGORY: 記錄分組 index，onS1FileChange 據此 map canonical category
+                  setS1UploadSection(i);
+                  s1FileRef.current?.click();
+                }}
                 className="border-2 border-dashed border-line rounded-lg p-4 text-center hover:border-primary transition-colors cursor-pointer"
               >
                 {s1Uploading
