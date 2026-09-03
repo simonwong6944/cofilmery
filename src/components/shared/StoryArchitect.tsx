@@ -1014,6 +1014,11 @@ export function S1cEpisodes({ context, outline, characters, sponsorAssets = [], 
   // 用於 expandEpisode（首次生成）、regenerateEpisode（重新生成）、saveEdit（編輯後儲存）
   // 三個動作，確保每次卡片內容變更都即時持久化到 D1，並在 UI 反映存檔狀態。
   const persistCard = async (epNum: number, card: EpisodeStoryCard) => {
+    // Guard: never send an empty/falsy card to D1
+    if (!card) {
+      console.warn(`[S1cEpisodes] persistCard skipped for episode ${epNum}: card is falsy`);
+      return;
+    }
     setSaveState(prev => ({ ...prev, [epNum]: 'saving' }));
     try {
       await saveStoryCardToD1({
@@ -1097,7 +1102,20 @@ export function S1cEpisodes({ context, outline, characters, sponsorAssets = [], 
     void persistCard(epNum, updatedCard);
   };
 
-  const acceptedCards = Object.values(cards);
+  // Derived count for display only — NOT used as the payload for onAccept
+  const expandedCardCount = Object.keys(cards).length;
+
+  // handleAccept: read cards state at click time (not at render time) to avoid
+  // stale-closure bug where acceptedCards = [] if cards state updated after last render.
+  const handleAccept = () => {
+    const latestCards = Object.values(cards);
+    if (latestCards.length === 0) {
+      console.warn('[S1cEpisodes] handleAccept: no cards expanded yet — skipping onAccept to avoid overwriting D1 with empty array');
+      return;
+    }
+    console.log(`[S1cEpisodes] handleAccept: passing ${latestCards.length} card(s) to onAccept`);
+    onAccept(latestCards);
+  };
 
   return (
     <div className="bg-card rounded-xl border border-line shadow-card overflow-hidden">
@@ -1109,13 +1127,13 @@ export function S1cEpisodes({ context, outline, characters, sponsorAssets = [], 
         <p className="text-xs text-muted mt-0.5">按「展開」即時生成 150–250 字故事卡，可讀可改可重生成</p>
       </div>
 
-      {acceptedCards.length > 0 && (
+      {expandedCardCount > 0 && (
         <ActionBar
-          onAccept={() => onAccept(acceptedCards)}
+          onAccept={handleAccept}
           onRegenerate={() => {}}
           onEdit={() => {}}
           loading={false}
-          acceptLabel={`接受並繼續（已展開 ${acceptedCards.length} 集）`}
+          acceptLabel={`接受並繼續（已展開 ${expandedCardCount} 集）`}
         />
       )}
 

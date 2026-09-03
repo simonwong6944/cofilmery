@@ -3117,6 +3117,15 @@ function S3StoryFramework({ onNext }: { onNext: () => void }) {
           sponsorAssets={storedSponsorAssets}  // ← S1 贊助商已選（作為元素選擇器資料源）
           initialCards={storyCards}
           onAccept={(cards) => {
+            // Guard: S1cEpisodes already prevents calling onAccept with empty array,
+            // but add a second-layer check here so DramaWorkflow never overwrites D1
+            // with storyCards: [] even if something upstream changes.
+            if (!cards || cards.length === 0) {
+              console.warn('[S3 onAccept] received empty cards array — skipping D1 write to avoid data loss');
+              setSubStage('done');
+              return;
+            }
+            console.log(`[S3 onAccept] persisting ${cards.length} story card(s) to D1`);
             setStoryCards(cards);
             storeSetStoryCards(cards);
             // 非同步存 D1（non-blocking，失敗只 warn 不阻塞 S3 UI）
