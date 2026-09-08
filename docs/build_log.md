@@ -15,5 +15,6 @@
 | 2026-09-01 | `0b3433f` | S1 分類 fallback 'other' 修正 | build pass | — |
 | 2026-09-03 | `6eee9de` | S3 story card 持久化(空陣列 bug)修正 | build pass | — |
 | 2026-09-08 | `1032c01` | 建立 docs/ SOP-workflow + SOP-modular | docs only | — |
+| 2026-09-08 | `7f21377` | S4 AI 分鏡生成：新建 S4StoryboardGen.tsx(198行)，移除 mock panels，接入 /api/ai/text per-episode | build pass (0 TS errors, 16.81s)；wc-l 198≤250；grep: 無 mock/key/log | — |
 
 > 註:上述早期記錄嘅 preview URL 當時未有系統化記低,以「—」標示。往後每條新記錄須填齊 preview URL。
