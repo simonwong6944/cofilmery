@@ -19,7 +19,7 @@
 ## 進行中
 
 - [ ] S4 第二磚：panel 逐項編輯 / 刪除 / AI 重寫（依賴第一磚）
-- [ ] DramaWorkflow.tsx 按 stage 拆分（第一批 S7/S8/S9 完成，第二批 S4–S6 待啟動，第三批 S1–S3 待啟動）
+- [ ] DramaWorkflow.tsx 按 stage 拆分（第一批 S7/S8/S9 完成，第二批 S5/PlanOverview/S0 完成，第三批 S4/S6/S1/S2/S3 待啟動，最終主殼瘦身待啟動）
 
 ## 待辦(未開始)
 
@@ -40,3 +40,4 @@
 | 2026-09-08 | (初版) | 建立 ROADMAP,填入真實 commit 進度 |
 | 2026-09-08 | AI 協作 | S4 第一磚完成，移入「完成」；S4 第二磚加入「進行中」；移除舊版「docs/ 記憶庫文件補齊」進行中項(已完成) |
 | 2026-09-08 | AI 協作 | DramaWorkflow 拆分第一批(S7/S8/S9)完成(commits 71e6d55/e709466/f6b7d8c)，加入「進行中」 |
+| 2026-09-08 | AI 協作 | DramaWorkflow 拆分第二批(S5/PlanOverview/S0)完成(commits 0fbddb8/ebc8642/07b9e0d)；DramaWorkflow 由 3791→3256行；「進行中」項更新 |

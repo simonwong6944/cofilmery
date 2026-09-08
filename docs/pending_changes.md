@@ -54,4 +54,5 @@
 - 範圍:src/pages/creator/DramaWorkflow.tsx
 - 問題:原檔 4042 行，遠超 SOP 頁面≤200行上限，需按 stage 逐批拆出獨立組件至 src/pages/creator/stages/。
 - 進度:第一批 S7/S8/S9 完成（commits 71e6d55/e709466/f6b7d8c），DramaWorkflow.tsx 縮至 3791 行。待辦：第二批 S4–S6、第三批 S1–S3，最終主殼瘦身至 ≤200 行。
-- 狀態:進行中（第一批完成，第二批待啟動）。
+- 進度更新(2026-09-08):第二批 S5/PlanOverview/S0 完成（commits 0fbddb8/ebc8642/07b9e0d），DramaWorkflow.tsx 縮至 3256 行（自原始 4042 行共縮減 786 行）。待辦：第三批 S4/S6/S1/S2/S3，最終主殼瘦身。
+- 狀態:進行中（第一批+第二批完成，第三批待啟動）。

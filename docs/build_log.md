@@ -19,5 +19,8 @@
 | 2026-09-08 | `71e6d55` | refactor(s7): 新建 S7Voiceover.tsx(62行)，從 DramaWorkflow.tsx 搬出 S7 stage，移除 useTts import；DramaWorkflow 4042→3984行 | build pass (0 TS errors, 11.58s)；grep: 無殘留定義、無 console.log | — |
 | 2026-09-08 | `e709466` | refactor(s8): 新建 S8PlatformEdit.tsx(83行)，從 DramaWorkflow.tsx 搬出 S8 stage；DramaWorkflow 3984→3904行 | build pass (0 TS errors, 10.48s)；grep: 無殘留定義、無 console.log | — |
 | 2026-09-08 | `f6b7d8c` | refactor(s9): 新建 S9ReviewPublish.tsx(119行)，從 DramaWorkflow.tsx 搬出 S9 stage，移除 Send icon import；DramaWorkflow 3904→3791行 | build pass (0 TS errors, 11.00s)；grep: 無殘留定義、無 console.log | — |
+| 2026-09-08 | `0fbddb8` | refactor(s5): 新建 S5Keyframes.tsx(157行)，從 DramaWorkflow.tsx 搬出 S5 stage（含 AestheticComposer、AestheticOutput、genMode/localAestheticOpen/localAdjustment 三個 local state）；DramaWorkflow 3791→3642行 | build pass (0 TS errors, 10.63s)；grep: 無殘留定義、無 console.log | — |
+| 2026-09-08 | `ebc8642` | refactor(plan-overview): 新建 PlanOverview.tsx(121行)，從 DramaWorkflow.tsx 搬出 PlanOverview stage（含 localMaterial/poHydratedRef、D1 persistMaterial）；DramaWorkflow 3642→3525行 | build pass (0 TS errors, 10.41s)；grep: 無殘留定義、無 console.log | — |
+| 2026-09-08 | `07b9e0d` | refactor(s0): 新建 S0SeriesSetup.tsx(276行)，從 DramaWorkflow.tsx 搬出 S0 stage（含8個 local state + s0HydratedRef + D1 saveProjectToD1）；移除 DramaWorkflow saveProjectToD1 import；DramaWorkflow 3525→3256行 | build pass (0 TS errors, 11.59s)；grep: 無殘留定義、無 console.log | — |
 
 > 註:上述早期記錄嘅 preview URL 當時未有系統化記低,以「—」標示。往後每條新記錄須填齊 preview URL。
