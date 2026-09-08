@@ -23,6 +23,7 @@ import { S0SeriesSetup } from './stages/S0SeriesSetup';
 import { S4Storyboard } from './stages/S4Storyboard';
 import { S6VideoGen } from './stages/S6VideoGen';
 import { S3StoryFramework } from './stages/S3StoryFramework';
+import { ImageLightbox } from '@/components/shared/ImageLightbox';
 import {
   AlertTriangle, RefreshCw, Check, Mic, Save, ChevronDown, ChevronRight,
   Sparkles, Image, Film, Music, Edit3, Upload, Zap, Eye,
@@ -30,36 +31,6 @@ import {
   ShoppingBag, MapPin, Gift, Plus, X, Info, Tag, Building2, Package, Trash2
 } from 'lucide-react';
 
-// ─────────────────────────────────────────
-// Shared: ImageLightbox
-// ─────────────────────────────────────────
-function ImageLightbox({ url, onClose }: { url: string; onClose: () => void }) {
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [onClose]);
-  return (
-    <div
-      className="fixed inset-0 z-[9999] bg-black/85 flex items-center justify-center"
-      onClick={onClose}
-    >
-      <button
-        onClick={onClose}
-        className="absolute top-4 right-4 text-white/80 hover:text-white transition-colors"
-        aria-label="Close"
-      >
-        <X size={28} />
-      </button>
-      <img
-        src={url}
-        alt=""
-        className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl"
-        onClick={e => e.stopPropagation()}
-      />
-    </div>
-  );
-}
 
 // ─────────────────────────────────────────
 // ─────────────────────────────────────────
