@@ -19,6 +19,7 @@ import { t } from '@/i18n';
 import { saveProjectToD1, saveArchitectToD1, saveCharactersToD1, loadCharactersFromD1, saveSponsorAssetsToD1, loadSponsorAssetsFromD1 } from '@/adapters';
 import type { SelectedSponsorAsset } from '@/adapters/types';
 import { VideoGenPanel } from '@/components/shared/VideoGenPanel';
+import { S4StoryboardGen } from '@/components/shared/S4StoryboardGen';
 import { useTts } from '@/hooks/useTts';
 import {
   AlertTriangle, RefreshCw, Check, Mic, Save, ChevronDown, ChevronRight,
@@ -3206,15 +3207,14 @@ function S4Storyboard({ onNext }: { onNext: () => void }) {
   const { locale } = useLocaleStore();
   const tr = t();
   void locale;
-  const { aestheticLock } = useProjectStore();
+  const { aestheticLock, storyCards, currentEpisode } = useProjectStore();
   const [localAestheticOpen, setLocalAestheticOpen] = useState(false);
   const [localAdjustment, setLocalAdjustment] = useState<AestheticOutput | null>(null);
-  const panels = [
-    { scene: 1, title: '街市清晨開檔', desc: '陳伯熟練地掛起豬肉，街坊陸續到來', cam: '全景→特寫', dur: 8 },
-    { scene: 2, title: '最後一天告別', desc: '街坊圍著陳伯，眼帶不捨', cam: '中景，慢推鏡', dur: 10 },
-    { scene: 3, title: '廚藝筆記出現', desc: '陳太打開陳伯的舊抽屜，發現泛黃筆記', cam: '特寫，跟焦', dur: 6 },
-    { scene: 4, title: '夕陽收檔', desc: '陳伯最後一次關上鋪門，回望街市', cam: '廣角，逆光', dur: 8 },
-  ];
+  const [selectedEp, setSelectedEp] = useState(currentEpisode ?? (storyCards[0]?.episodeNumber ?? 1));
+
+  const episodeNums = storyCards.length > 0
+    ? storyCards.map(c => c.episodeNumber)
+    : [1];
 
   return (
     <div className="w-full max-w-3xl">
@@ -3267,47 +3267,36 @@ function S4Storyboard({ onNext }: { onNext: () => void }) {
         </div>
       )}
 
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-sm text-muted">第1集 · 共 {panels.length} 個鏡頭</span>
-        <div className="flex gap-2">
-          <button className="text-xs border border-line px-3 py-1.5 rounded-lg text-muted hover:border-primary transition-colors">
-            {tr.creator.drama.s4.prevEp}
+      {/* 集數選擇器 */}
+      <div className="flex flex-wrap gap-2 mb-4">
+        {episodeNums.slice(0, 12).map(ep => (
+          <button
+            key={ep}
+            onClick={() => setSelectedEp(ep)}
+            className={`px-3 py-1.5 rounded-lg border text-sm font-medium transition-colors ${
+              selectedEp === ep ? 'border-primary bg-primary text-white' : 'border-line text-muted hover:border-primary'
+            }`}
+          >
+            第{ep}集
           </button>
-          <button className="text-xs border border-line px-3 py-1.5 rounded-lg text-muted hover:border-primary transition-colors">
-            {tr.creator.drama.s4.nextEp}
-          </button>
-        </div>
-      </div>
-
-      <div className="flex overflow-x-auto gap-4 pb-4 mb-6">
-        {panels.map(p => (
-          <div key={p.scene} className="shrink-0 w-52 bg-card rounded-xl overflow-hidden shadow-card border border-line">
-            <div className="h-28 bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
-              <Camera size={24} className="text-primary/50" />
-            </div>
-            <div className="p-3">
-              <p className="text-xs text-muted">鏡頭{p.scene} · {p.dur}秒 · {p.cam}</p>
-              <p className="text-sm font-semibold text-ink mt-0.5 mb-1">{p.title}</p>
-              <p className="text-xs text-muted leading-relaxed">{p.desc}</p>
-              <div className="flex gap-1 mt-2">
-                <button className="text-xs text-accent hover:underline">{tr.creator.drama.s4.editShot}</button>
-                <span className="text-muted">·</span>
-                <button className="text-xs text-muted hover:text-primary">{tr.creator.drama.s4.aiRewrite}</button>
-                <span className="text-muted">·</span>
-                <button className="text-xs text-red-400 hover:underline">{tr.creator.drama.s4.deleteShot}</button>
-              </div>
-            </div>
-          </div>
         ))}
-        <div className="shrink-0 w-52 border-2 border-dashed border-line rounded-xl flex items-center justify-center cursor-pointer hover:border-primary transition-colors">
-          <div className="text-center text-muted">
-            <span className="text-3xl block">+</span>
-            <span className="text-xs">{tr.creator.drama.s4.addShot}</span>
-          </div>
-        </div>
       </div>
 
-      {/* AI 自然語言編輯 */}
+      {/* AI 分鏡生成模組 */}
+      <div className="mb-6">
+        <S4StoryboardGen
+          storyCards={storyCards}
+          selectedEp={selectedEp}
+          aestheticPrompt={localAdjustment?.compiledPromptZh ?? aestheticLock?.compiledPromptZh ?? ''}
+          epLabel={`第${selectedEp}集`}
+          addShotLabel={tr.creator.drama.s4.addShot}
+          editLabel={tr.creator.drama.s4.editShot}
+          aiRewriteLabel={tr.creator.drama.s4.aiRewrite}
+          deleteLabel={tr.creator.drama.s4.deleteShot}
+        />
+      </div>
+
+      {/* AI 自然語言編輯 — TODO: connect to /api/ai/text */}
       <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 mb-6">
         <div className="flex items-center gap-2 mb-2">
           <Sparkles size={14} className="text-primary" />
