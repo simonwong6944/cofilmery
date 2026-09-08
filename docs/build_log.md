@@ -16,5 +16,8 @@
 | 2026-09-03 | `6eee9de` | S3 story card 持久化(空陣列 bug)修正 | build pass | — |
 | 2026-09-08 | `1032c01` | 建立 docs/ SOP-workflow + SOP-modular | docs only | — |
 | 2026-09-08 | `7f21377` | S4 AI 分鏡生成：新建 S4StoryboardGen.tsx(198行)，移除 mock panels，接入 /api/ai/text per-episode | build pass (0 TS errors, 16.81s)；wc-l 198≤250；grep: 無 mock/key/log | — |
+| 2026-09-08 | `71e6d55` | refactor(s7): 新建 S7Voiceover.tsx(62行)，從 DramaWorkflow.tsx 搬出 S7 stage，移除 useTts import；DramaWorkflow 4042→3984行 | build pass (0 TS errors, 11.58s)；grep: 無殘留定義、無 console.log | — |
+| 2026-09-08 | `e709466` | refactor(s8): 新建 S8PlatformEdit.tsx(83行)，從 DramaWorkflow.tsx 搬出 S8 stage；DramaWorkflow 3984→3904行 | build pass (0 TS errors, 10.48s)；grep: 無殘留定義、無 console.log | — |
+| 2026-09-08 | `f6b7d8c` | refactor(s9): 新建 S9ReviewPublish.tsx(119行)，從 DramaWorkflow.tsx 搬出 S9 stage，移除 Send icon import；DramaWorkflow 3904→3791行 | build pass (0 TS errors, 11.00s)；grep: 無殘留定義、無 console.log | — |
 
 > 註:上述早期記錄嘅 preview URL 當時未有系統化記低,以「—」標示。往後每條新記錄須填齊 preview URL。

@@ -41,3 +41,17 @@
 
 - 贊助商資源全選、標籤重命名、鬍鬚亂碼(絡腮胡)修正、S0 回歸驗證。
 - 狀態:待做。
+
+## #move-vs-slim — 搬遷磚與瘦身磚分開規矩
+
+- 範圍:所有 refactor 磚
+- 規矩:搬遷磚（move-only）與瘦身磚（slim-to-SOP-limit）必須分開成獨立 commit，唔准合併。搬遷磚容許暫時超行（行數合規留待瘦身磚處理）。
+- 來源:DramaWorkflow 拆分第一批(S7/S8/S9) 2026-09-08
+- 狀態:已立規，往後所有 refactor 磚照辦。
+
+## #dramaSplit — DramaWorkflow.tsx 過大，按 stage 逐批拆分
+
+- 範圍:src/pages/creator/DramaWorkflow.tsx
+- 問題:原檔 4042 行，遠超 SOP 頁面≤200行上限，需按 stage 逐批拆出獨立組件至 src/pages/creator/stages/。
+- 進度:第一批 S7/S8/S9 完成（commits 71e6d55/e709466/f6b7d8c），DramaWorkflow.tsx 縮至 3791 行。待辦：第二批 S4–S6、第三批 S1–S3，最終主殼瘦身至 ≤200 行。
+- 狀態:進行中（第一批完成，第二批待啟動）。
