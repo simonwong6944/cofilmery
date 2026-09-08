@@ -23,4 +23,8 @@
 | 2026-09-08 | `ebc8642` | refactor(plan-overview): 新建 PlanOverview.tsx(121行)，從 DramaWorkflow.tsx 搬出 PlanOverview stage（含 localMaterial/poHydratedRef、D1 persistMaterial）；DramaWorkflow 3642→3525行 | build pass (0 TS errors, 10.41s)；grep: 無殘留定義、無 console.log | — |
 | 2026-09-08 | `07b9e0d` | refactor(s0): 新建 S0SeriesSetup.tsx(276行)，從 DramaWorkflow.tsx 搬出 S0 stage（含8個 local state + s0HydratedRef + D1 saveProjectToD1）；移除 DramaWorkflow saveProjectToD1 import；DramaWorkflow 3525→3256行 | build pass (0 TS errors, 11.59s)；grep: 無殘留定義、無 console.log | — |
 
+| 2026-09-08 | `dc3dd7e` | refactor(s4): 新建 S4Storyboard.tsx(127行)，從 DramaWorkflow.tsx 搬出 S4 stage（含 localAestheticOpen/localAdjustment/selectedEp 三個 local state、AestheticComposer、S4StoryboardGen）；移除 S4StoryboardGen import；DramaWorkflow 3256→3136行 | build pass (0 TS errors, 11.22s)；grep: 無殘留定義、無 console.log | — |
+| 2026-09-08 | `6e91385` | refactor(s6): 新建 S6VideoGen.tsx(121行)，從 DramaWorkflow.tsx 搬出 S6 stage（含 selectedEp/gate/completedVideos 三個 local state、buildPrompt、VideoGenPanel）；移除 VideoGenPanel import；DramaWorkflow 3136→3023行 | build pass (0 TS errors, 10.44s)；grep: 無殘留定義、無 console.log | — |
+| 2026-09-08 | `12fbabf` | refactor(s3): 新建 S3StoryFramework.tsx(234行)，從 DramaWorkflow.tsx 搬出 S3 stage（含 subStage/outline/storyCards/s3HydratedRef、saveArchitectToD1 兩次 D1 call、S1bOutline/S1cEpisodes/StageProgress）；移除 saveArchitectToD1/S1bOutline/S1cEpisodes/StageProgress/ArchitectSubStage/EpisodeStoryCard/SeriesContext/BookOpen/Star import；DramaWorkflow 3023→2798行 | build pass (0 TS errors, 10.70s)；grep: 無殘留定義；D1 hydrate 邏輯驗證完整 | — |
+
 > 註:上述早期記錄嘅 preview URL 當時未有系統化記低,以「—」標示。往後每條新記錄須填齊 preview URL。
