@@ -19,7 +19,7 @@
 ## 進行中
 
 - [ ] S4 第二磚：panel 逐項編輯 / 刪除 / AI 重寫（依賴第一磚）
-- [ ] DramaWorkflow.tsx 按 stage 拆分（第一批 S7/S8/S9 完成，第二批 S5/PlanOverview/S0 完成，**第三批 S4/S6/S3 完成(commits dc3dd7e/6e91385/12fbabf)**，SeriesAestheticLock 及第四批待啟動，最終主殼瘦身待啟動）；DramaWorkflow 目前 2798 行
+- [ ] DramaWorkflow.tsx 按 stage 拆分（第一批 S7/S8/S9 完成，第二批 S5/PlanOverview/S0 完成，**第三批 S4/S6/S3 完成(commits dc3dd7e/6e91385/12fbabf)**，**第四批前段：ImageLightbox 抽出 + SeriesAestheticLock 搬遷完成(commits 7ab122e/a3ee0dc)**，S1/S2 及最終主殼瘦身待啟動）；DramaWorkflow 目前 2516 行
 
 ## 待辦(未開始)
 
@@ -42,3 +42,4 @@
 | 2026-09-08 | AI 協作 | DramaWorkflow 拆分第一批(S7/S8/S9)完成(commits 71e6d55/e709466/f6b7d8c)，加入「進行中」 |
 | 2026-09-08 | AI 協作 | DramaWorkflow 拆分第二批(S5/PlanOverview/S0)完成(commits 0fbddb8/ebc8642/07b9e0d)；DramaWorkflow 由 3791→3256行；「進行中」項更新 |
 | 2026-09-08 | AI 協作 | DramaWorkflow 拆分第三批(S4/S6/S3)完成(commits dc3dd7e/6e91385/12fbabf)；DramaWorkflow 由 3256→2798行；「進行中」項更新 |
+| 2026-09-08 | AI 協作 | DramaWorkflow 第四批前段：ImageLightbox 抽出(7ab122e) + SeriesAestheticLock 搬遷(a3ee0dc)完成；DramaWorkflow 由 2798→2516行；「進行中」項更新 |

@@ -56,5 +56,7 @@
 - 進度:第一批 S7/S8/S9 完成（commits 71e6d55/e709466/f6b7d8c），DramaWorkflow.tsx 縮至 3791 行。待辦：第二批 S4–S6、第三批 S1–S3，最終主殼瘦身至 ≤200 行。
 - 進度更新(2026-09-08):第二批 S5/PlanOverview/S0 完成（commits 0fbddb8/ebc8642/07b9e0d），DramaWorkflow.tsx 縮至 3256 行（自原始 4042 行共縮減 786 行）。待辦：第三批 S4/S6/S1/S2/S3，最終主殼瘦身。
 - 進度更新(2026-09-08):第三批 S4/S6/S3 完成（commits dc3dd7e/6e91385/12fbabf），DramaWorkflow.tsx 縮至 2798 行（自原始 4042 行共縮減 1244 行）。待辦：第四批 SeriesAestheticLock（含其 refImages 未持久化 bug 待修）+ S1/S2 + 最終主殼瘦身。
-- ⚠️ SeriesAestheticLock 未搬：SeriesAestheticLock 仍留在 DramaWorkflow.tsx，其 refImages（參考圖）上傳後只存於 component local state，未寫入 D1 或 R2，重載後會遺失。此 bug 需喺第四批搬遷時一併修正（搬遷 + bug fix 分兩個獨立 commit）。
-- 狀態:進行中（第一批+第二批+第三批完成，第四批待啟動）。
+- 進度更新(2026-09-08):第四批前段完成（commits 7ab122e/a3ee0dc），抽出 ImageLightbox 至 src/components/shared/ImageLightbox.tsx、搬遷 SeriesAestheticLock 至 src/pages/creator/stages/SeriesAestheticLock.tsx，DramaWorkflow.tsx 縮至 2516 行（自原始 4042 行共縮減 1526 行）。待辦：SeriesAestheticLock refImages 未持久化 bug 修正（獨立磚）+ S1/S2 + 最終主殼瘦身。
+- ⚠️ SeriesAestheticLock 未搬：SeriesAestheticLock 仍留在 DramaWorkflow.tsx，其 refImages（參考圖）上傳後只存於 component local state，未寫入 D1 或 R2，重載後會遺失。此 bug 需喺第四批搬遷時一併修正（搬遷 + bug fix 分兩個獨立 commit）。 → 已搬遷完成（a3ee0dc），bug 修正待獨立磚。
+- ⚠️ SeriesAestheticLock refImages 未持久化 bug 待修（獨立磚）：refImages（參考圖）上傳後只存於 component local state，未寫入 D1 或 R2，重載後會遺失。需獨立磚修正，不得與其他搬遷磚合併。
+- 狀態:進行中（第一批+第二批+第三批+第四批前段完成，refImages bug 修正磚 + S1/S2 + 主殼瘦身待啟動）。
