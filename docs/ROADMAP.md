@@ -15,10 +15,10 @@
 - [x] `1032c01` 建立 docs/ SOP 文件 — 2026-09-08
 - [x] 測試 project「街市之王」資產全清(R2 69 + D1 69)
 - [x] `7f21377` S4 第一磚：AI 分鏡生成完成（per-episode，local state，無 D1）— 2026-09-08
+- [x] `66b0c8a` S4 第二磚：panel 逐項編輯 / 刪除 / AI 重寫完成（local state，S4PanelEditor.tsx 新建，parse 失敗防護）— 2026-09-09
 
 ## 進行中
 
-- [ ] S4 第二磚：panel 逐項編輯 / 刪除 / AI 重寫（依賴第一磚）
 - [ ] DramaWorkflow.tsx 按 stage 拆分（第一批 S7/S8/S9 完成，第二批 S5/PlanOverview/S0 完成，**第三批 S4/S6/S3 完成(commits dc3dd7e/6e91385/12fbabf)**，**第四批前段：ImageLightbox + SeriesAestheticLock 完成(commits 7ab122e/a3ee0dc)**，**第四批中段：appearanceConstants + CharacterProfileCard 完成(commits d9c1bf7/60712b5)**，CharacterProfileCard 瘦身磚 + S1/S2 及最終主殼瘦身待啟動）；DramaWorkflow 目前 1343 行
 
 ## 待辦(未開始)
@@ -44,3 +44,4 @@
 | 2026-09-08 | AI 協作 | DramaWorkflow 拆分第三批(S4/S6/S3)完成(commits dc3dd7e/6e91385/12fbabf)；DramaWorkflow 由 3256→2798行；「進行中」項更新 |
 | 2026-09-08 | AI 協作 | DramaWorkflow 第四批前段：ImageLightbox 抽出(7ab122e) + SeriesAestheticLock 搬遷(a3ee0dc)完成；DramaWorkflow 由 2798→2516行；「進行中」項更新 |
 | 2026-09-09 | AI 協作 | DramaWorkflow 第四批中段：appearanceConstants.ts 新建(d9c1bf7) + CharacterProfileCard.tsx 抽出(60712b5)完成；DramaWorkflow 由 2516→1343行；「進行中」項更新 |
+| 2026-09-09 | AI 協作 | S4 第二磚(66b0c8a)：S4PanelEditor.tsx 新建(233行)，S4StoryboardGen.tsx 修改(211行)，panel edit/delete/AI-rewrite 完成；S4 第二磚移入「完成」 |

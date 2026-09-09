@@ -61,3 +61,11 @@
 - ⚠️ SeriesAestheticLock refImages 未持久化 bug 待修（獨立磚）：refImages（參考圖）上傳後只存於 component local state，未寫入 D1 或 R2，重載後會遺失。需獨立磚修正，不得與其他搬遷磚合併。
 - 進度更新(2026-09-09):第四批中段完成（commits d9c1bf7/60712b5），新建 appearanceConstants.ts(82行)純 TS 共享模組；抽出 CharacterProfileCard.tsx(1108行) 至 src/components/shared/，DramaWorkflow.tsx 縮至 1343 行（自原始 4042 行共縮減 2699 行）。待辦：CharacterProfileCard 瘦身磚（目前 1108 行，超 250 行上限）+ S1/S2 + 主殼瘦身。
 - 狀態:進行中（第一批+第二批+第三批+第四批前段+第四批中段完成，CharacterProfileCard 瘦身磚 + refImages bug 修正磚 + S1/S2 + 主殼瘦身待啟動）。
+
+## #s4-module-location — S4StoryboardGen / S4PanelEditor 分層待議
+
+- 範圍:`src/components/shared/S4StoryboardGen.tsx`、`src/components/shared/S4PanelEditor.tsx`
+- 問題:兩個模組屬 S4 stage 專屬複合模組，按 SOP-modular 三層架構應置於 stage 層或專屬子目錄，暫因 S4StoryboardGen 歷史位置（`src/components/shared/`）而跟隨放置於此。
+- 建議:待 DramaWorkflow 拆分接近完成後，獨立一磚將 S4-specific 模組歸位至合適目錄（如 `src/pages/creator/stages/s4/`）。
+- 來源:2026-09-09 S4 第二磚方案修正一
+- 狀態:待議（低優先，不阻礙當前功能開發）。
