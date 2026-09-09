@@ -59,4 +59,5 @@
 - 進度更新(2026-09-08):第四批前段完成（commits 7ab122e/a3ee0dc），抽出 ImageLightbox 至 src/components/shared/ImageLightbox.tsx、搬遷 SeriesAestheticLock 至 src/pages/creator/stages/SeriesAestheticLock.tsx，DramaWorkflow.tsx 縮至 2516 行（自原始 4042 行共縮減 1526 行）。待辦：SeriesAestheticLock refImages 未持久化 bug 修正（獨立磚）+ S1/S2 + 最終主殼瘦身。
 - ⚠️ SeriesAestheticLock 未搬：SeriesAestheticLock 仍留在 DramaWorkflow.tsx，其 refImages（參考圖）上傳後只存於 component local state，未寫入 D1 或 R2，重載後會遺失。此 bug 需喺第四批搬遷時一併修正（搬遷 + bug fix 分兩個獨立 commit）。 → 已搬遷完成（a3ee0dc），bug 修正待獨立磚。
 - ⚠️ SeriesAestheticLock refImages 未持久化 bug 待修（獨立磚）：refImages（參考圖）上傳後只存於 component local state，未寫入 D1 或 R2，重載後會遺失。需獨立磚修正，不得與其他搬遷磚合併。
-- 狀態:進行中（第一批+第二批+第三批+第四批前段完成，refImages bug 修正磚 + S1/S2 + 主殼瘦身待啟動）。
+- 進度更新(2026-09-09):第四批中段完成（commits d9c1bf7/60712b5），新建 appearanceConstants.ts(82行)純 TS 共享模組；抽出 CharacterProfileCard.tsx(1108行) 至 src/components/shared/，DramaWorkflow.tsx 縮至 1343 行（自原始 4042 行共縮減 2699 行）。待辦：CharacterProfileCard 瘦身磚（目前 1108 行，超 250 行上限）+ S1/S2 + 主殼瘦身。
+- 狀態:進行中（第一批+第二批+第三批+第四批前段+第四批中段完成，CharacterProfileCard 瘦身磚 + refImages bug 修正磚 + S1/S2 + 主殼瘦身待啟動）。
