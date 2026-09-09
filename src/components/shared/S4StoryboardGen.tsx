@@ -1,11 +1,15 @@
 /**
  * S4StoryboardGen — AI-generate storyboard panels from episode story card.
- * Composite module. State is local (no D1 — future brick).
- * Panel edit/delete/rewrite handlers are TODO stubs.
+ * Composite module. Panel state is local (no D1 — persistence is S4 brick 3).
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Camera, Loader2, AlertTriangle, Sparkles } from 'lucide-react';
 import type { EpisodeStoryCard } from '@/adapters/types';
+import { S4PanelEditor } from './S4PanelEditor';
+
+// ── Configurable constants ────────────────────────────────────────────────────
+const GEN_MAX_TOKENS    = 800;
+const GEN_PANEL_LIMIT   = 5;
 
 export interface StoryboardPanel {
   scene:    number;
@@ -33,7 +37,7 @@ function buildPrompt(card: EpisodeStoryCard, aestheticPrompt: string): string {
     ? `\n全劇美學風格：${aestheticPrompt.slice(0, 100)}`
     : '';
 
-  return `你是短劇分鏡師。請根據以下分集故事卡，生成 3 至 5 個分鏡 panel。
+  return `你是短劇分鏡師。請根據以下分集故事卡，生成 3 至 ${GEN_PANEL_LIMIT} 個分鏡 panel。
 
 第${card.episodeNumber}集：${title}
 故事鉤：${hook}
@@ -65,7 +69,7 @@ function parsePanels(raw: string): StoryboardPanel[] {
       duration: typeof p.duration === 'number' ? p.duration : 6,
     }))
     .filter(p => p.desc.length > 0)
-    .slice(0, 5);
+    .slice(0, GEN_PANEL_LIMIT);
 }
 
 export function S4StoryboardGen({
@@ -101,7 +105,7 @@ export function S4StoryboardGen({
       const res = await fetch('/api/ai/text', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, maxTokens: 800 }),
+        body: JSON.stringify({ prompt, maxTokens: GEN_MAX_TOKENS }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json<{ text: string }>();
@@ -115,7 +119,16 @@ export function S4StoryboardGen({
     }
   };
 
-  // ── No story card available ──────────────────────────────────────────────
+  // ── Panel mutation handlers (local state only — no D1) ────────────────────
+  const handleUpdate = useCallback((idx: number, updated: StoryboardPanel) => {
+    setPanels(prev => prev.map((p, i) => i === idx ? updated : p));
+  }, []);
+
+  const handleDelete = useCallback((idx: number) => {
+    setPanels(prev => prev.filter((_, i) => i !== idx));
+  }, []);
+
+  // ── No story card available ────────────────────────────────────────────────
   if (!card) {
     return (
       <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
@@ -162,25 +175,25 @@ export function S4StoryboardGen({
         <>
           <p className="text-xs text-muted">{epLabel} · 共 {panels.length} 個鏡頭</p>
           <div className="flex overflow-x-auto gap-4 pb-4">
-            {panels.map(p => (
-              <div key={p.scene} className="shrink-0 w-52 bg-card rounded-xl overflow-hidden shadow-card border border-line">
+            {panels.map((p, i) => (
+              <div key={`${p.scene}-${i}`} className="shrink-0 w-52 bg-card rounded-xl overflow-hidden shadow-card border border-line">
                 <div className="h-28 bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
                   <Camera size={24} className="text-primary/50" />
                 </div>
-                <div className="p-3">
+                <div className="pt-3 px-3">
                   <p className="text-xs text-muted">鏡頭{p.scene} · {p.duration}秒 · {p.camNote}</p>
                   <p className="text-xs text-muted leading-relaxed mt-1">{p.desc}</p>
-                  <div className="flex gap-1 mt-2">
-                    {/* TODO: implement edit handler */}
-                    <button className="text-xs text-accent opacity-40 cursor-not-allowed" disabled>{editLabel}</button>
-                    <span className="text-muted">·</span>
-                    {/* TODO: implement AI rewrite handler */}
-                    <button className="text-xs text-muted opacity-40 cursor-not-allowed" disabled>{aiRewriteLabel}</button>
-                    <span className="text-muted">·</span>
-                    {/* TODO: implement delete handler */}
-                    <button className="text-xs text-red-400 opacity-40 cursor-not-allowed" disabled>{deleteLabel}</button>
-                  </div>
                 </div>
+                <S4PanelEditor
+                  panel={p}
+                  idx={i}
+                  aestheticPrompt={aestheticPrompt}
+                  editLabel={editLabel}
+                  aiRewriteLabel={aiRewriteLabel}
+                  deleteLabel={deleteLabel}
+                  onUpdate={handleUpdate}
+                  onDelete={handleDelete}
+                />
               </div>
             ))}
             {/* Add shot placeholder */}
