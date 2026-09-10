@@ -17,6 +17,7 @@
 - [x] `7f21377` S4 第一磚：AI 分鏡生成完成（per-episode，local state，無 D1）— 2026-09-08
 - [x] `66b0c8a` S4 第二磚：panel 逐項編輯 / 刪除 / AI 重寫完成（local state，S4PanelEditor.tsx 新建，parse 失敗防護）— 2026-09-09
 - [x] `c0459ec` S4 第三磚：storyboard panels 持久化至 D1 完成（0012_storyboard_panels migration、/api/storyboard 路由、storyboardAdapter.ts、S4StoryboardGen load/save）— 2026-09-10
+- [x] `fafc059` S5 第一磚：S5Keyframes.tsx 移除全部 mock，接入 D1 分鏡（loadStoryboardFromD1、集數選擇器、真 characters 資產完整度、panel 佔位框、空狀態提示；186行）— 2026-09-10
 
 ## 進行中
 
@@ -47,3 +48,4 @@
 | 2026-09-09 | AI 協作 | DramaWorkflow 第四批中段：appearanceConstants.ts 新建(d9c1bf7) + CharacterProfileCard.tsx 抽出(60712b5)完成；DramaWorkflow 由 2516→1343行；「進行中」項更新 |
 | 2026-09-09 | AI 協作 | S4 第二磚(66b0c8a)：S4PanelEditor.tsx 新建(233行)，S4StoryboardGen.tsx 修改(211行)，panel edit/delete/AI-rewrite 完成；S4 第二磚移入「完成」 |
 | 2026-09-10 | AI 協作 | S4 第三磚(c0459ec)：storyboard_panels D1 table(0012 migration)、/api/storyboard 路由(GET+POST+OPTIONS)、storyboardAdapter.ts、S4StoryboardGen.tsx 修改(211→234行)；S4 第三磚移入「完成」 |
+| 2026-09-10 | AI 協作 | S5 第一磚(fafc059)：S5Keyframes.tsx 完全改寫(157→186行)；移除所有 mock，接入 D1 分鏡，真 characters 資產完整度，集數選擇器，panel 佔位框，空狀態；S5 第一磚移入「完成」 |

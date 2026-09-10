@@ -79,3 +79,11 @@
   - 若 `storyboard_panels` table 未 apply，save 會靜默失敗（non-fatal），load 返回空陣列，唔影響 UI。
 - 來源:2026-09-10 S4 第三磚(c0459ec)
 - 狀態:待 D1 apply（staging + production）。
+
+## #image-model-registry — 圖像生成 model 字串硬編碼違反 Rules §4
+
+- 範圍:`functions/api/ai/[[path]].ts`
+- 問題:`'bytedance-seed/seedream-4.5'` 字串硬編碼於 `/api/ai/image-gen` 及 `/api/ai/character-angle` 兩個路由，未收錄入 `AI_MODELS` registry（目前只有 `TEXT_MODEL`、`VIDEO_MODEL`、`TTS_MODEL`），違反 Rules.md §4「所有可配置參數禁止硬編碼，必須集中在 config/env」。
+- 建議:於 S5 第二磚（per-panel keyframe 生成）實作時，同步將圖像 model 加入 `AI_MODELS.IMAGE_MODEL = 'bytedance-seed/seedream-4.5'`，並將兩個路由改讀 `AI_MODELS.IMAGE_MODEL`。
+- 來源:2026-09-10 S5 第一磚調查（fafc059）
+- 狀態:待 S5 第二磚處理。
