@@ -12,6 +12,7 @@ export const AI_MODELS = {
   TEXT_MODEL:  'moonshotai/kimi-k2.5',
   VIDEO_MODEL: 'bytedance/seedance-2.0',
   TTS_MODEL:   'minimax/speech-2.8-hd',
+  IMAGE_MODEL: 'bytedance-seed/seedream-4.5',
 } as const;
 
 const HKD_PER_CREDIT = 0.196;
@@ -598,7 +599,7 @@ app.post('/api/ai/image-gen', async (c) => {
     input_references?: { type: string; image_url: { url: string } }[];
   };
   const payload: ImagePayload = {
-    model: 'bytedance-seed/seedream-4.5',
+    model: AI_MODELS.IMAGE_MODEL,
     prompt: parts,
     aspect_ratio: '3:4',
   };
@@ -736,7 +737,7 @@ app.post('/api/ai/image-gen', async (c) => {
   const credits = costUsdToCredits(costUsd);
   const jobId   = crypto.randomUUID();
 
-  await recordGenJob(env.DB, jobId, userId, 'image_gen', 'completed', credits, 'bytedance-seed/seedream-4.5', fileUrl);
+  await recordGenJob(env.DB, jobId, userId, 'image_gen', 'completed', credits, AI_MODELS.IMAGE_MODEL, fileUrl);
   await recordCreditDebit(env.DB, userId, credits, 'ai_generation', `角色圖像生成 (AI generated)`);
 
   const referencesUsed = payload.input_references?.length ?? 0;
@@ -855,7 +856,7 @@ app.post('/api/ai/character-angle', async (c) => {
     input_references?: { type: string; image_url: { url: string } }[];
   };
   const payload: ImagePayload = {
-    model: 'bytedance-seed/seedream-4.5',
+    model: AI_MODELS.IMAGE_MODEL,
     prompt: parts,
     aspect_ratio: '3:4',
   };
@@ -996,7 +997,7 @@ app.post('/api/ai/character-angle', async (c) => {
   const credits = costUsdToCredits(costUsd);
   const jobId   = crypto.randomUUID();
 
-  await recordGenJob(env.DB, jobId, userId, 'character_angle', 'completed', credits, 'bytedance-seed/seedream-4.5', fileUrl);
+  await recordGenJob(env.DB, jobId, userId, 'character_angle', 'completed', credits, AI_MODELS.IMAGE_MODEL, fileUrl);
   await recordCreditDebit(env.DB, userId, credits, 'ai_generation', `角色設定圖生成 — ${role} (${assetId.slice(0, 8)})`);
 
   return c.json({
