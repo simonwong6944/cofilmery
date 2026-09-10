@@ -1,10 +1,12 @@
 /**
  * S4StoryboardGen — AI-generate storyboard panels from episode story card.
- * Composite module. Panel state is local (no D1 — persistence is S4 brick 3).
+ * Composite module. Panels persist to D1 via storyboardAdapter (S4 brick 3).
  */
 import { useState, useEffect, useCallback } from 'react';
 import { Camera, Loader2, AlertTriangle, Sparkles } from 'lucide-react';
 import type { EpisodeStoryCard } from '@/adapters/types';
+import { useProjectStore } from '@/store/projectStore';
+import { saveStoryboardToD1, loadStoryboardFromD1 } from '@/adapters/storyboardAdapter';
 import { S4PanelEditor } from './S4PanelEditor';
 
 // ── Configurable constants ────────────────────────────────────────────────────
@@ -82,15 +84,27 @@ export function S4StoryboardGen({
   aiRewriteLabel,
   deleteLabel,
 }: Props) {
+  const { projectId, currentEpisode: _ep } = useProjectStore();
   const [panels,  setPanels]  = useState<StoryboardPanel[]>([]);
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState<string | null>(null);
 
-  // Clear panels when selected episode changes
+  // Load persisted panels; clear on episode change
   useEffect(() => {
     setPanels([]);
     setError(null);
-  }, [selectedEp]);
+    if (!projectId) return;
+    loadStoryboardFromD1(projectId, selectedEp)
+      .then(loaded => { if (loaded.length > 0) setPanels(loaded); })
+      .catch(e => console.warn('[S4StoryboardGen] load failed:', e));
+  }, [projectId, selectedEp]);
+
+  // Non-fatal save helper — errors are logged but never block UI
+  const handleSave = useCallback((next: StoryboardPanel[]) => {
+    if (!projectId) return;
+    saveStoryboardToD1(projectId, selectedEp, next)
+      .catch(e => console.warn('[S4StoryboardGen] save failed:', e));
+  }, [projectId, selectedEp]);
 
   const card = storyCards.find(c => c.episodeNumber === selectedEp) ?? null;
 
@@ -112,6 +126,7 @@ export function S4StoryboardGen({
       const parsed = parsePanels(data.text ?? '');
       if (parsed.length === 0) throw new Error('AI 未能生成有效分鏡，請重試。');
       setPanels(parsed);
+      handleSave(parsed);
     } catch (e) {
       setError(e instanceof Error ? e.message : '生成失敗，請重試。');
     } finally {
@@ -119,14 +134,22 @@ export function S4StoryboardGen({
     }
   };
 
-  // ── Panel mutation handlers (local state only — no D1) ────────────────────
+  // ── Panel mutation handlers — update local state then persist ───────────────
   const handleUpdate = useCallback((idx: number, updated: StoryboardPanel) => {
-    setPanels(prev => prev.map((p, i) => i === idx ? updated : p));
-  }, []);
+    setPanels(prev => {
+      const next = prev.map((p, i) => i === idx ? updated : p);
+      handleSave(next);
+      return next;
+    });
+  }, [handleSave]);
 
   const handleDelete = useCallback((idx: number) => {
-    setPanels(prev => prev.filter((_, i) => i !== idx));
-  }, []);
+    setPanels(prev => {
+      const next = prev.filter((_, i) => i !== idx);
+      handleSave(next);
+      return next;
+    });
+  }, [handleSave]);
 
   // ── No story card available ────────────────────────────────────────────────
   if (!card) {
