@@ -86,4 +86,15 @@
 - 問題:`'bytedance-seed/seedream-4.5'` 字串硬編碼於 `/api/ai/image-gen` 及 `/api/ai/character-angle` 兩個路由，未收錄入 `AI_MODELS` registry（目前只有 `TEXT_MODEL`、`VIDEO_MODEL`、`TTS_MODEL`），違反 Rules.md §4「所有可配置參數禁止硬編碼，必須集中在 config/env」。
 - 建議:於 S5 第二磚（per-panel keyframe 生成）實作時，同步將圖像 model 加入 `AI_MODELS.IMAGE_MODEL = 'bytedance-seed/seedream-4.5'`，並將兩個路由改讀 `AI_MODELS.IMAGE_MODEL`。
 - 來源:2026-09-10 S5 第一磚調查（fafc059）
-- 狀態:待 S5 第二磚處理。
+- 狀態:已解決 → 見 commit 8ecb05d（S5 第二磚）：AI_MODELS.IMAGE_MODEL 加入 registry，image-gen + character-angle 兩處 hardcode 已改用 AI_MODELS.IMAGE_MODEL。
+
+## #s5-keyframes-migration — S5 第二磚：keyframes D1 migration 部署提示
+
+- 範圍:`migrations/0013_keyframes.sql`、Cloudflare D1 production database
+- 說明:0013 migration 已入 repo，但 staging D1 及 production D1 需要手動 apply：
+  - Staging：`npx wrangler d1 migrations apply webapp-staging --env staging`（或對應 staging D1 名）
+  - Production：`npx wrangler d1 migrations apply webapp-production`
+  - 本地 dev：`npx wrangler d1 migrations apply webapp-production --local`
+  - 若 `keyframes` table 未 apply，就箕 save 會靜默失敗（non-fatal），load 返回空陣列，不影響 UI。
+- 來源:2026-09-10 S5 第二磚（８ecb05d）
+- 狀態:待 D1 apply（staging + production）。

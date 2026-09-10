@@ -18,6 +18,7 @@
 - [x] `66b0c8a` S4 第二磚：panel 逐項編輯 / 刪除 / AI 重寫完成（local state，S4PanelEditor.tsx 新建，parse 失敗防護）— 2026-09-09
 - [x] `c0459ec` S4 第三磚：storyboard panels 持久化至 D1 完成（0012_storyboard_panels migration、/api/storyboard 路由、storyboardAdapter.ts、S4StoryboardGen load/save）— 2026-09-10
 - [x] `fafc059` S5 第一磚：S5Keyframes.tsx 移除全部 mock，接入 D1 分鏡（loadStoryboardFromD1、集數選擇器、真 characters 資產完整度、panel 佔位框、空狀態提示；186行）— 2026-09-10
+- [x] `8ecb05d` S5 第二磚：per-panel 關鍵幀生成 + D1 持久化 + AI_MODELS.IMAGE_MODEL（新建 S5KeyframeGen.tsx(215行)、keyframes API、keyframeAdapter、migration 0013；S5Keyframes.tsx 186→1行32行）— 2026-09-10
 
 ## 進行中
 
@@ -49,3 +50,4 @@
 | 2026-09-09 | AI 協作 | S4 第二磚(66b0c8a)：S4PanelEditor.tsx 新建(233行)，S4StoryboardGen.tsx 修改(211行)，panel edit/delete/AI-rewrite 完成；S4 第二磚移入「完成」 |
 | 2026-09-10 | AI 協作 | S4 第三磚(c0459ec)：storyboard_panels D1 table(0012 migration)、/api/storyboard 路由(GET+POST+OPTIONS)、storyboardAdapter.ts、S4StoryboardGen.tsx 修改(211→234行)；S4 第三磚移入「完成」 |
 | 2026-09-10 | AI 協作 | S5 第一磚(fafc059)：S5Keyframes.tsx 完全改寫(157→186行)；移除所有 mock，接入 D1 分鏡，真 characters 資產完整度，集數選擇器，panel 佔位框，空狀態；S5 第一磚移入「完成」 |
+| 2026-09-10 | AI 協作 | S5 第二磚(8ecb05d)：新建 S5KeyframeGen.tsx(215行,per-panel 生成+load+error+retry)、keyframes.ts(147行)、keyframeAdapter.ts(70行)、migration 0013；修改 S5Keyframes.tsx(186→132行)；[[path]].ts 加 IMAGE_MODEL，移除 image-gen + character-angle 兩處 hardcode；還 #image-model-registry 債；S5 第二磚移入「完成」 |
