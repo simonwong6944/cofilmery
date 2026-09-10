@@ -69,3 +69,13 @@
 - 建議:待 DramaWorkflow 拆分接近完成後，獨立一磚將 S4-specific 模組歸位至合適目錄（如 `src/pages/creator/stages/s4/`）。
 - 來源:2026-09-09 S4 第二磚方案修正一
 - 狀態:待議（低優先，不阻礙當前功能開發）。
+## #s4-d1-migration — S4 第三磚：storyboard_panels D1 migration 部署提示
+
+- 範圍:`migrations/0012_storyboard_panels.sql`、Cloudflare D1 production database
+- 說明:0012 migration 已入 repo，但 staging D1 及 production D1 都需要手動 apply：
+  - Staging：`npx wrangler d1 migrations apply webapp-staging --env staging`（或對應 staging D1 名）
+  - Production：`npx wrangler d1 migrations apply webapp-production`
+  - 本地 dev：`npx wrangler d1 migrations apply webapp-production --local`
+  - 若 `storyboard_panels` table 未 apply，save 會靜默失敗（non-fatal），load 返回空陣列，唔影響 UI。
+- 來源:2026-09-10 S4 第三磚(c0459ec)
+- 狀態:待 D1 apply（staging + production）。
