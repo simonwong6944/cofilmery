@@ -378,31 +378,69 @@ app.post('/api/ai/video', async (c) => {
 });
 
 // ─── Video: shared mp4-archive helper (used by poll + backfill) ──────────────
-// Fetches mp4 from unsigned_urls[0] using full URL + Bearer token,
-// puts to R2, returns permanent R2 URL.
-// Non-fatal: returns empty string on any failure (caller degrades gracefully).
+// Steps:
+//   1. Fetch FRESH unsigned_urls[0] from GET /videos/{jobId} (avoids stale signed URLs).
+//   2. Fetch mp4 bytes with full URL + Bearer; guard res.ok AND byteLength > 0.
+//   3. Put to R2 with contentType; verify via r2.head(key) size > 0.
+//   4. Any failure → return '' immediately (caller must NOT write result_url).
 // IMPORTANT: this helper NEVER records credit debit — callers decide separately.
 async function archiveMp4ToR2(
   apiKey: string, r2: R2Bucket,
-  fullUrl: string, userId: string, jobId: string
+  userId: string, jobId: string
 ): Promise<string> {
   try {
-    // Direct fetch with full URL + Authorization header — no path-splitting
-    const mp4Res = await fetch(fullUrl, { headers: { 'Authorization': `Bearer ${apiKey}` } });
+    // ── Step 1: fetch fresh signed URL from OpenRouter (avoids expired cached URL) ──
+    const freshRes = await orFetch(apiKey, `/videos/${jobId}`, { method: 'GET' });
+    if (!freshRes.ok) {
+      console.warn(`[video][archive] fresh-url poll failed: status=${freshRes.status} jobId=${jobId}`);
+      return '';
+    }
+    const freshData = await freshRes.json<{ status: string; unsigned_urls?: string[] }>();
+    if (freshData.status !== 'completed') {
+      console.warn(`[video][archive] job not completed in fresh poll: status=${freshData.status} jobId=${jobId}`);
+      return '';
+    }
+    const freshUrl = freshData.unsigned_urls?.[0] ?? '';
+    if (!freshUrl) {
+      console.warn(`[video][archive] no unsigned_url in fresh poll for jobId=${jobId}`);
+      return '';
+    }
+
+    // ── Step 2: fetch mp4 bytes using fresh URL + Bearer ─────────────────────
+    const mp4Res = await fetch(freshUrl, { headers: { 'Authorization': `Bearer ${apiKey}` } });
+    const contentType = mp4Res.headers.get('content-type') ?? 'unknown';
+    // Diagnostic log — URL token not printed, only safe metadata
     if (!mp4Res.ok) {
-      console.warn(`[video] mp4 fetch failed: ${mp4Res.status} for jobId=${jobId}`);
+      console.warn(`[video][archive] mp4 fetch failed: status=${mp4Res.status} content-type=${contentType} jobId=${jobId}`);
       return '';
     }
     const mp4Buffer = await mp4Res.arrayBuffer();
+    // Diagnostic log — always emit so we can distinguish "empty body" vs "put failure"
+    console.warn(`[video][archive] mp4 fetched: status=${mp4Res.status} content-type=${contentType} byteLength=${mp4Buffer.byteLength} jobId=${jobId}`);
+    if (mp4Buffer.byteLength === 0) {
+      console.warn(`[video][archive] mp4 body is 0 bytes — aborting R2 put for jobId=${jobId}`);
+      return '';
+    }
+
+    // ── Step 3: put to R2 with explicit contentType ───────────────────────────
     const r2Key = `generated/${userId}/video_${jobId}.mp4`;
     await r2.put(r2Key, mp4Buffer, {
       httpMetadata:   { contentType: 'video/mp4' },
       customMetadata: { jobId, userId, source: 'openrouter-video' },
     });
+
+    // ── Step 4: verify via r2.head(key) — no silent false-success ────────────
+    const headObj = await r2.head(r2Key);
+    if (!headObj || headObj.size === 0) {
+      console.warn(`[video][archive] R2 head verify failed (object absent or 0 bytes): key=${r2Key} jobId=${jobId}`);
+      return ''; // honest failure — caller will NOT write result_url
+    }
+
+    console.warn(`[video][archive] R2 verified: key=${r2Key} size=${headObj.size} jobId=${jobId}`);
     return `/api/assets/file/${encodeURIComponent(r2Key)}`;
   } catch (e) {
-    console.warn(`[video] R2 archive failed for jobId=${jobId}:`, String(e));
-    return ''; // non-fatal — caller falls back to signed CDN URL
+    console.warn(`[video][archive] unexpected error for jobId=${jobId}:`, String(e));
+    return ''; // non-fatal — caller must NOT write result_url on empty return
   }
 }
 
@@ -418,26 +456,20 @@ app.get('/api/ai/video/:jobId', async (c) => {
   const userId = (jobRow?.user_id as string) ?? 'anonymous';
 
   // ── Backfill branch: already completed in D1 but result_url is empty ──
-  // Only fetches mp4 + writes R2/D1 — NEVER calls recordCreditDebit again.
+  // archiveMp4ToR2 fetches a fresh signed URL internally — no stale URL passed in.
+  // NEVER calls recordCreditDebit (credits already charged at generation time).
   if (jobRow && (jobRow.status as string) === 'completed' && !(jobRow.result_url as string)) {
-    const orRes = await orFetch(env.OPENROUTER_API_KEY, `/videos/${jobId}`, { method: 'GET' });
-    if (orRes.ok) {
-      const orData = await orRes.json<{ status: string; unsigned_urls?: string[]; usage?: { cost?: number } }>();
-      const fullUrl = orData.unsigned_urls?.[0] ?? '';
-      if (fullUrl) {
-        const r2Url = await archiveMp4ToR2(env.OPENROUTER_API_KEY, env.FILES, fullUrl, userId, jobId);
-        if (r2Url) {
-          // Write result_url; credits_consumed stays unchanged (already charged)
-          try {
-            await env.DB.prepare(
-              `UPDATE gen_jobs SET result_url=?, completed_at=COALESCE(completed_at, CURRENT_TIMESTAMP) WHERE id=?`
-            ).bind(r2Url, jobId).run();
-          } catch { /* non-blocking */ }
-          return c.json({ jobId, status: 'completed', videoUrl: r2Url, backfilled: true });
-        }
-      }
+    const r2Url = await archiveMp4ToR2(env.OPENROUTER_API_KEY, env.FILES, userId, jobId);
+    if (r2Url) {
+      // Write result_url only if archive succeeded and was verified — no false-success
+      try {
+        await env.DB.prepare(
+          `UPDATE gen_jobs SET result_url=?, completed_at=COALESCE(completed_at, CURRENT_TIMESTAMP) WHERE id=?`
+        ).bind(r2Url, jobId).run();
+      } catch { /* non-blocking */ }
+      return c.json({ jobId, status: 'completed', videoUrl: r2Url, backfilled: true });
     }
-    // Backfill failed — return completed with empty URL (non-fatal)
+    // Backfill failed — honest: result_url NOT written
     return c.json({ jobId, status: 'completed', videoUrl: '', backfilled: false });
   }
 
@@ -461,13 +493,12 @@ app.get('/api/ai/video/:jobId', async (c) => {
     const costUsd = data.usage?.cost ?? VIDEO_COST_USD_FALLBACK; // usage.cost (not usage_cost)
     const credits = costUsdToCredits(costUsd);
 
-    // ── Archive mp4 to R2 using full URL + Bearer (verified approach) ────
-    const fullUrl = data.unsigned_urls?.[0] ?? '';
-    let finalVideoUrl = fullUrl; // fallback: keep signed CDN URL if R2 fails
-    if (fullUrl) {
-      const r2Url = await archiveMp4ToR2(env.OPENROUTER_API_KEY, env.FILES, fullUrl, userId, jobId);
-      if (r2Url) finalVideoUrl = r2Url;
-    }
+    // ── Archive mp4 to R2 — fresh signed URL fetched inside helper ───────
+    // archiveMp4ToR2 re-fetches /videos/{jobId} internally for a guaranteed-fresh URL.
+    // On any failure (empty body, R2 put error, head verify fail) it returns '' and
+    // finalVideoUrl stays '' — the D1 result_url will be '' until next backfill.
+    const r2Url = await archiveMp4ToR2(env.OPENROUTER_API_KEY, env.FILES, userId, jobId);
+    const finalVideoUrl = r2Url; // '' if archive failed — honest, no stale CDN URL stored
 
     // ── Persist to gen_jobs ───────────────────────────────────────────────
     try {
@@ -523,18 +554,9 @@ app.post('/api/ai/video/backfill', async (c) => {
 
     const userId = (row.user_id as string) ?? 'anonymous';
 
-    // (c) GET-only — retrieves existing job status, NEVER POSTs to /videos
-    const orRes = await orFetch(env.OPENROUTER_API_KEY, `/videos/${jobId}`, { method: 'GET' });
-    if (!orRes.ok) { results.push({ jobId, outcome: `or_poll_failed_${orRes.status}` }); continue; }
-
-    const orData = await orRes.json<{ status: string; unsigned_urls?: string[] }>();
-    if (orData.status !== 'completed') { results.push({ jobId, outcome: `or_status_${orData.status}` }); continue; }
-
-    const fullUrl = orData.unsigned_urls?.[0] ?? '';
-    if (!fullUrl) { results.push({ jobId, outcome: 'no_unsigned_url' }); continue; }
-
-    // Archive mp4 to R2 (uses direct full-URL fetch + Bearer — verified approach)
-    const r2Url = await archiveMp4ToR2(env.OPENROUTER_API_KEY, env.FILES, fullUrl, userId, jobId);
+    // (c) GET-only — archiveMp4ToR2 re-fetches fresh signed URL internally.
+    // NEVER POSTs to /videos; helper only calls GET /videos/{jobId}.
+    const r2Url = await archiveMp4ToR2(env.OPENROUTER_API_KEY, env.FILES, userId, jobId);
     if (!r2Url) { results.push({ jobId, outcome: 'r2_archive_failed' }); continue; }
 
     // Write result_url to gen_jobs; credits_consumed unchanged (already charged)
