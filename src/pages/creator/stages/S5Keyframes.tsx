@@ -1,10 +1,7 @@
-/**
- * S5Keyframes — 關鍵幀生成頁面外殼（第二磚）。
- * 生成邏輯委托 S5KeyframeGen；本頁保留：標題、美學 banner、模式選擇、資產完整度、集數選擇、確認按鈕。
- */
-import { useState, useEffect } from 'react';
+/** S5Keyframes — 關鍵幀生成頁面外殼（第三磚）。確認門控：不足時溫和警示，不阻止 onNext()。 */
+import { useState, useEffect, useCallback } from 'react';
 import { AestheticComposer, type AestheticOutput } from '@/components/shared/AestheticComposer';
-import { S5KeyframeGen } from '@/components/shared/S5KeyframeGen';
+import { S5KeyframeGen, type PanelState } from '@/components/shared/S5KeyframeGen';
 import { useLocaleStore } from '@/store/localeStore';
 import { useProjectStore } from '@/store/projectStore';
 import { loadStoryboardFromD1 } from '@/adapters/storyboardAdapter';
@@ -13,25 +10,33 @@ import { t } from '@/i18n';
 import { Layers, AlertTriangle, Check, ChevronRight, Image, Edit3 } from 'lucide-react';
 
 export function S5Keyframes({ onNext }: { onNext: () => void }) {
-  const { locale } = useLocaleStore();
-  const tr = t(); void locale;
+  const tr = t(); void useLocaleStore().locale;
   const { aestheticLock, storyCards, characters, currentEpisode, projectId } = useProjectStore();
   const [genMode, setGenMode]                       = useState<'reference' | 'text'>('reference');
   const [localAestheticOpen, setLocalAestheticOpen] = useState(false);
   const [localAdjustment, setLocalAdjustment]       = useState<AestheticOutput | null>(null);
   const [selectedEp, setSelectedEp]                 = useState(currentEpisode ?? (storyCards[0]?.episodeNumber ?? 1));
   const [panels, setPanels]                         = useState<StoryboardPanel[]>([]);
-  const episodeNums      = storyCards.length > 0 ? storyCards.map(c => c.episodeNumber) : [1];
-  const effectiveAes     = localAdjustment ?? aestheticLock;
-  const aestheticPrompt  = effectiveAes?.compiledPromptZh ?? '';
+  const [kfStates, setKfStates]                     = useState<PanelState[]>([]);
+  const [confirmWarn, setConfirmWarn]               = useState(false);
+
+  const episodeNums     = storyCards.length > 0 ? storyCards.map(c => c.episodeNumber) : [1];
+  const effectiveAes    = localAdjustment ?? aestheticLock;
+  const aestheticPrompt = effectiveAes?.compiledPromptZh ?? '';
+  const doneCount       = kfStates.filter(s => s.imageUrl).length;
 
   useEffect(() => {
-    setPanels([]);
+    setPanels([]); setConfirmWarn(false);
     if (!projectId) return;
     loadStoryboardFromD1(projectId, selectedEp)
       .then(l => { if (l.length > 0) setPanels(l); })
       .catch(e => console.warn('[S5Keyframes] load storyboard failed:', e));
   }, [projectId, selectedEp]);
+
+  const handleConfirm = useCallback(() => {
+    if (panels.length > 0 && doneCount < panels.length) { setConfirmWarn(true); return; }
+    onNext();
+  }, [panels.length, doneCount, onNext]);
 
   return (
     <div className="max-w-2xl">
@@ -117,14 +122,26 @@ export function S5Keyframes({ onNext }: { onNext: () => void }) {
       </div>
 
       {/* 關鍵幀生成區 */}
-      <div className="bg-card rounded-xl border border-line p-5 shadow-card mb-6">
+      <div className="bg-card rounded-xl border border-line p-5 shadow-card mb-4">
         <h3 className="font-semibold text-ink text-sm mb-3">{tr.creator.drama.s5.previewTitle}</h3>
         {projectId
-          ? <S5KeyframeGen projectId={projectId} episode={selectedEp} panels={panels} aestheticPrompt={aestheticPrompt} characters={characters} />
+          ? <S5KeyframeGen projectId={projectId} episode={selectedEp} panels={panels}
+              aestheticPrompt={aestheticPrompt} characters={characters} onStatesChange={setKfStates} />
           : <p className="text-xs text-muted py-4 text-center">請先開啟或建立項目。</p>}
       </div>
 
-      <button onClick={onNext} className="w-full bg-primary text-white py-3 rounded-xl font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2">
+      {/* 確認警示（溫和，不阻擋） */}
+      {confirmWarn && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4 flex items-start gap-2">
+          <AlertTriangle size={15} className="text-amber-500 shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-xs text-amber-800">尚有 {panels.length - doneCount} 個分鏡未生成關鍵幀。仍可繼續，但建議先完成所有生成。</p>
+            <button onClick={onNext} className="mt-1.5 text-xs text-amber-700 underline hover:text-amber-900">仍然繼續下一步</button>
+          </div>
+        </div>
+      )}
+
+      <button onClick={handleConfirm} className="w-full bg-primary text-white py-3 rounded-xl font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2">
         <ChevronRight size={18} /> {tr.creator.drama.s5.confirmBtn}
       </button>
     </div>

@@ -115,11 +115,15 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   const now = new Date().toISOString();
 
   try {
-    // UPSERT: if same (project_id, episode, panel_scene) exists, replace it
+    // True upsert: requires UNIQUE index on (project_id, episode, panel_scene) — migration 0014.
+    // ON CONFLICT DO UPDATE avoids new-row-on-replace behaviour of INSERT OR REPLACE.
     await env.DB.prepare(
-      `INSERT OR REPLACE INTO keyframes
+      `INSERT INTO keyframes
          (id, project_id, episode, panel_scene, image_url, r2_key, sort_order, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(project_id, episode, panel_scene)
+       DO UPDATE SET image_url = excluded.image_url,
+                     r2_key    = excluded.r2_key`
     ).bind(
       id, projectId, episode as number, panelScene as number,
       imageUrl, r2Key ?? '', panelScene as number, now,
