@@ -377,63 +377,106 @@ app.post('/api/ai/video', async (c) => {
   return c.json({ jobId: data.id, status: data.status ?? 'processing', pollingUrl: `/api/ai/video/${data.id}` });
 });
 
+// ─── Video: shared mp4-archive helper (used by poll + backfill) ──────────────
+// Fetches mp4 from unsigned_urls[0] using full URL + Bearer token,
+// puts to R2, returns permanent R2 URL.
+// Non-fatal: returns empty string on any failure (caller degrades gracefully).
+// IMPORTANT: this helper NEVER records credit debit — callers decide separately.
+async function archiveMp4ToR2(
+  apiKey: string, r2: R2Bucket,
+  fullUrl: string, userId: string, jobId: string
+): Promise<string> {
+  try {
+    // Direct fetch with full URL + Authorization header — no path-splitting
+    const mp4Res = await fetch(fullUrl, { headers: { 'Authorization': `Bearer ${apiKey}` } });
+    if (!mp4Res.ok) {
+      console.warn(`[video] mp4 fetch failed: ${mp4Res.status} for jobId=${jobId}`);
+      return '';
+    }
+    const mp4Buffer = await mp4Res.arrayBuffer();
+    const r2Key = `generated/${userId}/video_${jobId}.mp4`;
+    await r2.put(r2Key, mp4Buffer, {
+      httpMetadata:   { contentType: 'video/mp4' },
+      customMetadata: { jobId, userId, source: 'openrouter-video' },
+    });
+    return `/api/assets/file/${encodeURIComponent(r2Key)}`;
+  } catch (e) {
+    console.warn(`[video] R2 archive failed for jobId=${jobId}:`, String(e));
+    return ''; // non-fatal — caller falls back to signed CDN URL
+  }
+}
+
 // ─── Video poll ──────────────────────────────────────────────────────────────
 app.get('/api/ai/video/:jobId', async (c) => {
   const env   = c.env;
   const jobId = c.req.param('jobId');
 
+  // ── Lookup gen_jobs first — enables backfill branch & userId for debit ─
+  const jobRow = await env.DB.prepare(
+    'SELECT user_id, status, result_url FROM gen_jobs WHERE id = ?'
+  ).bind(jobId).first().catch(() => null);
+  const userId = (jobRow?.user_id as string) ?? 'anonymous';
+
+  // ── Backfill branch: already completed in D1 but result_url is empty ──
+  // Only fetches mp4 + writes R2/D1 — NEVER calls recordCreditDebit again.
+  if (jobRow && (jobRow.status as string) === 'completed' && !(jobRow.result_url as string)) {
+    const orRes = await orFetch(env.OPENROUTER_API_KEY, `/videos/${jobId}`, { method: 'GET' });
+    if (orRes.ok) {
+      const orData = await orRes.json<{ status: string; unsigned_urls?: string[]; usage?: { cost?: number } }>();
+      const fullUrl = orData.unsigned_urls?.[0] ?? '';
+      if (fullUrl) {
+        const r2Url = await archiveMp4ToR2(env.OPENROUTER_API_KEY, env.FILES, fullUrl, userId, jobId);
+        if (r2Url) {
+          // Write result_url; credits_consumed stays unchanged (already charged)
+          try {
+            await env.DB.prepare(
+              `UPDATE gen_jobs SET result_url=?, completed_at=COALESCE(completed_at, CURRENT_TIMESTAMP) WHERE id=?`
+            ).bind(r2Url, jobId).run();
+          } catch { /* non-blocking */ }
+          return c.json({ jobId, status: 'completed', videoUrl: r2Url, backfilled: true });
+        }
+      }
+    }
+    // Backfill failed — return completed with empty URL (non-fatal)
+    return c.json({ jobId, status: 'completed', videoUrl: '', backfilled: false });
+  }
+
+  // ── Normal poll path ──────────────────────────────────────────────────
   const res = await orFetch(env.OPENROUTER_API_KEY, `/videos/${jobId}`, { method: 'GET' });
   if (!res.ok) return c.json({ error: 'Poll failed', detail: await res.text() }, 502);
 
   const data = await res.json<{
     id: string; status: string; progress?: number;
-    urls?: { get?: string }; usage_cost?: number;
+    unsigned_urls?: string[];           // real field (verified)
+    usage?: { cost?: number };          // real field (verified): data.usage.cost
   }>();
 
   if (data.status === 'completed') {
-    let videoUrl = data.urls?.get ?? '';
-    const contentRes = await orFetch(env.OPENROUTER_API_KEY, `/videos/${jobId}/content`, { method: 'GET' });
-    if (contentRes.ok) {
-      const cd = await contentRes.json<{ url?: string }>().catch(() => ({}));
-      videoUrl = cd.url ?? videoUrl;
+    // ── Idempotency: if result_url already filled, skip R2 re-archive ────
+    if (jobRow && (jobRow.result_url as string)) {
+      return c.json({ jobId, status: 'completed', videoUrl: jobRow.result_url as string,
+                      creditsConsumed: 0, costUsd: 0 });
     }
 
-    const costUsd = data.usage_cost ?? VIDEO_COST_USD_FALLBACK;
+    const costUsd = data.usage?.cost ?? VIDEO_COST_USD_FALLBACK; // usage.cost (not usage_cost)
     const credits = costUsdToCredits(costUsd);
 
-    // ── Lookup userId from gen_jobs for credit debit record ───────────────
-    const jobRow = await env.DB.prepare(
-      'SELECT user_id FROM gen_jobs WHERE id = ?'
-    ).bind(jobId).first().catch(() => null);
-    const userId = (jobRow?.user_id as string) ?? 'anonymous';
-
-    // ── Archive mp4 to R2 (non-fatal — degrade to CDN URL on failure) ────
-    let finalVideoUrl = videoUrl;
-    if (videoUrl) {
-      try {
-        const mp4Res = await fetch(videoUrl);
-        if (mp4Res.ok) {
-          const mp4Buffer = await mp4Res.arrayBuffer();
-          const r2Key = `generated/${userId}/video_${jobId}.mp4`;
-          await env.FILES.put(r2Key, mp4Buffer, {
-            httpMetadata:   { contentType: 'video/mp4' },
-            customMetadata: { jobId, userId, source: 'openrouter-video' },
-          });
-          finalVideoUrl = `/api/assets/file/${encodeURIComponent(r2Key)}`;
-        }
-      } catch (e) {
-        console.warn('[video-poll] R2 archive failed, using CDN URL:', String(e));
-        // finalVideoUrl remains the CDN URL — non-fatal degradation
-      }
+    // ── Archive mp4 to R2 using full URL + Bearer (verified approach) ────
+    const fullUrl = data.unsigned_urls?.[0] ?? '';
+    let finalVideoUrl = fullUrl; // fallback: keep signed CDN URL if R2 fails
+    if (fullUrl) {
+      const r2Url = await archiveMp4ToR2(env.OPENROUTER_API_KEY, env.FILES, fullUrl, userId, jobId);
+      if (r2Url) finalVideoUrl = r2Url;
     }
 
-    // ── Persist results to gen_jobs + record credit debit ────────────────
+    // ── Persist to gen_jobs ───────────────────────────────────────────────
     try {
       await env.DB.prepare(
         `UPDATE gen_jobs SET status='completed', credits_consumed=?, result_url=?, completed_at=CURRENT_TIMESTAMP WHERE id=?`
       ).bind(credits, finalVideoUrl, jobId).run();
     } catch { /* non-blocking */ }
 
+    // ── Record credit debit (ONLY in normal poll path, never in backfill) ─
     await recordCreditDebit(env.DB, userId, credits, 'video', `影片生成 (${jobId.slice(0, 8)})`);
 
     return c.json({ jobId, status: 'completed', videoUrl: finalVideoUrl, creditsConsumed: credits, costUsd });
@@ -445,6 +488,81 @@ app.get('/api/ai/video/:jobId', async (c) => {
   }
 
   return c.json({ jobId, status: data.status, progress: data.progress ?? null });
+});
+
+// ─── Video backfill (management-only) ────────────────────────────────────────
+// POST /api/ai/video/backfill — re-fetch mp4 + archive to R2 for completed
+// jobs whose result_url is empty. Three explicit safeguards:
+// (a) Only processes gen_jobs WHERE status='completed' AND result_url='' — others skipped.
+// (b) Idempotent: if result_url already filled when we reach R2 put, skip entirely.
+// (c) NEVER posts to /videos (no new generation). GET-only — only retrieves + archives.
+// NEVER calls recordCreditDebit — credits were already charged at generation time.
+app.post('/api/ai/video/backfill', async (c) => {
+  const env = c.env;
+  let body: { jobIds?: string[] };
+  try { body = await c.req.json(); } catch { return c.json({ error: 'Invalid JSON body' }, 400); }
+
+  const jobIds = body.jobIds ?? [];
+  if (!Array.isArray(jobIds) || jobIds.length === 0) {
+    return c.json({ error: 'jobIds array required' }, 400);
+  }
+
+  const results: Array<{ jobId: string; outcome: string; r2Url?: string }> = [];
+
+  for (const jobId of jobIds) {
+    // (a) Safeguard: only process if completed + result_url empty in D1
+    const row = await env.DB.prepare(
+      `SELECT user_id, status, result_url FROM gen_jobs WHERE id = ?`
+    ).bind(jobId).first().catch(() => null);
+
+    if (!row) { results.push({ jobId, outcome: 'not_found' }); continue; }
+    if ((row.status as string) !== 'completed') { results.push({ jobId, outcome: 'skipped_not_completed' }); continue; }
+
+    // (b) Idempotent: skip if result_url already filled
+    if (row.result_url as string) { results.push({ jobId, outcome: 'skipped_already_filled', r2Url: row.result_url as string }); continue; }
+
+    const userId = (row.user_id as string) ?? 'anonymous';
+
+    // (c) GET-only — retrieves existing job status, NEVER POSTs to /videos
+    const orRes = await orFetch(env.OPENROUTER_API_KEY, `/videos/${jobId}`, { method: 'GET' });
+    if (!orRes.ok) { results.push({ jobId, outcome: `or_poll_failed_${orRes.status}` }); continue; }
+
+    const orData = await orRes.json<{ status: string; unsigned_urls?: string[] }>();
+    if (orData.status !== 'completed') { results.push({ jobId, outcome: `or_status_${orData.status}` }); continue; }
+
+    const fullUrl = orData.unsigned_urls?.[0] ?? '';
+    if (!fullUrl) { results.push({ jobId, outcome: 'no_unsigned_url' }); continue; }
+
+    // Archive mp4 to R2 (uses direct full-URL fetch + Bearer — verified approach)
+    const r2Url = await archiveMp4ToR2(env.OPENROUTER_API_KEY, env.FILES, fullUrl, userId, jobId);
+    if (!r2Url) { results.push({ jobId, outcome: 'r2_archive_failed' }); continue; }
+
+    // Write result_url to gen_jobs; credits_consumed unchanged (already charged)
+    try {
+      await env.DB.prepare(
+        `UPDATE gen_jobs SET result_url=? WHERE id=?`
+      ).bind(r2Url, jobId).run();
+    } catch (e) {
+      results.push({ jobId, outcome: `d1_write_failed: ${String(e)}` }); continue;
+    }
+
+    // Update episodes.video_url using the episode_id stored in gen_jobs
+    const epRow = await env.DB.prepare(
+      `SELECT episode_id FROM gen_jobs WHERE id = ?`
+    ).bind(jobId).first().catch(() => null);
+    const episodeId = (epRow?.episode_id as string) ?? '';
+    if (episodeId) {
+      try {
+        await env.DB.prepare(
+          `UPDATE episodes SET video_url=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`
+        ).bind(r2Url, episodeId).run();
+      } catch { /* non-blocking */ }
+    }
+
+    results.push({ jobId, outcome: 'backfilled', r2Url });
+  }
+
+  return c.json({ processed: results.length, results });
 });
 
 // ─── TTS ─────────────────────────────────────────────────────────────────────
