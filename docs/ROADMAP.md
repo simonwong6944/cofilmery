@@ -57,3 +57,10 @@
 | 2026-09-11 | AI 協作 | S5 第三磚(77d55a1)：新建 migration 0014(UNIQUE INDEX + dedup)；keyframes.ts 改 ON CONFLICT DO UPDATE(147→151行)；S5KeyframeGen.tsx 改寫(215→192行，KEYFRAME_GEN_CONCURRENCY=3 config、export PanelState、onStatesChange、批量全部生成、進度條)；S5Keyframes.tsx 改寫(132→149行，確認門控+溫和警示+仍然繼續)；S5 三磚全部完成，移入「完成」 |
 | 2026-09-11 | AI 協作 | S6 第一磚(eaabf1f)：[[path]].ts 加 VIDEO_COST_USD_FALLBACK + GET handler 補 R2 歸檔 + recordCreditDebit；新建 episodes.ts(PATCH+GET /api/episodes/:episodeId)、videoAdapter.ts(saveVideoToD1+loadVideoFromD1)；useVideoGen.ts 加 VIDEO_POLL_INTERVAL_MS/VIDEO_POLL_MAX_ATTEMPTS 常數、submit() return {jobId,videoUrl}；VideoGenPanel.tsx 修 Bug F(stale closure → return value)；S6 第一磚移入「完成」；pending_changes 加 #ai-router-oversized |
 | 2026-09-11 | AI 協作 | S6 磚 1b(1624999)：[[path]].ts 修正 video URL 解析（unsigned_urls[0] + data.usage?.cost）；archiveMp4ToR2() helper；GET handler backfill 分支；POST /api/ai/video/backfill 端點（三重保護）；recordCreditDebit 隔離在 poll 路徑；pending_changes 加 #episode-id-format-mismatch；S6 磚 1b 移入「完成」 |
+
+## S6 磚 1c ✅ COMPLETED（commit d4b708a，2026-09-11）
+- 修正 R2 archive 假成功 bug：archiveMp4ToR2 加 byteLength > 0 guard + r2.head() verify
+- 改用 fresh signed URL（內部即時 GET /videos/{jobId}），排除 expired URL 導致 empty body
+- 加診斷 log：status / content-type / byteLength（唔 print token）
+- 三個 caller 更新至 4-param signature
+- result_url 只在 R2 已驗證成功後才寫 D1，徹底消除假成功

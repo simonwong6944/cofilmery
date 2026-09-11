@@ -128,3 +128,12 @@
 - 待修：VIDEO POST handler 應統一用 `${projectId}-ep${epNum}` 人造 key format，並更新 episodes.ts PATCH 邏輯相應地 parse；或者改成直接用真實 episode UUID（兩個選擇留返下一磚決策）。
 - 來源：2026-09-11 S6 磚 1b 調查（1624999）
 - 狀態：已記錄，待獨立磚處理。
+
+## #s6-brick1c-r2-verify — R2 archive 假成功 bug（已解決）
+
+- 範圍：`functions/api/ai/[[path]].ts`，`archiveMp4ToR2()` helper
+- 問題：(1) `mp4Buffer.byteLength` 未 check，0-byte body 仍被 put 到 R2；(2) `r2.put()` 後無 verify，靜默假成功；(3) 用 caller 傳入的 URL（可能已過期），導致 CDN 返回 empty body。
+- 真兇判定：signed URL 短效過期 → fetch 返回 `res.ok=true` 但 body 為空（0 bytes）→ `r2.put(key, emptyBuffer)` R2 靜默接受 → `archiveMp4ToR2` 返回 URL → caller 寫 result_url → 假成功。
+- 解決：(a) fresh GET /videos/{jobId} 取最新 URL；(b) byteLength > 0 guard；(c) r2.head() verify；(d) 任一失敗 return ''，result_url 不寫。
+- 來源：2026-09-11 S6 磚 1c（d4b708a）
+- 狀態：已解決 → 見 commit d4b708a
