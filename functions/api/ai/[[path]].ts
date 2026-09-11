@@ -15,8 +15,9 @@ export const AI_MODELS = {
   IMAGE_MODEL: 'bytedance-seed/seedream-4.5',
 } as const;
 
-const HKD_PER_CREDIT = 0.196;
-const USD_TO_HKD     = 7.8;
+const HKD_PER_CREDIT          = 0.196;
+const USD_TO_HKD              = 7.8;
+const VIDEO_COST_USD_FALLBACK = 0.5; // fallback if usage_cost absent in OpenRouter response
 
 function costUsdToCredits(costUsd: number): number {
   const hkd = costUsd * USD_TO_HKD;
@@ -396,14 +397,46 @@ app.get('/api/ai/video/:jobId', async (c) => {
       const cd = await contentRes.json<{ url?: string }>().catch(() => ({}));
       videoUrl = cd.url ?? videoUrl;
     }
-    const costUsd = data.usage_cost ?? 0.5;
+
+    const costUsd = data.usage_cost ?? VIDEO_COST_USD_FALLBACK;
     const credits = costUsdToCredits(costUsd);
+
+    // ── Lookup userId from gen_jobs for credit debit record ───────────────
+    const jobRow = await env.DB.prepare(
+      'SELECT user_id FROM gen_jobs WHERE id = ?'
+    ).bind(jobId).first().catch(() => null);
+    const userId = (jobRow?.user_id as string) ?? 'anonymous';
+
+    // ── Archive mp4 to R2 (non-fatal — degrade to CDN URL on failure) ────
+    let finalVideoUrl = videoUrl;
+    if (videoUrl) {
+      try {
+        const mp4Res = await fetch(videoUrl);
+        if (mp4Res.ok) {
+          const mp4Buffer = await mp4Res.arrayBuffer();
+          const r2Key = `generated/${userId}/video_${jobId}.mp4`;
+          await env.FILES.put(r2Key, mp4Buffer, {
+            httpMetadata:   { contentType: 'video/mp4' },
+            customMetadata: { jobId, userId, source: 'openrouter-video' },
+          });
+          finalVideoUrl = `/api/assets/file/${encodeURIComponent(r2Key)}`;
+        }
+      } catch (e) {
+        console.warn('[video-poll] R2 archive failed, using CDN URL:', String(e));
+        // finalVideoUrl remains the CDN URL — non-fatal degradation
+      }
+    }
+
+    // ── Persist results to gen_jobs + record credit debit ────────────────
     try {
       await env.DB.prepare(
         `UPDATE gen_jobs SET status='completed', credits_consumed=?, result_url=?, completed_at=CURRENT_TIMESTAMP WHERE id=?`
-      ).bind(credits, videoUrl, jobId).run();
+      ).bind(credits, finalVideoUrl, jobId).run();
     } catch { /* non-blocking */ }
-    return c.json({ jobId, status: 'completed', videoUrl, creditsConsumed: credits, costUsd });
+
+    await recordCreditDebit(env.DB, userId, credits, 'video', `影片生成 (${jobId.slice(0, 8)})`);
+
+    return c.json({ jobId, status: 'completed', videoUrl: finalVideoUrl, creditsConsumed: credits, costUsd });
   }
 
   if (data.status === 'failed') {

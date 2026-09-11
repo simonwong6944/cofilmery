@@ -17,6 +17,7 @@ import { useState } from 'react';
 import { Film, Play, RefreshCw, CheckCircle, AlertTriangle, Loader2 } from 'lucide-react';
 import { useVideoGen, type VideoGenPhase } from '@/hooks/useVideoGen';
 import { CreditDebitToast } from './CreditDebitToast';
+import { saveVideoToD1 } from '@/adapters/videoAdapter';
 
 interface Props {
   prompt:           string;
@@ -48,9 +49,15 @@ export function VideoGenPanel({
 
   const handleSubmit = async () => {
     try {
-      await submit({ prompt, frameImages, inputReferences, aspectRatio, duration, resolution, userId, episodeId });
+      // Use return value — not stale closure state (Bug F fix)
+      const result = await submit({ prompt, frameImages, inputReferences, aspectRatio, duration, resolution, userId, episodeId });
       setShowToast(true);
-      if (videoUrl && onComplete) onComplete(videoUrl, credits);
+      if (result?.videoUrl && onComplete) onComplete(result.videoUrl, credits);
+      // Persist to D1 (non-fatal)
+      if (result?.videoUrl && episodeId) {
+        saveVideoToD1(episodeId, result.videoUrl)
+          .catch(e => console.warn('[VideoGenPanel] D1 save failed:', e));
+      }
     } catch { /* error shown in UI */ }
   };
 

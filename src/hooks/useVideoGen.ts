@@ -13,6 +13,10 @@ import {
   type VideoJobStatus,
 } from '@/adapters';
 
+// ── Config constants ─────────────────────────────────────────────────────────
+export const VIDEO_POLL_INTERVAL_MS  = 3000;
+export const VIDEO_POLL_MAX_ATTEMPTS = 120;
+
 export type VideoGenPhase = 'idle' | 'submitting' | 'polling' | 'completed' | 'failed';
 
 export interface VideoGenState {
@@ -47,7 +51,7 @@ export function useVideoGen() {
   const [state, setState] = useState<VideoGenState>(INITIAL_STATE);
   const abortRef = useRef(false);
 
-  const submit = useCallback(async (params: VideoSubmitParams) => {
+  const submit = useCallback(async (params: VideoSubmitParams): Promise<{ jobId: string; videoUrl: string | null }> => {
     abortRef.current = false;
     setState({ ...INITIAL_STATE, phase: 'submitting' });
 
@@ -78,29 +82,33 @@ export function useVideoGen() {
             phase: 'polling',
           }));
         },
-        params.pollIntervalMs ?? 3000
+        params.pollIntervalMs ?? VIDEO_POLL_INTERVAL_MS
       );
 
-      if (abortRef.current) return;
+      if (abortRef.current) return { jobId, videoUrl: null };
 
       if (final.status === 'completed') {
+        const videoUrl = final.videoUrl ?? null;
         setState({
           phase: 'completed',
           jobId,
           progress: 100,
-          videoUrl: final.videoUrl ?? null,
+          videoUrl,
           credits: final.creditsConsumed ?? 0,
           costUsd: final.costUsd ?? 0,
           error: null,
         });
+        return { jobId, videoUrl };
       } else {
         setState(s => ({ ...s, phase: 'failed', error: 'Video generation failed on server' }));
+        return { jobId, videoUrl: null };
       }
     } catch (e) {
       if (!abortRef.current) {
         const msg = e instanceof Error ? e.message : String(e);
         setState(s => ({ ...s, phase: 'failed', error: msg }));
       }
+      throw e; // re-throw so VideoGenPanel catch block can handle
     }
   }, []);
 

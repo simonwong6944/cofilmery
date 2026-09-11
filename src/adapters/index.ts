@@ -18,6 +18,10 @@ export const aiAdapter: AIAdapter = mode === 'live' ? openRouterAdapter : mockAd
 export { mockAdapter, openRouterAdapter };
 export * from './types';
 
+// Re-export videoAdapter helpers for D1 persistence
+export { saveVideoToD1, loadVideoFromD1 } from './videoAdapter';
+export type { VideoRecord } from './videoAdapter';
+
 // Re-export video / TTS helpers for direct use in components
 export {
   submitVideoJob,
