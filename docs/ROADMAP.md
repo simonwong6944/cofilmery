@@ -21,6 +21,7 @@
 - [x] `8ecb05d` S5 第二磚：per-panel 關鍵幀生成 + D1 持久化 + AI_MODELS.IMAGE_MODEL（新建 S5KeyframeGen.tsx(215行)、keyframes API、keyframeAdapter、migration 0013；S5Keyframes.tsx 186→132行）— 2026-09-10
 - [x] `77d55a1` S5 第三磚：批量關鍵幀生成 + upsert dedup 修正 + 確認門控（migration 0014 UNIQUE INDEX + ON CONFLICT DO UPDATE；S5KeyframeGen.tsx 加批量生成+進度條+onStatesChange；S5Keyframes.tsx 加確認門控+溫和警示；S5 三磚全部完成）— 2026-09-11
 - [x] `eaabf1f` S6 第一磚：video job 完整收片 + R2 歸檔 + D1 持久化 + submit 閉包 bug 修正（[[path]].ts 加 VIDEO_COST_USD_FALLBACK 常數 + GET handler 補 R2 put + recordCreditDebit；新建 episodes.ts(106行) + videoAdapter.ts(84行)；useVideoGen.ts 加 VIDEO_POLL 常數 + submit() return value；VideoGenPanel.tsx 修 Bug F）— 2026-09-11
+- [x] `1624999` S6 磚 1b：修正 video URL 解析 + backfill 舊 completed job（[[path]].ts 修正 unsigned_urls[0] + data.usage?.cost；抽出 archiveMp4ToR2() helper（full URL + Bearer，唔拆 base）；GET handler 加 backfill 分支；新增 POST /api/ai/video/backfill 端點（三重保護：skip_not_completed / skip_already_filled / GET-only）；recordCreditDebit 只在正常 poll 路徑，backfill 唔扣錢；pending_changes 加 #episode-id-format-mismatch）— 2026-09-11
 
 ## 進行中
 
@@ -55,3 +56,4 @@
 | 2026-09-10 | AI 協作 | S5 第二磚(8ecb05d)：新建 S5KeyframeGen.tsx(215行,per-panel 生成+load+error+retry)、keyframes.ts(147行)、keyframeAdapter.ts(70行)、migration 0013；修改 S5Keyframes.tsx(186→132行)；[[path]].ts 加 IMAGE_MODEL，移除 image-gen + character-angle 兩處 hardcode；還 #image-model-registry 債；S5 第二磚移入「完成」 |
 | 2026-09-11 | AI 協作 | S5 第三磚(77d55a1)：新建 migration 0014(UNIQUE INDEX + dedup)；keyframes.ts 改 ON CONFLICT DO UPDATE(147→151行)；S5KeyframeGen.tsx 改寫(215→192行，KEYFRAME_GEN_CONCURRENCY=3 config、export PanelState、onStatesChange、批量全部生成、進度條)；S5Keyframes.tsx 改寫(132→149行，確認門控+溫和警示+仍然繼續)；S5 三磚全部完成，移入「完成」 |
 | 2026-09-11 | AI 協作 | S6 第一磚(eaabf1f)：[[path]].ts 加 VIDEO_COST_USD_FALLBACK + GET handler 補 R2 歸檔 + recordCreditDebit；新建 episodes.ts(PATCH+GET /api/episodes/:episodeId)、videoAdapter.ts(saveVideoToD1+loadVideoFromD1)；useVideoGen.ts 加 VIDEO_POLL_INTERVAL_MS/VIDEO_POLL_MAX_ATTEMPTS 常數、submit() return {jobId,videoUrl}；VideoGenPanel.tsx 修 Bug F(stale closure → return value)；S6 第一磚移入「完成」；pending_changes 加 #ai-router-oversized |
+| 2026-09-11 | AI 協作 | S6 磚 1b(1624999)：[[path]].ts 修正 video URL 解析（unsigned_urls[0] + data.usage?.cost）；archiveMp4ToR2() helper；GET handler backfill 分支；POST /api/ai/video/backfill 端點（三重保護）；recordCreditDebit 隔離在 poll 路徑；pending_changes 加 #episode-id-format-mismatch；S6 磚 1b 移入「完成」 |

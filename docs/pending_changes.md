@@ -119,3 +119,12 @@
 - 待做磚：新磚「AI router 拆分」，範圍：video.ts / tts.ts / image.ts / text.ts 各自 ≤250 行，共用 lib/orFetch.ts。
 - 來源：2026-09-11 S6 第一磚（eaabf1f）
 - 狀態：待開新磚處理，目前暫不影響功能。
+
+## #episode-id-format-mismatch — gen_jobs.episode_id 格式與 S6VideoGen.tsx 不一致
+
+- 範圍：`functions/api/ai/[[path]].ts`（POST /api/ai/video handler）+ `src/pages/creator/stages/S6VideoGen.tsx`
+- 說明：gen_jobs 表存嘅 `episode_id` 係真實 D1 episode UUID（例如 `76a58278-...-ep1`），而 S6VideoGen.tsx 傳入 episodeId 係人造 key `${projectId}-ep${epNum}`（例如 `76a58278-...-ep1` 湊巧格式近似，但 POST video handler 存嘅係前端傳入的原始值）。調查時發現 3 條已完成舊 job 的 episode_id 格式為 `76a58278-7865-4971-820f-a3fbee13c335-ep1`，與 episodes.ts PATCH endpoint 的 parse 邏輯（`${projectId}-ep${epNum}`）有機會衝突。
+- 回填策略：S6 磚 1b 的 backfill endpoint 使用 gen_jobs 表存的原始 episode_id，直接 `UPDATE episodes SET video_url=? WHERE id=?`（uuid match），唔用 episodes.ts PATCH 的 parse 邏輯，規避格式問題。
+- 待修：VIDEO POST handler 應統一用 `${projectId}-ep${epNum}` 人造 key format，並更新 episodes.ts PATCH 邏輯相應地 parse；或者改成直接用真實 episode UUID（兩個選擇留返下一磚決策）。
+- 來源：2026-09-11 S6 磚 1b 調查（1624999）
+- 狀態：已記錄，待獨立磚處理。
