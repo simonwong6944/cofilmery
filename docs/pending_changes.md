@@ -110,3 +110,12 @@
   - 先 apply 0013（keyframes table），再 apply 0014（UNIQUE INDEX）。
 - 來源:2026-09-11 S5 第三磚（77d55a1）
 - 狀態:待 D1 apply（cofilmery-staging + production）。
+
+## #ai-router-oversized — `functions/api/ai/[[path]].ts` 體積過大，待拆
+
+- 範圍：`functions/api/ai/[[path]].ts`（目前 ~1050 行）
+- 說明：S6 磚 1 只做最小侵入式修改（加 VIDEO_COST_USD_FALLBACK 常數 + GET handler 補 R2 歸檔 + recordCreditDebit），未做重構。該檔已超出 SOP-modular module ≤250 行上限，需在獨立後磚（磚 N）將各路由拆分為獨立 functions/api/ai/*.ts 並共用 orFetch helper。
+- 目前影響：build/runtime 正常，但可維護性差，每次功能修改有衝突風險。
+- 待做磚：新磚「AI router 拆分」，範圍：video.ts / tts.ts / image.ts / text.ts 各自 ≤250 行，共用 lib/orFetch.ts。
+- 來源：2026-09-11 S6 第一磚（eaabf1f）
+- 狀態：待開新磚處理，目前暫不影響功能。

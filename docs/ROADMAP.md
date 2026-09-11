@@ -20,6 +20,7 @@
 - [x] `fafc059` S5 第一磚：S5Keyframes.tsx 移除全部 mock，接入 D1 分鏡（loadStoryboardFromD1、集數選擇器、真 characters 資產完整度、panel 佔位框、空狀態提示；186行）— 2026-09-10
 - [x] `8ecb05d` S5 第二磚：per-panel 關鍵幀生成 + D1 持久化 + AI_MODELS.IMAGE_MODEL（新建 S5KeyframeGen.tsx(215行)、keyframes API、keyframeAdapter、migration 0013；S5Keyframes.tsx 186→132行）— 2026-09-10
 - [x] `77d55a1` S5 第三磚：批量關鍵幀生成 + upsert dedup 修正 + 確認門控（migration 0014 UNIQUE INDEX + ON CONFLICT DO UPDATE；S5KeyframeGen.tsx 加批量生成+進度條+onStatesChange；S5Keyframes.tsx 加確認門控+溫和警示；S5 三磚全部完成）— 2026-09-11
+- [x] `eaabf1f` S6 第一磚：video job 完整收片 + R2 歸檔 + D1 持久化 + submit 閉包 bug 修正（[[path]].ts 加 VIDEO_COST_USD_FALLBACK 常數 + GET handler 補 R2 put + recordCreditDebit；新建 episodes.ts(106行) + videoAdapter.ts(84行)；useVideoGen.ts 加 VIDEO_POLL 常數 + submit() return value；VideoGenPanel.tsx 修 Bug F）— 2026-09-11
 
 ## 進行中
 
@@ -53,3 +54,4 @@
 | 2026-09-10 | AI 協作 | S5 第一磚(fafc059)：S5Keyframes.tsx 完全改寫(157→186行)；移除所有 mock，接入 D1 分鏡，真 characters 資產完整度，集數選擇器，panel 佔位框，空狀態；S5 第一磚移入「完成」 |
 | 2026-09-10 | AI 協作 | S5 第二磚(8ecb05d)：新建 S5KeyframeGen.tsx(215行,per-panel 生成+load+error+retry)、keyframes.ts(147行)、keyframeAdapter.ts(70行)、migration 0013；修改 S5Keyframes.tsx(186→132行)；[[path]].ts 加 IMAGE_MODEL，移除 image-gen + character-angle 兩處 hardcode；還 #image-model-registry 債；S5 第二磚移入「完成」 |
 | 2026-09-11 | AI 協作 | S5 第三磚(77d55a1)：新建 migration 0014(UNIQUE INDEX + dedup)；keyframes.ts 改 ON CONFLICT DO UPDATE(147→151行)；S5KeyframeGen.tsx 改寫(215→192行，KEYFRAME_GEN_CONCURRENCY=3 config、export PanelState、onStatesChange、批量全部生成、進度條)；S5Keyframes.tsx 改寫(132→149行，確認門控+溫和警示+仍然繼續)；S5 三磚全部完成，移入「完成」 |
+| 2026-09-11 | AI 協作 | S6 第一磚(eaabf1f)：[[path]].ts 加 VIDEO_COST_USD_FALLBACK + GET handler 補 R2 歸檔 + recordCreditDebit；新建 episodes.ts(PATCH+GET /api/episodes/:episodeId)、videoAdapter.ts(saveVideoToD1+loadVideoFromD1)；useVideoGen.ts 加 VIDEO_POLL_INTERVAL_MS/VIDEO_POLL_MAX_ATTEMPTS 常數、submit() return {jobId,videoUrl}；VideoGenPanel.tsx 修 Bug F(stale closure → return value)；S6 第一磚移入「完成」；pending_changes 加 #ai-router-oversized |
