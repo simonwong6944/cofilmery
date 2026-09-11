@@ -98,3 +98,15 @@
   - 若 `keyframes` table 未 apply，就箕 save 會靜默失敗（non-fatal），load 返回空陣列，不影響 UI。
 - 來源:2026-09-10 S5 第二磚（８ecb05d）
 - 狀態:待 D1 apply（staging + production）。
+
+## #s5-keyframes-unique — S5 第三磚：keyframes UNIQUE INDEX migration 部署提示
+
+- 範圍:`migrations/0014_keyframes_unique.sql`、Cloudflare D1 `cofilmery-staging`（及 production）
+- 說明:0014 migration 已入 repo（commit 77d55a1），需手動 apply 至 D1：
+  - 本地 dev：`npx wrangler d1 migrations apply cofilmery-staging --local`
+  - Staging：`npx wrangler d1 migrations apply cofilmery-staging`
+  - Migration 會：(1) 清走現有重複 row（每個 project_id/episode/panel_scene 保留最新 rowid），(2) 建立 UNIQUE INDEX `idx_keyframes_unique_panel`。
+  - 若未 apply，/api/keyframes POST 的 `ON CONFLICT DO UPDATE` 子句會報錯（UNIQUE constraint 不存在時 SQLite 不認 ON CONFLICT 語法）。
+  - 先 apply 0013（keyframes table），再 apply 0014（UNIQUE INDEX）。
+- 來源:2026-09-11 S5 第三磚（77d55a1）
+- 狀態:待 D1 apply（cofilmery-staging + production）。
