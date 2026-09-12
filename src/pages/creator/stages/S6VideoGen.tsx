@@ -54,7 +54,9 @@ function S6PanelList({ panels, kfMap, charRefs, durationSec, userId, pid6, selec
                 <VideoGenPanel
                   prompt={buildPrompt(panel.desc)}
                   frameImages={frameImages}
-                  inputReferences={charRefs}
+                  // TODO(#s6-input-references-disabled): 暫停傳 input_references，因 Seedance 真人偵測
+                  // (InputImageSensitiveContentDetected)；S5 首幀已錨定角色；將來可 per-mode 恢復
+                  inputReferences={[]}
                   aspectRatio="9:16"
                   duration={durationSec}
                   resolution="720p"
