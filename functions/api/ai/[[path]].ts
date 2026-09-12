@@ -446,6 +446,21 @@ async function archiveMp4ToR2(
   }
 }
 
+// ─── Video: by-episode query (read-only, no generation/billing) ──────────────
+app.get('/api/ai/video/by-episode/:episodeId', async (c) => {
+  const episodeId = c.req.param('episodeId');
+  if (!episodeId) return c.json({ error: 'episodeId required' }, 400);
+
+  const row = await c.env.DB.prepare(
+    `SELECT id, result_url FROM gen_jobs
+     WHERE episode_id = ? AND status = 'completed' AND result_url IS NOT NULL
+     ORDER BY created_at DESC LIMIT 1`
+  ).bind(episodeId).first<{ id: string; result_url: string }>();
+
+  if (!row) return c.json({ episodeId, jobId: null, videoUrl: null });
+  return c.json({ episodeId, jobId: row.id, videoUrl: row.result_url });
+});
+
 // ─── Video poll ──────────────────────────────────────────────────────────────
 app.get('/api/ai/video/:jobId', async (c) => {
   const env   = c.env;
