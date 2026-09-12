@@ -10,7 +10,7 @@ import { cors } from 'hono/cors';
 // ── Constants ─────────────────────────────────────────────────────────────────
 export const AI_MODELS = {
   TEXT_MODEL:  'moonshotai/kimi-k2.5',
-  VIDEO_MODEL: 'bytedance/seedance-2.0',
+  VIDEO_MODEL: 'minimax/hailuo-3-max',
   TTS_MODEL:   'minimax/speech-2.8-hd',
   IMAGE_MODEL: 'bytedance-seed/seedream-4.5',
 } as const;
