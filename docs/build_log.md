@@ -161,3 +161,24 @@ Hailuo H3 Max 只收 768p / 480p，唔收 720p，需改為 768p。
 - wc -l：`[[path]].ts` 1218（+1）、`S6VideoGen.tsx` 184（不變）、`VideoGenPanel.tsx` 183（不變）
 - grep：全倉庫零 `720p` resolution 殘留；`768p` 正確出現 4 處
 - npm run build：0 TS errors，2312 modules，11.55s ✅
+
+---
+## S6 磚 2f — 清走 DIAG log + 解鎖 panel 2-5（d29fcaa，2026-09-12）
+
+### 背景
+Hailuo H3 Max 換模型驗證成功（真人 filter 通過、768p 出片、角色同 S2 一致）。
+移除臨時診斷 log，同時解除 validation mode，開放 panel 2-5 生成以測試完整 5 場景連貫性。
+
+### 改動
+| 檔案 | 改動 |
+|---|---|
+| `functions/api/ai/[[path]].ts` | 移除 lines 363–371：`[DIAG-S6]` comment + console.log（9 行，共 -9） |
+| `src/pages/creator/stages/S6VideoGen.tsx` | 移除 `Lock` import；移除 `isPanel1` flag；移除 lock badge block；VideoGenPanel 改無條件 render；更新 component header 注釋（2 files: 17i/34d） |
+
+- **Lock import**：確認 `Lock`（Lucide icon）只在 lock badge 使用，移除後一併清走，build 零 unused-import warning
+- **duplicate-billing guard**：`VideoGenPanel.tsx` line 64 `const isActive = phase === 'submitting' || phase === 'polling'` **保留**，per-panel 各自獨立 hook 實例，防重複提交機制完整
+
+### 三綠結果
+- wc -l：`[[path]].ts` 1209（−9）、`S6VideoGen.tsx` 176（−8）
+- grep：DIAG/Lock icon/isPanel1/驗證後開放 全部 NONE；`isActive` guard 仍在 VideoGenPanel:64
+- npm run build：0 TS errors，0 unused-import warnings，2312 modules，10.39s ✅

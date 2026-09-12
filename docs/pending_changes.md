@@ -187,3 +187,8 @@ frame_images payload 格式已修正（d0fb683），ZodError 已消除。
 | 日期 | commit | 舊值 | 新值 | 原因 |
 |------|--------|------|------|------|
 | 2026-09-12 | 6ad9568 | 720p（硬編）| 768p（AI_MODELS.VIDEO_RESOLUTION）| Hailuo H3 Max 唔支援 720p，只收 768p/480p |
+
+---
+## #s6-diag-log-removal（已解決）
+- 狀態：**已解決 → 見 commit d29fcaa**（S6 磚 2f）
+- [DIAG-S6] console.log 已從 `functions/api/ai/[[path]].ts` 移除

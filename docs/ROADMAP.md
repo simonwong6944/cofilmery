@@ -87,3 +87,4 @@
 - charRefs 計算保留，後端不動，TODO 記錄於 pending_changes.md #s6-input-references-disabled
 | 2026-09-12 | AI 協作 | S6 磚 2d(9949b2a)：AI_MODELS.VIDEO_MODEL 由 bytedance/seedance-2.0 改為 minimax/hailuo-3-max；繞開 Seedance 寫實人物偵測；1 檔案 1 行改動；DIAG log 保留至 Hailuo 成功出片 |
 | 2026-09-12 | AI 協作 | S6 磚 2e(6ad9568)：AI_MODELS 加 VIDEO_RESOLUTION:'768p' 常數；[[path]].ts fallback 改讀 AI_MODELS.VIDEO_RESOLUTION；S6VideoGen + VideoGenPanel 前端改為 768p；3 檔案 8i/7d |
+| 2026-09-12 | AI 協作 | S6 磚 2f(d29fcaa)：移除 [DIAG-S6] console.log（-9行）；S6VideoGen 解鎖 panel 2-5（移除 isPanel1/Lock badge/Lock import，VideoGenPanel 無條件 render）；duplicate-billing guard 保留；2 檔案 17i/34d |
