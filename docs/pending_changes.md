@@ -204,3 +204,11 @@ frame_images payload 格式已修正（d0fb683），ZodError 已消除。
 - 狀態：**待實施**（S6 brick 3b）
 - 需改動：`useVideoGen.ts` 加 `initialVideoUrl` 參數；`VideoGenPanel.tsx` 加 `initialVideoUrl` prop；`S6VideoGen.tsx` mount 時對每個 panel 查詢 `/api/ai/video/by-episode/:episodeId` 並設 completedVideos
 - 前置條件：S6 磚 3a endpoint 已上線（d4dc680）
+
+---
+## #s6-brick3b-video-restore（已完成）
+- 狀態：**已完成 → commit 22d489d**（S6 磚 3b）
+- fetchCompletedVideoByEpisode 加入 videoAdapter.ts
+- useVideoGen 加 initialVideoUrl，VideoGenPanel 加 initialVideoUrl prop
+- S6VideoGen useEffect 批量 restore，setCompletedVideos reset on ep change
+- duplicate-billing guard 保留（isActive line 65），restore 唔扣費

@@ -203,3 +203,29 @@ Hailuo H3 Max 換模型驗證成功（真人 filter 通過、768p 出片、角�
 - wc -l：`[[path]].ts` 1224（+15）✅
 - grep `by-episode`：2 次（1 注釋 + 1 路由），無重複 ✅
 - npm run build：0 TS errors，0 unused-import warnings，2312 modules，10.74s ✅
+
+---
+
+## S6 磚 3b — feat(s6): restore completed panel videos on mount via by-episode query
+- **Commit**: `22d489d`
+- **日期**: 2026-09-12
+- **分支**: staging
+- **改動**: 4 檔案，60 insertions / 16 deletions
+
+### 變更摘要
+前端 restore 邏輯，入 S6 / 揭頁返嚟時自動顯示已完成影片：
+
+1. **`videoAdapter.ts` (+25)**：新增 `fetchCompletedVideoByEpisode(episodeId)`，呼叫 brick-3a endpoint `GET /api/ai/video/by-episode/:episodeId`，graceful return null on error
+2. **`useVideoGen.ts` (+4/-2)**：加 `initialVideoUrl?: string | null` 參數；若非空，init state 為 `phase:'completed', videoUrl: initialVideoUrl`（credits:0，不扣費）
+3. **`VideoGenPanel.tsx` (+3/-2)**：Props 加 `initialVideoUrl?`，穿透到 `useVideoGen(initialVideoUrl)`
+4. **`S6VideoGen.tsx` (+14/-3)**：import `fetchCompletedVideoByEpisode`；useEffect 加 `setCompletedVideos({})` reset；panels 載入後 per-panel 批量查詢，非空 url 寫 completedVideos；`initialVideoUrl={completedVideos[panel.scene]}` 傳落 VideoGenPanel
+
+### 安全設計
+- **duplicate-billing guard 保留**：`isActive = phase==='submitting' || phase==='polling'`；restore 後 phase='completed' → isActive=false → 唔 auto-submit，唔重扣費
+- **restore 純顯示**：初始 credits:0，唔呼叫 submit，唔觸發 /api/ai/video POST
+- **graceful failure**：fetchCompletedVideoByEpisode try/catch → null → panel 維持 idle，唔 crash
+
+### 三綠結果
+- wc -l：useVideoGen 125 / VideoGenPanel 184 / S6VideoGen 190 / videoAdapter 109（全守限）✅
+- grep：initialVideoUrl 完整 hook→panel→page 鏈；isActive guard line 65 保留；URL 只在 adapter ✅
+- npm run build：0 TS errors，0 unused-import warnings，2312 modules，10.52s ✅
