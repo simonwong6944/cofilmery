@@ -64,3 +64,12 @@
 - 加診斷 log：status / content-type / byteLength（唔 print token）
 - 三個 caller 更新至 4-param signature
 - result_url 只在 R2 已驗證成功後才寫 D1，徹底消除假成功
+
+## S6 磚 2 ✅ COMPLETED（commit 22a0fcd，2026-09-12）
+- S6VideoGen.tsx 改為 per-panel 架構（121→182 lines）
+- 新增 S6PanelList file-internal component（降行數用）
+- 每 panel 用 kfMap[panel.scene] 對應自己 S5 keyframe 做首幀（frameImages）
+- inputReferences 用 card.characterIds → characters lookup（fallback slice(0,2)），characters.img → toAbsUrl
+- 只開放 panel 1 生成（驗證模式），panel 2-5 顯示「驗證後開放」badge
+- episodeId 格式：${pid6}-ep${ep}-p${panelScene}（saveVideoToD1 PATCH 靜默失敗，gen_jobs 正常寫入）
+- R2 key 用 jobId，無衝突

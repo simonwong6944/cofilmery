@@ -137,3 +137,12 @@
 - 解決：(a) fresh GET /videos/{jobId} 取最新 URL；(b) byteLength > 0 guard；(c) r2.head() verify；(d) 任一失敗 return ''，result_url 不寫。
 - 來源：2026-09-11 S6 磚 1c（d4b708a）
 - 狀態：已解決 → 見 commit d4b708a
+
+## #s6-brick2-panel-video-episode — per-panel 影片暫唔寫 episodes.video_url
+
+- 範圍：`src/adapters/videoAdapter.ts`、`functions/api/episodes.ts`、`src/pages/creator/stages/S6VideoGen.tsx`
+- 說明：S6 磚 2 episodeId 格式改為 `${pid6}-ep${ep}-p${panelScene}`，parseEpisodeId regex `/^(.+)-ep(\d+)$/` 唔識別 `-p1` suffix，PATCH 返回 400，saveVideoToD1 .catch 靜默吸收。gen_jobs.episode_id 正常寫入，但 episodes.video_url 唔更新。
+- 影響：S6 per-panel 影片唔持久化到 episodes 表，只存 gen_jobs。
+- 待做磚（拼接磚）：(1) 5 條 per-panel 影片拼接成 episode-level 影片；(2) 拼接完成後 PATCH episodes.video_url；(3) 可考慮同時修 parseEpisodeId 或另建 gen_jobs → episode 映射。
+- 來源：2026-09-12 S6 磚 2（22a0fcd）
+- 狀態：已知，待拼接磚處理。
