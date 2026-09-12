@@ -59,7 +59,7 @@ function S6PanelList({ panels, kfMap, charRefs, durationSec, userId, pid6, selec
                   inputReferences={[]}
                   aspectRatio="9:16"
                   duration={durationSec}
-                  resolution="720p"
+                  resolution="768p"
                   userId={userId}
                   episodeId={`${pid6}-ep${selectedEp}-p${panel.scene}`}
                   onComplete={(url, credits) => { onDone(panel.scene, url); void credits; }}

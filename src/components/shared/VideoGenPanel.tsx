@@ -41,7 +41,7 @@ const PHASE_LABEL: Record<VideoGenPhase, string> = {
 
 export function VideoGenPanel({
   prompt, frameImages, inputReferences,
-  aspectRatio = '9:16', duration = 5, resolution = '720p',
+  aspectRatio = '9:16', duration = 5, resolution = '768p',
   userId, episodeId, onComplete,
 }: Props) {
   const { phase, progress, videoUrl, credits, costUsd, error, submit, reset } = useVideoGen();

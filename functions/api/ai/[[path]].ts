@@ -9,10 +9,11 @@ import { cors } from 'hono/cors';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 export const AI_MODELS = {
-  TEXT_MODEL:  'moonshotai/kimi-k2.5',
-  VIDEO_MODEL: 'minimax/hailuo-3-max',
-  TTS_MODEL:   'minimax/speech-2.8-hd',
-  IMAGE_MODEL: 'bytedance-seed/seedream-4.5',
+  TEXT_MODEL:      'moonshotai/kimi-k2.5',
+  VIDEO_MODEL:     'minimax/hailuo-3-max',
+  VIDEO_RESOLUTION:'768p',
+  TTS_MODEL:       'minimax/speech-2.8-hd',
+  IMAGE_MODEL:     'bytedance-seed/seedream-4.5',
 } as const;
 
 const HKD_PER_CREDIT          = 0.196;
@@ -343,7 +344,7 @@ app.post('/api/ai/video', async (c) => {
     model: body.model ?? AI_MODELS.VIDEO_MODEL,
     prompt: body.prompt,
     duration: body.duration ?? 5,
-    resolution: body.resolution ?? '720p',
+    resolution: body.resolution ?? AI_MODELS.VIDEO_RESOLUTION,
     aspect_ratio: body.aspectRatio ?? '9:16',
   };
 
