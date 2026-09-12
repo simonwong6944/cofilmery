@@ -114,3 +114,26 @@ S5 首幀已帶角色形象，暫停傳 input_references，只傳 frame_images�
 - wc -l: 184 ≤ 200 ✅
 - grep: line 57 TODO 註釋，line 59 `inputReferences={[]}` ✅
 - npm run build: 0 TS errors, 2312 modules, 10.79s ✅
+
+---
+## S6 磚 2d — 換影片模型至 Hailuo H3 Max（9949b2a，2026-09-12）
+
+### 背景
+DIAG log（c8b2b12）確認 Cloudflare 實際執行 payload：`frame_images_count:1, input_references_count:0`。
+問題根源係 Seedance 自身 filter 對寫實人物首幀（content[0]）觸發 `InputImageSensitiveContentDetected`，
+與 payload 結構無關。唯一解：換用對寫實人物較寬鬆的模型。
+
+### 改動
+- `functions/api/ai/[[path]].ts` line 13：`VIDEO_MODEL: 'bytedance/seedance-2.0'` → `'minimax/hailuo-3-max'`
+- 改動範圍：1 檔案，1 行，1 insertion，1 deletion
+- DIAG log（lines 363–370）保留，待 Hailuo 成功出片後另磚移除
+
+### 三綠結果
+- wc -l `[[path]].ts`：1217 行（不變）
+- grep：`hailuo-3-max` 只在 config line 13，全倉庫零 `seedance-2.0` 殘留
+- npm run build：0 TS errors，2312 modules，10.87s ✅
+
+### 技術決策
+- OpenRouter 統一 schema：`frame_images` 格式（磚 2b）對所有模型共用，無需改動
+- model 由 `AI_MODELS.VIDEO_MODEL` config 讀取，無硬編，符合 Rules §4
+- `minimax/hailuo-3-max`：`is_moderated:false`，對寫實人物較寬鬆，OpenRouter 定價低於 Seedance

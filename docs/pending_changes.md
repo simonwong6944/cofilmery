@@ -163,3 +163,20 @@ frame_images payload 格式已修正（d0fb683），ZodError 已消除。
 - 驗證純首幀生成角色一致性是否足夠
 - 可考慮 per-mode 控制（legacy vs drama 分別傳/不傳）
 - 或改用非寫實風格角色圖以繞開偵測
+
+---
+## #s6-diag-log-removal — [DIAG-S6] 臨時 log 待移除（c8b2b12 加入）
+
+- 範圍：`functions/api/ai/[[path]].ts` lines 363–370
+- 說明：`[DIAG-S6] video submit payload` console.log 係磚 2d 調查期間加入（commit c8b2b12），
+  用於確認 `frame_images_count` 及 `input_references_count`。
+- 保留原因：等待 Hailuo H3 Max 成功出片確認後，才可安全移除
+- 待做磚：Hailuo 成功出片後，獨立 commit `chore(s6): remove DIAG-S6 diagnostic log` 移除 lines 363–370
+- 來源：2026-09-12 S6 磚 2d（9949b2a）
+- 狀態：保留中，待 Hailuo 成功出片後移除。
+
+## #s6-video-model — VIDEO_MODEL 歷史記錄
+
+| 日期 | commit | 舊值 | 新值 | 原因 |
+|------|--------|------|------|------|
+| 2026-09-12 | 9949b2a | bytedance/seedance-2.0 | minimax/hailuo-3-max | Seedance 寫實人物偵測（InputImageSensitiveContentDetected），DIAG log 確認非 code 問題 |

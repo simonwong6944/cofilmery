@@ -85,3 +85,4 @@
 - `inputReferences={[]}` 暫停傳角色參考圖，只靠 S5 首幀錨定角色
 - 繞開 Seedance `InputImageSensitiveContentDetected.PrivacyInformation`
 - charRefs 計算保留，後端不動，TODO 記錄於 pending_changes.md #s6-input-references-disabled
+| 2026-09-12 | AI 協作 | S6 磚 2d(9949b2a)：AI_MODELS.VIDEO_MODEL 由 bytedance/seedance-2.0 改為 minimax/hailuo-3-max；繞開 Seedance 寫實人物偵測；1 檔案 1 行改動；DIAG log 保留至 Hailuo 成功出片 |
