@@ -349,7 +349,8 @@ app.post('/api/ai/video', async (c) => {
 
   if (body.frameImages?.length) {
     payload.frame_images = body.frameImages.map((url, i) => ({
-      type: i === 0 ? 'first_frame' : 'last_frame',
+      type: 'image_url',
+      frame_type: i === 0 ? 'first_frame' : 'last_frame',
       image_url: { url },
     }));
   }
