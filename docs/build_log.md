@@ -137,3 +137,27 @@ DIAG log（c8b2b12）確認 Cloudflare 實際執行 payload：`frame_images_coun
 - OpenRouter 統一 schema：`frame_images` 格式（磚 2b）對所有模型共用，無需改動
 - model 由 `AI_MODELS.VIDEO_MODEL` config 讀取，無硬編，符合 Rules §4
 - `minimax/hailuo-3-max`：`is_moderated:false`，對寫實人物較寬鬆，OpenRouter 定價低於 Seedance
+
+---
+## S6 磚 2e — 修正 Hailuo resolution 參數（6ad9568，2026-09-12）
+
+### 背景
+換咗 minimax/hailuo-3-max 後真人偵測通過，但 submit 回 400：
+`Resolution 720p is not supported for this model. Supported resolutions: 768p, 480p`
+Hailuo H3 Max 只收 768p / 480p，唔收 720p，需改為 768p。
+
+### 改動（方案 B）
+| 檔案 | 行 | 改動 |
+|---|---|---|
+| `functions/api/ai/[[path]].ts` | line 14 新增 | `VIDEO_RESOLUTION: '768p'` 加入 AI_MODELS config |
+| `functions/api/ai/[[path]].ts` | line 347 | `?? '720p'` → `?? AI_MODELS.VIDEO_RESOLUTION` |
+| `src/pages/creator/stages/S6VideoGen.tsx` | line 62 | `resolution="720p"` → `resolution="768p"` |
+| `src/components/shared/VideoGenPanel.tsx` | line 44 | default `'720p'` → `'768p'` |
+
+- 3 檔案，8 insertions，7 deletions（淨 +1 行）
+- 後端 fallback 從 AI_MODELS.VIDEO_RESOLUTION 讀取，符合 Rules §4
+
+### 三綠結果
+- wc -l：`[[path]].ts` 1218（+1）、`S6VideoGen.tsx` 184（不變）、`VideoGenPanel.tsx` 183（不變）
+- grep：全倉庫零 `720p` resolution 殘留；`768p` 正確出現 4 處
+- npm run build：0 TS errors，2312 modules，11.55s ✅

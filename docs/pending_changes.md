@@ -180,3 +180,10 @@ frame_images payload 格式已修正（d0fb683），ZodError 已消除。
 | 日期 | commit | 舊值 | 新值 | 原因 |
 |------|--------|------|------|------|
 | 2026-09-12 | 9949b2a | bytedance/seedance-2.0 | minimax/hailuo-3-max | Seedance 寫實人物偵測（InputImageSensitiveContentDetected），DIAG log 確認非 code 問題 |
+
+---
+## #s6-video-resolution — VIDEO_RESOLUTION 歷史記錄（附磚 2e）
+
+| 日期 | commit | 舊值 | 新值 | 原因 |
+|------|--------|------|------|------|
+| 2026-09-12 | 6ad9568 | 720p（硬編）| 768p（AI_MODELS.VIDEO_RESOLUTION）| Hailuo H3 Max 唔支援 720p，只收 768p/480p |
