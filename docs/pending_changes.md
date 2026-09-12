@@ -150,3 +150,16 @@
 ---
 ## ✅ RESOLVED: #s6-brick2b-frame-images-schema
 frame_images payload 格式已修正（d0fb683），ZodError 已消除。
+
+---
+## #s6-input-references-disabled（磚 2c，826081f）
+**狀態**：暫停（intentional）
+**原因**：Seedance 真人偵測（`InputImageSensitiveContentDetected.PrivacyInformation`）
+- 偵測對象：`content[1]`（`input_references[0]`，即 AI 生成角色頭像）
+- 即使係 AI 生成圖亦觸發，submit 即被拒，冇扣錢
+**現況**：`S6VideoGen.tsx` line 59 傳 `inputReferences={[]}`，只靠 S5 首幀錨定角色
+**charRefs 計算保留**（line 98-100），方便將來恢復
+**將來方向**：
+- 驗證純首幀生成角色一致性是否足夠
+- 可考慮 per-mode 控制（legacy vs drama 分別傳/不傳）
+- 或改用非寫實風格角色圖以繞開偵測

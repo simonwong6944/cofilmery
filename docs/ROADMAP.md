@@ -79,3 +79,9 @@
 - 修正 `frame_images` map：`type` 固定 `'image_url'`，`frame_type` 獨立欄位
 - 符合 OpenRouter OpenAPI FrameImage schema（allOf ContentPartImage + frame_type required）
 - `input_references` 確認正確，不動
+
+---
+## ✅ S6 磚 2c — 移除 input_references 繞開真人偵測（826081f）
+- `inputReferences={[]}` 暫停傳角色參考圖，只靠 S5 首幀錨定角色
+- 繞開 Seedance `InputImageSensitiveContentDetected.PrivacyInformation`
+- charRefs 計算保留，後端不動，TODO 記錄於 pending_changes.md #s6-input-references-disabled

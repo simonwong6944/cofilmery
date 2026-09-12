@@ -90,3 +90,27 @@ POST /api/ai/video 回 502，OpenRouter ZodError：
 - wc -l: 1208 ✅
 - grep: type: 'image_url' line 352, frame_type line 353 ✅
 - npm run build: 0 TS errors, 2312 modules, 10.30s ✅
+
+---
+## S6 磚 2c — 移除 input_references（繞開真人偵測）
+**Commit**: 826081f
+**Branch**: staging
+**Date**: 2026-09-12
+
+### 問題
+磚 2b 修好 frame_images 格式後，Seedance 回 HTTP 400：
+`InputImageSensitiveContentDetected.PrivacyInformation`（content[1] = input_references[0] 角色頭像）
+
+### 決策
+S5 首幀已帶角色形象，暫停傳 input_references，只傳 frame_images（首幀）
+
+### 改動
+`src/pages/creator/stages/S6VideoGen.tsx` line 57-59：
+- `inputReferences={charRefs}` → `inputReferences={[]}`
+- 加 2 行 `// TODO(#s6-input-references-disabled)` 註釋
+- charRefs 計算保留（line 98-100），後端不動
+
+### 三綠
+- wc -l: 184 ≤ 200 ✅
+- grep: line 57 TODO 註釋，line 59 `inputReferences={[]}` ✅
+- npm run build: 0 TS errors, 2312 modules, 10.79s ✅
