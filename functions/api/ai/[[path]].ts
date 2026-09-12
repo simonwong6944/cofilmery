@@ -361,15 +361,6 @@ app.post('/api/ai/video', async (c) => {
     }));
   }
 
-  // [DIAG-S6] temporary payload diagnostic — remove after investigation
-  console.log('[DIAG-S6] video submit payload:', JSON.stringify({
-    frame_images_count: (payload.frame_images as unknown[])?.length ?? 0,
-    frame_images_frame_types: (payload.frame_images as Array<{frame_type: string}>)?.map(f => f.frame_type),
-    input_references_count: (payload.input_references as unknown[])?.length ?? 0,
-    frameImages_raw_count: body.frameImages?.length ?? 0,
-    inputReferences_raw_count: body.inputReferences?.length ?? 0,
-  }));
-
   const res = await orFetch(env.OPENROUTER_API_KEY, '/videos', {
     method: 'POST',
     body: JSON.stringify(payload),

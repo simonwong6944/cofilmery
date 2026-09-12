@@ -4,7 +4,7 @@ import { useLocaleStore } from '@/store/localeStore';
 import { useProjectStore } from '@/store/projectStore';
 import { useAuthStore } from '@/store/authStore';
 import { t } from '@/i18n';
-import { Film, ChevronRight, Lock } from 'lucide-react';
+import { Film, ChevronRight } from 'lucide-react';
 import { loadKeyframesFromD1, type KeyframeRecord } from '@/adapters/keyframeAdapter';
 import { loadStoryboardFromD1 } from '@/adapters/storyboardAdapter';
 import type { StoryboardPanel } from '@/components/shared/S4StoryboardGen';
@@ -30,7 +30,6 @@ function S6PanelList({ panels, kfMap, charRefs, durationSec, userId, pid6, selec
       {panels.map(panel => {
         const kf = kfMap[panel.scene];
         const frameImages = kf?.imageUrl ? [toAbsUrl(kf.imageUrl)] : [];
-        const isPanel1 = panel.scene === 1;
         return (
           <div key={panel.scene} className="bg-card rounded-xl border border-line shadow-card overflow-hidden">
             <div className="flex items-start gap-3 p-4">
@@ -43,29 +42,22 @@ function S6PanelList({ panels, kfMap, charRefs, durationSec, userId, pid6, selec
                 <p className="text-xs text-muted mt-0.5 line-clamp-2">{panel.desc}</p>
                 {panel.camNote && <p className="text-xs text-muted/70 mt-0.5">{panel.camNote}</p>}
               </div>
-              {!isPanel1 && (
-                <span className="shrink-0 flex items-center gap-1 text-xs text-muted/60 border border-line rounded-lg px-2 py-1">
-                  <Lock size={11} /> 驗證後開放
-                </span>
-              )}
             </div>
-            {isPanel1 && (
-              <div className="border-t border-line px-4 pb-4 pt-3">
-                <VideoGenPanel
-                  prompt={buildPrompt(panel.desc)}
-                  frameImages={frameImages}
-                  // TODO(#s6-input-references-disabled): 暫停傳 input_references，因 Seedance 真人偵測
-                  // (InputImageSensitiveContentDetected)；S5 首幀已錨定角色；將來可 per-mode 恢復
-                  inputReferences={[]}
-                  aspectRatio="9:16"
-                  duration={durationSec}
-                  resolution="768p"
-                  userId={userId}
-                  episodeId={`${pid6}-ep${selectedEp}-p${panel.scene}`}
-                  onComplete={(url, credits) => { onDone(panel.scene, url); void credits; }}
-                />
-              </div>
-            )}
+            <div className="border-t border-line px-4 pb-4 pt-3">
+              <VideoGenPanel
+                prompt={buildPrompt(panel.desc)}
+                frameImages={frameImages}
+                // TODO(#s6-input-references-disabled): 暫停傳 input_references，因 Seedance 真人偵測
+                // (InputImageSensitiveContentDetected)；S5 首幀已錨定角色；將來可 per-mode 恢復
+                inputReferences={[]}
+                aspectRatio="9:16"
+                duration={durationSec}
+                resolution="768p"
+                userId={userId}
+                episodeId={`${pid6}-ep${selectedEp}-p${panel.scene}`}
+                onComplete={(url, credits) => { onDone(panel.scene, url); void credits; }}
+              />
+            </div>
           </div>
         );
       })}
@@ -74,7 +66,7 @@ function S6PanelList({ panels, kfMap, charRefs, durationSec, userId, pid6, selec
 }
 
 // ─────────────────────────────────────────
-// S6: 影片 per-panel 生成（驗證模式：只開放 Panel 1）
+// S6: 影片 per-panel 生成（全集模式：所有 panel 開放生成）
 // ─────────────────────────────────────────
 export function S6VideoGen({ onNext }: { onNext: () => void }) {
   const { locale } = useLocaleStore();
