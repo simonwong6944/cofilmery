@@ -192,3 +192,15 @@ frame_images payload 格式已修正（d0fb683），ZodError 已消除。
 ## #s6-diag-log-removal（已解決）
 - 狀態：**已解決 → 見 commit d29fcaa**（S6 磚 2f）
 - [DIAG-S6] console.log 已從 `functions/api/ai/[[path]].ts` 移除
+
+---
+## #s6-brick3a-by-episode-endpoint（已完成）
+- 狀態：**已完成 → commit d4dc680**（S6 磚 3a）
+- `GET /api/ai/video/by-episode/:episodeId` 已加入 `[[path]].ts` line 449（Video poll 前）
+- 查 gen_jobs，回傳最新 completed + result_url 非空的 row
+- 依賴此 endpoint 的前端 restore 邏輯待磚 3b 實施
+
+## #s6-brick3b-video-restore（待實施）
+- 狀態：**待實施**（S6 brick 3b）
+- 需改動：`useVideoGen.ts` 加 `initialVideoUrl` 參數；`VideoGenPanel.tsx` 加 `initialVideoUrl` prop；`S6VideoGen.tsx` mount 時對每個 panel 查詢 `/api/ai/video/by-episode/:episodeId` 並設 completedVideos
+- 前置條件：S6 磚 3a endpoint 已上線（d4dc680）

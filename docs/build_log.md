@@ -182,3 +182,24 @@ Hailuo H3 Max 換模型驗證成功（真人 filter 通過、768p 出片、角�
 - wc -l：`[[path]].ts` 1209（−9）、`S6VideoGen.tsx` 176（−8）
 - grep：DIAG/Lock icon/isPanel1/驗證後開放 全部 NONE；`isActive` guard 仍在 VideoGenPanel:64
 - npm run build：0 TS errors，0 unused-import warnings，2312 modules，10.39s ✅
+
+---
+
+## S6 磚 3a — feat(s6): add per-episode completed-video query endpoint
+- **Commit**: `d4dc680`
+- **日期**: 2026-09-12
+- **分支**: staging
+- **改動**: `functions/api/ai/[[path]].ts` +15 行（1209→1224）
+
+### 變更摘要
+在 `[[path]].ts` line 449（Video poll 注釋之前）插入新 read-only endpoint：
+- `GET /api/ai/video/by-episode/:episodeId`
+- 路由順序：靜態 `by-episode` segment 先於動態 `:jobId`，無衝突
+- SQL：`SELECT id, result_url FROM gen_jobs WHERE episode_id=? AND status='completed' AND result_url IS NOT NULL ORDER BY created_at DESC LIMIT 1`
+- 無生成、無扣費、無 D1 寫入，純讀取
+- 回傳：`{ episodeId, jobId, videoUrl }` 或 `{ episodeId, jobId: null, videoUrl: null }`
+
+### 三綠結果
+- wc -l：`[[path]].ts` 1224（+15）✅
+- grep `by-episode`：2 次（1 注釋 + 1 路由），無重複 ✅
+- npm run build：0 TS errors，0 unused-import warnings，2312 modules，10.74s ✅
