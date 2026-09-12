@@ -73,3 +73,9 @@
 - 只開放 panel 1 生成（驗證模式），panel 2-5 顯示「驗證後開放」badge
 - episodeId 格式：${pid6}-ep${ep}-p${panelScene}（saveVideoToD1 PATCH 靜默失敗，gen_jobs 正常寫入）
 - R2 key 用 jobId，無衝突
+
+---
+## ✅ S6 磚 2b — frame_images payload schema 修正（d0fb683）
+- 修正 `frame_images` map：`type` 固定 `'image_url'`，`frame_type` 獨立欄位
+- 符合 OpenRouter OpenAPI FrameImage schema（allOf ContentPartImage + frame_type required）
+- `input_references` 確認正確，不動

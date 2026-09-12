@@ -62,3 +62,31 @@
   - R2 key 用 jobId，唔受 episodeId suffix 影響，無衝突
   - S6PanelList: 抽成 file-internal component 降低 S6VideoGen 行數
   - 防重複 baseline: VideoGenPanel 內部唔重複 submit（phase guard），panel1Active state 備用
+
+---
+## S6 磚 2b — frame_images payload schema 修正
+**Commit**: d0fb683
+**Branch**: staging
+**Date**: 2026-09-12
+
+### 問題
+POST /api/ai/video 回 502，OpenRouter ZodError：
+- `frame_images[0].type`: expected "image_url" but received "first_frame"
+- `frame_images[0].frame_type`: missing（required）
+
+### 根因
+`functions/api/ai/[[path]].ts` line 351-354，`frame_images` map 錯誤地把 frame_type 值放入 `type` 欄位，且缺少獨立 `frame_type` 欄位。
+
+### 修正（line 351-354）
+```
+// 舊（錯）
+{ type: i===0 ? 'first_frame' : 'last_frame', image_url: { url } }
+// 新（正確）
+{ type: 'image_url', frame_type: i===0 ? 'first_frame' : 'last_frame', image_url: { url } }
+```
+
+### 確認
+- `input_references` 格式（`type: 'image_url'`）正確，不動
+- wc -l: 1208 ✅
+- grep: type: 'image_url' line 352, frame_type line 353 ✅
+- npm run build: 0 TS errors, 2312 modules, 10.30s ✅

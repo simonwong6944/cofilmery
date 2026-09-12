@@ -146,3 +146,7 @@
 - 待做磚（拼接磚）：(1) 5 條 per-panel 影片拼接成 episode-level 影片；(2) 拼接完成後 PATCH episodes.video_url；(3) 可考慮同時修 parseEpisodeId 或另建 gen_jobs → episode 映射。
 - 來源：2026-09-12 S6 磚 2（22a0fcd）
 - 狀態：已知，待拼接磚處理。
+
+---
+## ✅ RESOLVED: #s6-brick2b-frame-images-schema
+frame_images payload 格式已修正（d0fb683），ZodError 已消除。
