@@ -20,15 +20,16 @@ import { CreditDebitToast } from './CreditDebitToast';
 import { saveVideoToD1 } from '@/adapters/videoAdapter';
 
 interface Props {
-  prompt:           string;
-  frameImages?:     string[];
-  inputReferences?: string[];
-  aspectRatio?:     string;
-  duration?:        number;
-  resolution?:      string;
-  userId?:          string;
-  episodeId?:       string;
-  onComplete?:      (videoUrl: string, credits: number) => void;
+  prompt:            string;
+  frameImages?:      string[];
+  inputReferences?:  string[];
+  aspectRatio?:      string;
+  duration?:         number;
+  resolution?:       string;
+  userId?:           string;
+  episodeId?:        string;
+  initialVideoUrl?:  string;   // restore: skip to completed phase without re-generating
+  onComplete?:       (videoUrl: string, credits: number) => void;
 }
 
 const PHASE_LABEL: Record<VideoGenPhase, string> = {
@@ -42,9 +43,9 @@ const PHASE_LABEL: Record<VideoGenPhase, string> = {
 export function VideoGenPanel({
   prompt, frameImages, inputReferences,
   aspectRatio = '9:16', duration = 5, resolution = '768p',
-  userId, episodeId, onComplete,
+  userId, episodeId, initialVideoUrl, onComplete,
 }: Props) {
-  const { phase, progress, videoUrl, credits, costUsd, error, submit, reset } = useVideoGen();
+  const { phase, progress, videoUrl, credits, costUsd, error, submit, reset } = useVideoGen(initialVideoUrl);
   const [showToast, setShowToast] = useState(false);
 
   const handleSubmit = async () => {

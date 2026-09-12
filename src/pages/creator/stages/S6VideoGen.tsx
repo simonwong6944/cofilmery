@@ -7,6 +7,7 @@ import { t } from '@/i18n';
 import { Film, ChevronRight } from 'lucide-react';
 import { loadKeyframesFromD1, type KeyframeRecord } from '@/adapters/keyframeAdapter';
 import { loadStoryboardFromD1 } from '@/adapters/storyboardAdapter';
+import { fetchCompletedVideoByEpisode } from '@/adapters/videoAdapter';
 import type { StoryboardPanel } from '@/components/shared/S4StoryboardGen';
 import type { CharacterCard } from '@/adapters/types';
 
@@ -55,6 +56,7 @@ function S6PanelList({ panels, kfMap, charRefs, durationSec, userId, pid6, selec
                 resolution="768p"
                 userId={userId}
                 episodeId={`${pid6}-ep${selectedEp}-p${panel.scene}`}
+                initialVideoUrl={completedVideos[panel.scene]}
                 onComplete={(url, credits) => { onDone(panel.scene, url); void credits; }}
               />
             </div>
@@ -92,12 +94,24 @@ export function S6VideoGen({ onNext }: { onNext: () => void }) {
   const charRefs = (episodeChars.length > 0 ? episodeChars : characters.slice(0, 2))
     .map(c => toAbsUrl(c.img!)).filter(Boolean);
 
-  // Load panels + keyframes when selectedEp changes
+  // Load panels + keyframes + restore completed videos when selectedEp changes
   useEffect(() => {
     if (!pid6 || !selectedEp) return;
-    setPanels([]); setKfMap({});
+    setPanels([]); setKfMap({}); setCompletedVideos({});
     loadStoryboardFromD1(pid6, selectedEp)
-      .then(ps => { if (ps.length > 0) setPanels(ps); })
+      .then(ps => {
+        if (ps.length === 0) return;
+        setPanels(ps);
+        // Restore completed videos: query gen_jobs per panel (non-blocking, graceful)
+        ps.forEach(panel => {
+          const episodeId = `${pid6}-ep${selectedEp}-p${panel.scene}`;
+          fetchCompletedVideoByEpisode(episodeId)
+            .then(url => {
+              if (url) setCompletedVideos(prev => ({ ...prev, [panel.scene]: url }));
+            })
+            .catch(() => { /* graceful: leave panel as idle */ });
+        });
+      })
       .catch(e => console.warn('[S6VideoGen] load panels failed:', e));
     loadKeyframesFromD1(pid6, selectedEp)
       .then(kfs => {

@@ -47,6 +47,31 @@ export async function saveVideoToD1(
 }
 
 /**
+ * fetchCompletedVideoByEpisode — query gen_jobs for latest completed video
+ * by per-panel episodeId via GET /api/ai/video/by-episode/:episodeId.
+ *
+ * Uses the brick-3a endpoint which bypasses episodes.parseEpisodeId bug
+ * (episodes table has no -p1 suffix support, gen_jobs does).
+ *
+ * Returns the videoUrl string, or null if not found / network error.
+ * Never throws — callers should treat null as "not yet completed".
+ *
+ * @param episodeId  Per-panel key e.g. "${pid6}-ep${ep}-p${scene}"
+ */
+export async function fetchCompletedVideoByEpisode(
+  episodeId: string,
+): Promise<string | null> {
+  try {
+    const res = await fetch(`/api/ai/video/by-episode/${encodeURIComponent(episodeId)}`);
+    if (!res.ok) return null;
+    const body = await res.json() as { videoUrl?: string | null };
+    return body.videoUrl ?? null;
+  } catch {
+    return null; // graceful: network error → treat as not completed
+  }
+}
+
+/**
  * loadVideoFromD1 — fetch episode record including video_url from D1.
  *
  * Returns null if episode not found (404) so callers can fall back to

@@ -47,8 +47,12 @@ export interface VideoSubmitParams {
   pollIntervalMs?: number;
 }
 
-export function useVideoGen() {
-  const [state, setState] = useState<VideoGenState>(INITIAL_STATE);
+export function useVideoGen(initialVideoUrl?: string | null) {
+  const [state, setState] = useState<VideoGenState>(() =>
+    initialVideoUrl
+      ? { ...INITIAL_STATE, phase: 'completed', videoUrl: initialVideoUrl }
+      : INITIAL_STATE
+  );
   const abortRef = useRef(false);
 
   const submit = useCallback(async (params: VideoSubmitParams): Promise<{ jobId: string; videoUrl: string | null }> => {
